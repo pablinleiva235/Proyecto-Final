@@ -28,10 +28,6 @@ deactivate () {
     fi
 
     unset VIRTUAL_ENV
-<<<<<<< HEAD
-=======
-    unset VIRTUAL_ENV_PROMPT
->>>>>>> ff028106e3030415563ae88965071f2b3134d9ff
     if [ ! "${1:-}" = "nondestructive" ] ; then
     # Self destruct!
         unset -f deactivate
@@ -41,11 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-<<<<<<< HEAD
 VIRTUAL_ENV="C:\Users\pablo\Desktop\Facu\Proyecto Final\Programas de avance\Encendido y apagado de equipo\virt"
-=======
-VIRTUAL_ENV="C:\Users\Pablo Leiva\Desktop\Proyecto Final\Pruebas con PyQt5\virt"
->>>>>>> ff028106e3030415563ae88965071f2b3134d9ff
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
@@ -64,11 +56,6 @@ if [ -z "${VIRTUAL_ENV_DISABLE_PROMPT:-}" ] ; then
     _OLD_VIRTUAL_PS1="${PS1:-}"
     PS1="(virt) ${PS1:-}"
     export PS1
-<<<<<<< HEAD
-=======
-    VIRTUAL_ENV_PROMPT="(virt) "
-    export VIRTUAL_ENV_PROMPT
->>>>>>> ff028106e3030415563ae88965071f2b3134d9ff
 fi
 
 # This should detect bash and zsh, which have a hash command that must

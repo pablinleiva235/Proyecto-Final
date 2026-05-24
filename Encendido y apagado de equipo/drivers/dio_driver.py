@@ -4,7 +4,7 @@ import ctypes
 # Carga DLL MCC Universal Library
 # =========================================================
 
-cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\DAQ\cbw32.dll")
+cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\DAQ\cbw64.dll") # Cambiar a cbw.32.dll en la notebook de Sala!!
 
 # =========================================================
 # Puertos y direcciones (Universal Library constants)
@@ -57,7 +57,7 @@ cbw.cbDBitIn.argtypes = [
     ctypes.c_int,                           # BoardNum
     ctypes.c_int,                           # PortType
     ctypes.c_int,                           # BitNum
-    ctypes.POINTER(ctypes.c_ushort)         # BitValue
+    ctypes.POINTER(ctypes.c_short)          # BitValue
 ]
 
 # =========================================================
@@ -79,8 +79,8 @@ def write_bit(board, port, bit, value):
 # ---------------------------------------------------------
 # Lectura Digital
 # ---------------------------------------------------------
-def read_bit(board, port, bit):
-    value = ctypes.c_ushort()
-    cbw.cbDBitIn(board, port, bit, ctypes.byref(value))
+def read_bit(board, port_base, bit_offset):
+    value = ctypes.c_short(0)  
+    cbw.cbDBitIn(board, port_base, bit_offset, ctypes.byref(value))
     return value.value
 

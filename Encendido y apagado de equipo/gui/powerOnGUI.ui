@@ -23,10 +23,10 @@
        </font>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="Pre_Encendido">
-       <widget class="QLabel" name="labelMenuPrincipal">
+      <widget class="QWidget" name="MenuPrincipal">
+       <widget class="QLabel" name="MenuPrincipal_label">
         <property name="geometry">
          <rect>
           <x>0</x>
@@ -52,7 +52,7 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QPushButton" name="pushButton_OpenCloseDoor">
+       <widget class="QPushButton" name="MenuPrincipal_pushButton_OpenCloseDoor">
         <property name="geometry">
          <rect>
           <x>250</x>
@@ -70,7 +70,7 @@
          <string>Abrir Puerta</string>
         </property>
        </widget>
-       <widget class="QPushButton" name="pushButton_EnableDisableDrivers">
+       <widget class="QPushButton" name="MenuPrincipal_pushButton_EnableDisableDrivers">
         <property name="geometry">
          <rect>
           <x>510</x>
@@ -89,7 +89,7 @@
         </property>
        </widget>
       </widget>
-      <widget class="QWidget" name="Menu_Inicial">
+      <widget class="QWidget" name="PreEncendido">
        <widget class="QLabel" name="PreEncendido_label2">
         <property name="geometry">
          <rect>

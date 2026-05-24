@@ -13,7 +13,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Crear interfaz
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
+        self.current_state = SystemState.PRE_ENCENDIDO
         # Paso al primer estado: PRE_ENCENDIDO
         self.change_state(SystemState.PRE_ENCENDIDO)
 
@@ -34,6 +34,8 @@ class MainWindow(QtWidgets.QMainWindow):
     # =========================================================
 
     def PreEncendido_init(self):
+        #Inicio en pagina 1 de la GUI
+        self.ui.stackedWidget.setCurrentWidget(self.ui.PreEncendido)
         # Ocultar barra inicialmente
         self.ui.PreEncendido_progressBar.hide()
         # Variables startup
@@ -50,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # Chequeo de si se pulso ON al inicio cada 100ms
     def PreEncendido_check_power_on(self):
         if self.hw.digital_read("POWER_ON_SWITCH"):
+            #print("Timer funcionando")
             self.power_timer.stop()
             self.PreEncendido_startup_sequence()
 
@@ -66,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.startup_progress = 0
         self.ui.PreEncendido_progressBar.setValue(0)
         # Inicializar placa analogica
-        self.hw.initialize_AD()
+        # self.hw.initialize_AD() DESCOMENTAR ESTO EN NOTEBOOK DE SALA
         # Arrancar timer
         self.startup_timer.start(100)
 
@@ -84,9 +87,27 @@ class MainWindow(QtWidgets.QMainWindow):
     # =========================================================
     def MainMenu_init(self):
         # Ir al menú principal --> cambio de pagina
-        self.ui.stackedWidget.setCurrentIndex(1)
+        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
 
     def closeEvent(self, event):
-        self.hw.close()
-        event.accept()
+            # 1) Creamos un cuadro de diálogo para confirmar que el usuario realmente quiere salir
+            reply = QtWidgets.QMessageBox.question(
+                self, 
+                'Confirmar Salida',
+                '¿Está seguro de que desea cerrar la aplicación? Se apagarán todas las salidas.',
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+                QtWidgets.QMessageBox.No
+            )
+            if reply == QtWidgets.QMessageBox.Yes:
+                try:
+                    # 2) Forzamos a todo el hardware a ir a un estado seguro (digital + analógico)
+                    self.hw.safe_state()
+                    print("Hardware llevado a estado seguro correctamente.")
+                except Exception as e:
+                    print(f"Error al intentar llevar el hardware a estado seguro: {e}")
+                # 3) Aceptamos el evento para que la ventana efectivamente se cierre
+                event.accept()
+            else:
+                # Si dice que no, ignoramos el evento y la aplicación sigue corriendo normalmente
+                event.ignore()
 

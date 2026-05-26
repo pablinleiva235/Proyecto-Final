@@ -4,7 +4,7 @@ import ctypes
 # Carga DLL MCC Universal Library
 # =========================================================
 
-cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\DAQ\cbw64.dll") # Cambiar a cbw.32.dll en la notebook de Sala!!
+cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\DAQ\cbw32.dll") # Cambiar a cbw.32.dll en la notebook de Sala!!
 
 # =========================================================
 # RANGOS ANALOGICOS

@@ -1,0 +1,2 @@
+python -m venv virt (crea entorno virtual)
+source virt/Scripts/activate (lo activa)

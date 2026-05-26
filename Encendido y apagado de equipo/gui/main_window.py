@@ -9,14 +9,20 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         self.hw = hardware
+        self.offClose = 0
 
         # Crear interfaz
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.current_state = SystemState.PRE_ENCENDIDO
-        # Paso al primer estado: PRE_ENCENDIDO
-        self.change_state(SystemState.PRE_ENCENDIDO)
+        
+        # Inicio de timer general de lectura de entradas
+        self.io_timer = QtCore.QTimer()
+        self.io_timer.timeout.connect(self.update_inputs)
+        self.io_timer.start(100)
 
+        # Paso al primer estado: PRE_ENCENDIDO
+        self.current_state = SystemState.PRE_ENCENDIDO
+        self.change_state(SystemState.PRE_ENCENDIDO)
 
     # =========================================================
     # FUNCION DE CAMBIO DE ESTADO
@@ -30,6 +36,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.MainMenu_init()
 
     # =========================================================
+    # UPDATE GENERAL DE ENTRADAS
+    # =========================================================
+    def update_inputs(self):
+        # Lectura de entradas del estado PRE_ENCENDIDO
+        if self.current_state == SystemState.PRE_ENCENDIDO:
+            self.PreEncendido_check_power_on()
+        # Lectura de entradas del estado MAIN_MENU
+        elif self.current_state == SystemState.MAIN_MENU:
+            self.MainMenu_check_power_off()
+
+    # =========================================================
     # FUNCIONES DEL ESTADO 0: PRE-ENCENDIDO
     # =========================================================
 
@@ -40,20 +57,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.PreEncendido_progressBar.hide()
         # Variables startup
         self.startup_progress = 0
-        # Timer startup
+        # Timer para update de progressbar
         self.startup_timer = QtCore.QTimer()
         self.startup_timer.timeout.connect(self.PreEncendido_update_progressbar)
-        # Timer POWER_ON_SWITCH
-        self.power_timer = QtCore.QTimer()
-        self.power_timer.timeout.connect(self.PreEncendido_check_power_on)
-        # Leer entrada cada 100 ms
-        self.power_timer.start(100)
 
     # Chequeo de si se pulso ON al inicio cada 100ms
     def PreEncendido_check_power_on(self):
         if self.hw.digital_read("POWER_ON_SWITCH"):
-            #print("Timer funcionando")
-            self.power_timer.stop()
             self.PreEncendido_startup_sequence()
 
     # Si se pulso ON, realiza esta secuencia:
@@ -89,25 +99,59 @@ class MainWindow(QtWidgets.QMainWindow):
         # Ir al menú principal --> cambio de pagina
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
 
+    # Chequeo si se pulso OFF
+    def MainMenu_check_power_off(self):
+        if self.hw.digital_read("P1_38"):
+            print("POWER OFF DETECTADO")
+            self.offClose = 1
+            self.close()
+
+
+    # =========================================================
+    # FUNCION DE CIERRE DE VENTANA
+    # =========================================================
     def closeEvent(self, event):
-            # 1) Creamos un cuadro de diálogo para confirmar que el usuario realmente quiere salir
-            reply = QtWidgets.QMessageBox.question(
-                self, 
-                'Confirmar Salida',
-                '¿Está seguro de que desea cerrar la aplicación? Se apagarán todas las salidas.',
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
-                QtWidgets.QMessageBox.No
-            )
-            if reply == QtWidgets.QMessageBox.Yes:
-                try:
-                    # 2) Forzamos a todo el hardware a ir a un estado seguro (digital + analógico)
-                    self.hw.safe_state()
-                    print("Hardware llevado a estado seguro correctamente.")
-                except Exception as e:
-                    print(f"Error al intentar llevar el hardware a estado seguro: {e}")
-                # 3) Aceptamos el evento para que la ventana efectivamente se cierre
-                event.accept()
+            if self.offClose == 0:
+                # --- CASO 1: Cierre por la "X" (Pregunta Confirmación) ---
+                reply = QtWidgets.QMessageBox.question(
+                    self, 
+                    'Confirmar Salida',
+                    '¿Está seguro de que desea cerrar la aplicación? Se apagarán todas las salidas.',
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
+                    QtWidgets.QMessageBox.No
+                )
+                
+                if reply == QtWidgets.QMessageBox.Yes:
+                    try:
+                        # Llevamos el hardware a estado seguro y frenamos el lazo de I/O
+                        self.hw.safe_state()
+                        self.io_timer.stop()
+                        print("Hardware llevado a estado seguro correctamente.")
+                    except Exception as e:
+                        print(f"Error al intentar llevar el hardware a estado seguro: {e}")
+                    
+                    event.accept()
+                else:
+                    event.ignore()
+                    
             else:
-                # Si dice que no, ignoramos el evento y la aplicación sigue corriendo normalmente
-                event.ignore()
+                # --- CASO 2: Cierre por pulsador físico OFF (Aviso obligatorio) ---
+                # Mostramos la ventana informativa que solo tiene el botón de Aceptar
+                QtWidgets.QMessageBox.information(
+                    self,
+                    'Apagado del Sistema',
+                    'El programa se cerrará dejando las placas en estado seguro.',
+                    QtWidgets.QMessageBox.Ok
+                )
+                
+                try:
+                    # Forzamos de igual manera el estado seguro y apagamos el timer
+                    self.hw.safe_state()
+                    self.io_timer.stop()
+                    print("Hardware llevado a estado seguro de forma automática por pulsador OFF.")
+                except Exception as e:
+                    print(f"Error al intentar llevar el hardware a estado seguro en apagado directo: {e}")
+                
+                # Aceptamos el cierre directamente sin más preguntas
+                event.accept()
 

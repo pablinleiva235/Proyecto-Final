@@ -102,8 +102,8 @@ DIGITALSIGNALS = {
     "ATM_SWITCH":                 {"port": dio.THIRDPORTA, "bit": 4, "dir": "IN", "active_state": 0, "initial_state": 0},
     "WAFER_SENT_SENSE":           {"port": dio.THIRDPORTA, "bit": 3, "dir": "IN", "active_state": 0, "initial_state": 1},
     "WAFER_RECEIVED_SENSE":       {"port": dio.THIRDPORTA, "bit": 2, "dir": "IN", "active_state": 0, "initial_state": 1}, 
-    "MAGNETRON_WARNING":          {"port": dio.THIRDPORTA, "bit": 1, "dir": "IN", "active_state": 0, "initial_state": 0}, 
-    "MAGNETRON_OVERHEAT":         {"port": dio.THIRDPORTA, "bit": 0, "dir": "IN", "active_state": 0, "initial_state": 0}, 
+    "MAGNETRON_WARNING":          {"port": dio.THIRDPORTA, "bit": 1, "dir": "IN", "active_state": 1, "initial_state": 0}, 
+    "MAGNETRON_OVERHEAT":         {"port": dio.THIRDPORTA, "bit": 0, "dir": "IN", "active_state": 1, "initial_state": 0}, 
 
     # --------- SEÑALES THIRDPORTB: P2-83 a P2-90 / ENTRADAS ----------
     "DOOR_OPEN":                  {"port": dio.THIRDPORTB, "bit": 7, "dir": "IN", "active_state": 0, "initial_state": 1},

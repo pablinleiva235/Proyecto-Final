@@ -71,9 +71,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def PreEncendido_startup_sequence(self):
         # Activar retención
         self.hw.digital_set("POWER_ON", ACTIVE)
-        print(self.hw.digital_read("SEND_CASS_SENSE"))
-        print(self.hw.digital_read("MAGNETRON_WARNING"))
-        print(self.hw.digital_read("MAGNETRON_OVERHEAT"))
         # Cambiar texto
         self.ui.PreEncendido_label2.setText("Iniciando, espere ...")
         # Mostrar barra
@@ -119,7 +116,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 reply = QtWidgets.QMessageBox.question(
                     self, 
                     'Confirmar Salida',
-                    '¿Está seguro de que desea cerrar la aplicación? Se apagarán todas las salidas.',
+                    '¿Está seguro de que desea cerrar la aplicación?',
                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
                     QtWidgets.QMessageBox.No
                 )
@@ -127,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if reply == QtWidgets.QMessageBox.Yes:
                     try:
                         # Llevamos el hardware a estado seguro y frenamos el lazo de I/O
-                        self.hw.safe_state()
+                        self.hw.shutdown_state()
                         self.io_timer.stop()
                         print("Hardware llevado a estado seguro correctamente.")
                     except Exception as e:
@@ -149,7 +146,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 try:
                     # Forzamos de igual manera el estado seguro y apagamos el timer
-                    self.hw.safe_state()
+                    self.hw.shutdown_state()
                     self.io_timer.stop()
                     print("Hardware llevado a estado seguro de forma automática por pulsador OFF.")
                 except Exception as e:

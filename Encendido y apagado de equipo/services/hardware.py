@@ -46,7 +46,6 @@ class Hardware:
             (dio.FOURTHPORTCH, dio.DIGITALOUT)
         ]
         for port, direction in ports:
-            print(f"port: {port}, direction: {direction}")
             err = dio.config_port(self.dio_board, port, direction)
             if err != 0:
                 raise Exception(f"Error configurando puerto {port}")
@@ -61,11 +60,36 @@ class Hardware:
         self.analog_safe_state()
 
     # ===========================================================================================
-    #                    FUNCION DE ESTADO SEGURO ANTE ALGUNA FALLA/EMERGENCIA
+    #                    FUNCION DE ESTADO SEGURO EN EL APAGADO/EMERGENCIA
     # ===========================================================================================
-    def safe_state(self):
+    def shutdown_state(self):
+        # 1) Llevar salidas a estado seguro
         self.digital_safe_state()
-        #self.analog_safe_state() DESCOMENTAR EN LAS PRUEBAS!!
+        #self.analog_safe_state() DESCOMENTAR EN LA PRUEBA EN LA NOTEBOOK
+        # 2) Configurar todos los puertos digitales como entrada
+        all_ports = [
+            dio.FIRSTPORTA,
+            dio.FIRSTPORTB,
+            dio.FIRSTPORTCL,
+            dio.FIRSTPORTCH,
+
+            dio.SECONDPORTA,
+            dio.SECONDPORTB,
+            dio.SECONDPORTCL,
+            dio.SECONDPORTCH,
+
+            dio.THIRDPORTA,
+            dio.THIRDPORTB,
+            dio.THIRDPORTCL,
+            dio.THIRDPORTCH,
+
+            dio.FOURTHPORTA,
+            dio.FOURTHPORTB,
+            dio.FOURTHPORTCL,
+            dio.FOURTHPORTCH,
+        ]
+        for port in all_ports:
+            dio.config_port(self.dio_board, port, dio.DIGITALIN)
         
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL
@@ -116,7 +140,6 @@ class Hardware:
             value = int(not signal["active_state"])
         # Traducimos usando la lógica completa de 96 bits
         port_base, bit_offset = self.map_to_ul_bit(signal["port"], signal["bit"])
-        #print(f"signal_name = {signal_name}, port_base = {port_base}, bit_offset = {bit_offset}")
         dio.write_bit(self.dio_board, port_base, bit_offset, value)
 
     # -------- Lectura de entradas digitales --------

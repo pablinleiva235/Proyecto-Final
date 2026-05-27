@@ -71,6 +71,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def PreEncendido_startup_sequence(self):
         # Activar retención
         self.hw.digital_set("POWER_ON", ACTIVE)
+        print(self.hw.digital_read("SEND_CASS_SENSE"))
+        print(self.hw.digital_read("MAGNETRON_WARNING"))
+        print(self.hw.digital_read("MAGNETRON_OVERHEAT"))
         # Cambiar texto
         self.ui.PreEncendido_label2.setText("Iniciando, espere ...")
         # Mostrar barra
@@ -101,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Chequeo si se pulso OFF
     def MainMenu_check_power_off(self):
-        if self.hw.digital_read("P1_38"):
+        if self.hw.digital_read("SYS_POWER"):
             print("POWER OFF DETECTADO")
             self.offClose = 1
             self.close()

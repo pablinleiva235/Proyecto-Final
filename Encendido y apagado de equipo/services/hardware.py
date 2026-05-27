@@ -46,6 +46,7 @@ class Hardware:
             (dio.FOURTHPORTCH, dio.DIGITALOUT)
         ]
         for port, direction in ports:
+            print(f"port: {port}, direction: {direction}")
             err = dio.config_port(self.dio_board, port, direction)
             if err != 0:
                 raise Exception(f"Error configurando puerto {port}")
@@ -64,7 +65,7 @@ class Hardware:
     # ===========================================================================================
     def safe_state(self):
         self.digital_safe_state()
-        self.analog_safe_state()
+        #self.analog_safe_state() DESCOMENTAR EN LAS PRUEBAS!!
         
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL
@@ -81,25 +82,30 @@ class Hardware:
 
     # -------- Funcion de conversion de Puerto y Bit a formato Universal Library --------
     def map_to_ul_bit(self, port, bit):
-        # --- CONECTOR P1: Bloque 1 ---
-        if 10 <= port <= 13:
-            port_base = 10  # FIRSTPORTA
-            bit_offset = bit if port == 10 else (8 + bit if port == 11 else (16 + bit if port == 12 else 20 + bit))
-        # --- CONECTOR P1: Bloque 2 ---
-        elif 14 <= port <= 17:
-            port_base = 14  # SECONDPORTA
-            bit_offset = bit if port == 14 else (8 + bit if port == 15 else (16 + bit if port == 16 else 20 + bit))
-        # --- CONECTOR P2: Bloque 3 ---
-        elif 18 <= port <= 21:
-            port_base = 18  # THIRDPORTA
-            bit_offset = bit if port == 18 else (8 + bit if port == 19 else (16 + bit if port == 20 else 20 + bit))
-        # --- CONECTOR P2: Bloque 4 ---
-        elif 22 <= port <= 25:
-            port_base = 22  # FOURTHPORTA
-            bit_offset = bit if port == 22 else (8 + bit if port == 23 else (16 + bit if port == 24 else 20 + bit))
-        else:
-            raise ValueError(f"Puerto {port} fuera de rango legal de la UL (10 a 25).")
-        return port_base, bit_offset
+
+        port_offsets = {
+            dio.FIRSTPORTA: 0,
+            dio.FIRSTPORTB: 8,
+            dio.FIRSTPORTCL: 16,
+            dio.FIRSTPORTCH: 20,
+
+            dio.SECONDPORTA: 24,
+            dio.SECONDPORTB: 32,
+            dio.SECONDPORTCL: 40,
+            dio.SECONDPORTCH: 44,
+
+            dio.THIRDPORTA: 48,
+            dio.THIRDPORTB: 56,
+            dio.THIRDPORTCL: 64,
+            dio.THIRDPORTCH: 68,
+
+            dio.FOURTHPORTA: 72,
+            dio.FOURTHPORTB: 80,
+            dio.FOURTHPORTCL: 88,
+            dio.FOURTHPORTCH: 92,
+        }
+        global_bit = port_offsets[port] + bit
+        return dio.FIRSTPORTA, global_bit
 
     # -------- Seteo de salidas digitales --------
     def digital_set(self, signal_name, active):
@@ -110,6 +116,7 @@ class Hardware:
             value = int(not signal["active_state"])
         # Traducimos usando la lógica completa de 96 bits
         port_base, bit_offset = self.map_to_ul_bit(signal["port"], signal["bit"])
+        #print(f"signal_name = {signal_name}, port_base = {port_base}, bit_offset = {bit_offset}")
         dio.write_bit(self.dio_board, port_base, bit_offset, value)
 
     # -------- Lectura de entradas digitales --------

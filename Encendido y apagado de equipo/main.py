@@ -9,7 +9,6 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     hw = Hardware()
     #Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
-    hw.initialize_DIO()
     window = MainWindow(hw)
     window.show()
     sys.exit(app.exec_())

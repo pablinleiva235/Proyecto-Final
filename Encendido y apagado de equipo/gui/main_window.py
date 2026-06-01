@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.startup_progress = 0
         self.ui.PreEncendido_progressBar.setValue(0)
         # Inicializar placa analogica
-        # self.hw.initialize_AD() DESCOMENTAR ESTO EN NOTEBOOK DE SALA
+        # self.hw.initialize_AD() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
         # Arrancar timer
         self.startup_timer.start(100)
 

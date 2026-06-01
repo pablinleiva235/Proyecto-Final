@@ -9,9 +9,10 @@ class Hardware:
     def __init__(self):
         # ---------- USBDIO96H ----------
         self.dio_board = 0
-
         # ---------- USB-2527 ----------
         self.ad_board = 1
+
+        self.initialize_DIO()
 
     # ===========================================================================================
     #                           FUNCION DE INICIALIZACION PLACA DIGITAL
@@ -50,7 +51,7 @@ class Hardware:
             if err != 0:
                 raise Exception(f"Error configurando puerto {port}")
 
-        # 2) ------------  Inicializacion de señales ----------------
+        # 2) ------------  Inicializacion de salidas ----------------
         self.digital_safe_state()
 
     # ===========================================================================================
@@ -65,31 +66,7 @@ class Hardware:
     def shutdown_state(self):
         # 1) Llevar salidas a estado seguro
         self.digital_safe_state()
-        #self.analog_safe_state() DESCOMENTAR EN LA PRUEBA EN LA NOTEBOOK
-        # 2) Configurar todos los puertos digitales como entrada
-        all_ports = [
-            dio.FIRSTPORTA,
-            dio.FIRSTPORTB,
-            dio.FIRSTPORTCL,
-            dio.FIRSTPORTCH,
-
-            dio.SECONDPORTA,
-            dio.SECONDPORTB,
-            dio.SECONDPORTCL,
-            dio.SECONDPORTCH,
-
-            dio.THIRDPORTA,
-            dio.THIRDPORTB,
-            dio.THIRDPORTCL,
-            dio.THIRDPORTCH,
-
-            dio.FOURTHPORTA,
-            dio.FOURTHPORTB,
-            dio.FOURTHPORTCL,
-            dio.FOURTHPORTCH,
-        ]
-        for port in all_ports:
-            dio.config_port(self.dio_board, port, dio.DIGITALIN)
+        #self.analog_safe_state() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
         
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL

@@ -10,8 +10,8 @@ cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\D
 # RANGOS ANALOGICOS
 # (Universal Library constants)
 # =========================================================
-UNI10VOLTS = 100    # 0-10V
-UNI5VOLTS  = 101    # 0-5V
+BIP5VOLTS  = 0     # -5V a +5V
+BIP10VOLTS = 1     # -10V a +10V
 
 # =========================================================
 # ESCALAS DE TEMPERATURA
@@ -23,32 +23,48 @@ KELVIN     = 2
 # =========================================================
 # OPCIONES
 # =========================================================
-NOFILTER = 0
-FILTER   = 1
+FILTER   = 0
+NOFILTER = 1024
 
 # =========================================================
 # APIs USB-2527: C -> Python
 # =========================================================
 
 # ------------------ Lectura Analogica --------------------
-cbw.cbVIn.argtypes = [
+cbw.cbAIn.argtypes = [
     ctypes.c_int,                     # BoardNum
     ctypes.c_int,                     # Channel
     ctypes.c_int,                     # Range
-    ctypes.POINTER(ctypes.c_float),   # DataValue
-    ctypes.c_int                      # Options
+    ctypes.POINTER(ctypes.c_ushort)   # DataValue (WORD / unsigned short)
 ]
-cbw.cbVIn.restype = ctypes.c_int
+cbw.cbAIn.restype = ctypes.c_int
 
 # ------------------ Escritura Analogica ------------------
-cbw.cbVOut.argtypes = [
+cbw.cbAOut.argtypes = [
     ctypes.c_int,     # BoardNum
     ctypes.c_int,     # Channel
     ctypes.c_int,     # Range
-    ctypes.c_float,   # DataValue
-    ctypes.c_int      # Options
+    ctypes.c_ushort   # DataValue (WORD / unsigned short)
 ]
-cbw.cbVOut.restype = ctypes.c_int
+cbw.cbAOut.restype = ctypes.c_int
+
+# ------------------ Conversión de Lectura (ADC -> Volts) ------------------
+cbw.cbToEngUnits.argtypes = [
+    ctypes.c_int,                     # BoardNum
+    ctypes.c_int,                     # Range
+    ctypes.c_ushort,                  # DataValue (Counts)
+    ctypes.POINTER(ctypes.c_float)    # EngUnits (Volts)
+]
+cbw.cbToEngUnits.restype = ctypes.c_int
+
+# ------------------ Conversión de Escritura (Volts -> DAC) ----------------
+cbw.cbFromEngUnits.argtypes = [
+    ctypes.c_int,                     # BoardNum
+    ctypes.c_int,                     # Range
+    ctypes.c_float,                   # EngUnits (Volts)
+    ctypes.POINTER(ctypes.c_ushort)   # DataValue (Counts)
+]
+cbw.cbFromEngUnits.restype = ctypes.c_int
 
 # ------------------ Lectura Termocupla -------------------
 cbw.cbTIn.argtypes = [
@@ -63,25 +79,36 @@ cbw.cbTIn.restype = ctypes.c_int
 # =========================================================
 # Funciones Analogicas Python
 # =========================================================
-
 # ---------------------------------------------------------
-# Lectura analogica en VOLTS
-# 0-5VDC para MFCS / 0-10VDC para EOP y Baratron
+# Lectura analógica en VOLTS
 # ---------------------------------------------------------
 def read_voltage(board, channel, voltage_range):
-    value = ctypes.c_float()
-    err = cbw.cbVIn(board, channel, voltage_range, ctypes.byref(value), 0)
+    raw_value = ctypes.c_ushort()
+    # 1. Lee las cuentas binarias del hardware
+    err = cbw.cbAIn(board, channel, voltage_range, ctypes.byref(raw_value)) [cite: 7]
     if err != 0:
-        raise Exception(f"cbVIn error {err}")
-    return value.value
+        raise Exception(f"cbAIn error {err}")
+    # 2. Convierte las cuentas a voltios por software
+    voltage_volts = ctypes.c_float()
+    err = cbw.cbToEngUnits(board, voltage_range, raw_value.value, ctypes.byref(voltage_volts))
+    if err != 0:
+        raise Exception(f"cbToEngUnits error {err}")
+        
+    return voltage_volts.value
 
 # ---------------------------------------------------------
-# Escritura analogica en VOLTS
+# Escritura analógica en VOLTS
 # ---------------------------------------------------------
-def write_voltage(board, channel, voltage, voltage_range=UNI5VOLTS):
-    err = cbw.cbVOut(board, channel, voltage_range, ctypes.c_float(voltage), 0)
+def write_voltage(board, channel, voltage, voltage_range):
+    raw_counts = ctypes.c_ushort()
+    # 1. Convierte los voltios deseados a cuentas binarias por software
+    err = cbw.cbFromEngUnits(board, voltage_range, ctypes.c_float(voltage), ctypes.byref(raw_counts))
     if err != 0:
-        raise Exception(f"cbVOut error {err}")
+        raise Exception(f"cbFromEngUnits error {err}")
+    # 2. Envía las cuentas calculadas al DAC de la placa
+    err = cbw.cbAOut(board, channel, voltage_range, raw_counts.value) [cite: 40]
+    if err != 0:
+        raise Exception(f"cbAOut error {err}")
 
 # ---------------------------------------------------------
 # Lectura de termocupla

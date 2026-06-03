@@ -98,6 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def MainMenu_init(self):
         # Ir al menú principal --> cambio de pagina
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
+        # Logica de botones Abrir puerta y Habilitar Driver
 
     # Chequeo si se pulso OFF
     def MainMenu_check_power_off(self):

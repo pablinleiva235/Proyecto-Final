@@ -1,0 +1,31 @@
+site_name: "Reautomatizacion Aura 1000"
+
+theme:
+  name: "material"
+  features:
+    - navigation.tabs
+    - navigation.expand
+
+nav:
+  - Inicio: index.md
+  - Estructura de Carpetas: arquitectura/carpetas.md
+  - /config (Señales): config/signals.md
+  - /drivers: drivers/drivers.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["."]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            filters: 
+              - "!^_" # Muestra todo lo que no empiece con guión bajo (es decir, variables públicas)
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details      

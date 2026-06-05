@@ -1,4 +1,5 @@
 site_name: "Reautomatizacion Aura 1000"
+use_directory_urls: false
 
 theme:
   name: "material"
@@ -9,8 +10,14 @@ theme:
 nav:
   - Inicio: index.md
   - Estructura de Carpetas: arquitectura/carpetas.md
-  - /config (Señales): config/signals.md
-  - /drivers: drivers/drivers.md
+  - /config (Señales):
+    - Indice: config/index.md
+    - Digitales (digital_signals.py): config/digital_signals.md
+    - Analogicas (analog_signals.py): config/analog_signals.md
+  - /drivers:
+    - Índice: drivers/index.md
+    - Analogico (analog_driver.py): drivers/analogico.md
+    - Digital (dio_driver.py): drivers/digital.md
 
 plugins:
   - search
@@ -26,6 +33,7 @@ plugins:
               - "!^_" # Muestra todo lo que no empiece con guión bajo (es decir, variables públicas)
 
 markdown_extensions:
+  - admonition
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.details      

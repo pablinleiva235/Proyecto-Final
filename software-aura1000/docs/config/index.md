@@ -1,6 +1,8 @@
 # Capa de configuracion de señales (`/config`)
 
-En esta sección se listan en diccionarios las señales digitales y analogicas usadas para controlar el Asher, especificando caracteristicas de cada una de ellas, para luego manejarlas facilmente simplemente con sus nombres y sus caracteristicas y abstraernos del bajo nivel de las mismas
+Aloja diccionarios de Python que actúan como "tablas de verdad" o mapas físicos. Centraliza los nombres lógicos de las señales (como `PURGE_VALVE_CONTROL` o `BARATRON`) asociándolos a sus puertos y bits reales. Esto permite realizar cambios en el cableado eléctrico del equipo modificando un solo archivo, sin alterar el código fuente de los drivers o la GUI.
+
+---
 
 ## Módulos Disponibles
 

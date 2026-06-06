@@ -18,6 +18,14 @@ nav:
     - Índice: drivers/index.md
     - Analogico (analog_driver.py): drivers/analogico.md
     - Digital (dio_driver.py): drivers/digital.md
+  - /gui:
+    - Índice: gui/index.md
+    - Interfaz diseñada en PyQt5 (pyqt_gui.py): gui/pyqt_gui.md
+    - Ventana de arranque y ejecucion de programa (main_window.py): gui/main_window.md
+  - /services:
+    - Índice: services/index.md
+    - Clase con metodos de alto nivel para control de hardware (hardware.py): services/hardware.md
+    - Enumeracion de estados de maquina de estados (system_state.py): services/system_state.md
 
 plugins:
   - search

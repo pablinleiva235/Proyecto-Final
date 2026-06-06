@@ -1,6 +1,6 @@
 from config.digital_signals import ACTIVE, INACTIVE
 from PyQt5 import QtCore, QtGui, QtWidgets
-from gui.powerOnGUI import Ui_MainWindow
+from gui.pyqt_gui import Ui_MainWindow
 from services.system_state import SystemState
 
 # Esta es la clase que se llama en Main y dentro de esta se llama a la UI generada en PyQt

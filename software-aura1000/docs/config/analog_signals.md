@@ -6,11 +6,9 @@ Este módulo centraliza la asignación física de los canales analógicos de la 
 
 ## <span style="color: #2196F3;">Estructura de Diccionarios Analógicos</span>
 
-A diferencia de las señales digitales, el mapeo analógico gestiona parámetros de escalado físico, rangos de tensión dinámicos (`BIP5VOLTS` / `BIP10VOLTS`) y direccionamiento de canales multiplexados.
+Se mapean en 3 grupos de diccionarios, entradas analogicas, salidas analogicas y entrada de termocupla:
 
-A continuación, se detalla la configuración del módulo segmentada por su función:
-
-??? note "1. Monitoreo de Sensores de Proceso (Entradas Analógicas - `ANALOG_INPUTS`)"
+??? note "1. Entradas Analógicas - `ANALOG_INPUTS`"
     Registra los canales para los caudales de gas leídos de los controladores de flujo (MFC), la presión absoluta de la cámara mediante el sensor capacitivo Baratron y la señal del End-Of-Process (EOP).
     ```python
     from drivers import analog_driver as ad
@@ -25,7 +23,7 @@ A continuación, se detalla la configuración del módulo segmentada por su func
     }
     ```
 
-??? note "2. Control de Consignas de Caudal (Salidas Analógicas - `ANALOG_OUTPUTS`)"
+??? note "2. Salidas Analógicas - `ANALOG_OUTPUTS`"
     Define los canales de control analógico para enviar los (*Setpoints*) de los cuatro MFC.
 
     !!! info "Aclaración sobre el DAC de la Placa USB-2527"
@@ -40,7 +38,7 @@ A continuación, se detalla la configuración del módulo segmentada por su func
     }
     ```
 
-??? note "3. Registro Térmico de Cámara (Termocupla - `THERMOCOUPLE`)"
+??? note "3. Termocupla - `THERMOCOUPLE`"
     Canal dedicado a la lectura directa de temperatura del proceso dentro del reactor mediante el bloque de compensación nativo del hardware.
     ```python
     THERMOCOUPLE = {

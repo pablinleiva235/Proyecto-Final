@@ -1,0 +1,1365 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="pyqt_gui.html">
+      
+      
+        <link rel="next" href="../services/index.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Ventana de arranque y ejecucion de programa (main_window.py) - Reautomatizacion Aura 1000</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#main_windowpy" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Reautomatizacion Aura 1000" class="md-header__button md-logo" aria-label="Reautomatizacion Aura 1000" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Reautomatizacion Aura 1000
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ventana de arranque y ejecucion de programa (main_window.py)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../index.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../arquitectura/carpetas.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Estructura de Carpetas
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../config/index.html" class="md-tabs__link">
+          
+  
+  
+  /config (Señales)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../drivers/index.html" class="md-tabs__link">
+          
+  
+  
+  /drivers
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="index.html" class="md-tabs__link">
+          
+  
+  
+  /gui
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../services/index.html" class="md-tabs__link">
+          
+  
+  
+  /services
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Reautomatizacion Aura 1000" class="md-nav__button md-logo" aria-label="Reautomatizacion Aura 1000" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Reautomatizacion Aura 1000
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arquitectura/carpetas.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estructura de Carpetas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /config (Señales)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /config (Señales)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Indice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/digital_signals.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Digitales (digital_signals.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/analog_signals.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analogicas (analog_signals.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /drivers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /drivers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/analogico.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analogico (analog_driver.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/digital.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Digital (dio_driver.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /gui
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /gui
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="pyqt_gui.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interfaz diseñada en PyQt5 (pyqt_gui.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ventana de arranque y ejecucion de programa (main_window.py)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="main_window.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ventana de arranque y ejecucion de programa (main_window.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-de-inicializacion-y-control-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos de Inicialización y Control General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-del-estado-0-pre-encendido" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos del Estado 0: PRE-ENCENDIDO
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-del-estado-1-main_menu-y-cierre-seguro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos del Estado 1: MAIN_MENU y Cierre Seguro
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodo-de-cierre-del-programa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de cierre del programa
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /services
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /services
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../services/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../services/hardware.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos de alto nivel para control de hardware (hardware.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../services/system_state.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enumeracion de estados de maquina de estados (system_state.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-de-inicializacion-y-control-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos de Inicialización y Control General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-del-estado-0-pre-encendido" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos del Estado 0: PRE-ENCENDIDO
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-del-estado-1-main_menu-y-cierre-seguro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos del Estado 1: MAIN_MENU y Cierre Seguro
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodo-de-cierre-del-programa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de cierre del programa
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="main_windowpy"><code>main_window.py</code></h1>
+<p>El módulo <code>main_window.py</code> constituye el componente central de la interfaz gráfica de usuario (GUI) y el motor de ejecución del sistema. Implementa la clase <code>MainWindow</code>, la cual hereda de <code>QtWidgets.QMainWindow</code>, y actúa como el <strong>orquestador principal</strong> del equipo, vinculando los elementos visuales de PyQt5 con las acciones físicas sobre el hardware, la lógica de la máquina de estados y las rutinas críticas de interlock.</p>
+<hr />
+<h2 id="metodos-de-inicializacion-y-control-general"><span style="color: #2196F3;">Métodos de Inicialización y Control General</span></h2>
+<details class="note">
+<summary>Inicialización del Constructor: <code>__init__(self, hardware)</code></summary>
+<p>Instancia la clase base, almacena la referencia del hardware compartido para interactuar con las placas de adquisición y configura las condiciones iniciales de la UI. Lanza el temporizador cíclico principal (<code>io_timer</code>) a un intervalo de <strong>100 ms</strong> para lectura de entradas e inicializa la máquina de estados en la fase de pre-encendido.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hardware</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span> <span class="o">=</span> <span class="n">hardware</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">offClose</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Crear interfaz</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="n">Ui_MainWindow</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">setupUi</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="c1"># Inicio de timer general de lectura de entradas</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">io_timer</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QTimer</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">io_timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">update_inputs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">io_timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># Paso al primer estado: PRE_ENCENDIDO</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">SystemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Transición de la Máquina de Estados: <code>change_state(self, new_state)</code></summary>
+<p>Gestiona de forma centralizada los cambios de estado del sistema. Imprime en la consola el flanco de transición, actualiza la variable de estado actual (<code>current_state</code>) y deriva el flujo hacia el método de inicialización (<em>init</em>) de la fase entrante (<code>PRE_ENCENDIDO</code> o <code>MAIN_MENU</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">change_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_state</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;STATE: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_state</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">new_state</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">new_state</span>
+    <span class="k">if</span> <span class="n">new_state</span> <span class="o">==</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PreEncendido_init</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">new_state</span> <span class="o">==</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MainMenu_init</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura de entradas: <code>update_inputs(self)</code></summary>
+<p>Es llamado cuando pasan los 100ms del <code>io_timer</code>. Evalúa de forma condicional el estado lógico en el que se encuentra la máquina y luego llama a las funciones de lectura de las entradas de interes en ese estado</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Lectura de entradas del estado PRE_ENCENDIDO</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">==</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PreEncendido_check_power_on</span><span class="p">()</span>
+    <span class="c1"># Lectura de entradas del estado MAIN_MENU</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">==</span> <span class="n">SystemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MainMenu_check_power_off</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="metodos-del-estado-0-pre-encendido"><span style="color: #2196F3;">Métodos del Estado 0: PRE-ENCENDIDO</span></h2>
+<details class="note">
+<summary>Preparación del Entorno de Arranque: <code>PreEncendido_init(self)</code></summary>
+<p>Se llama al iniciar el programa, fuerza al contenedor multi-página (<code>stackedWidget</code>) de la UI a conmutar hacia la pantalla visual indexada como <code>PreEncendido</code>, oculta inicialmente la barra de progreso, reseteea el acumulador a cero e instancia el temporizador dedicado (<code>startup_timer</code>) para controlar la barra de progreso.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">PreEncendido_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1">#Inicio en pagina 1 de la GUI</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">stackedWidget</span><span class="o">.</span><span class="n">setCurrentWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido</span><span class="p">)</span>
+    <span class="c1"># Ocultar barra inicialmente</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">hide</span><span class="p">()</span>
+    <span class="c1"># Variables startup</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Timer para update de progressbar</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_timer</span> <span class="o">=</span> <span class="n">QtCore</span><span class="o">.</span><span class="n">QTimer</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PreEncendido_update_progressbar</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Monitoreo del Pulsador de Marcha: <code>PreEncendido_check_power_on(self)</code></summary>
+<p>Consulta cíclicamente mediante la abstracción de hardware el estado de la línea digital asociada al interruptor físico de marcha (<code>POWER_ON_SWITCH</code>). Al detectar un nivel alto (pulsador activo) invoca la secuencia de inicio del equipo.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">PreEncendido_check_power_on</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;POWER_ON_SWITCH&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PreEncendido_startup_sequence</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Secuencia de Enclavamiento de Potencia: <code>PreEncendido_startup_sequence(self)</code></summary>
+<p>Gobernado por la activación del pulsador físico de marcha, ejecuta de manera secuencial el enclavamiento eléctrico por software de la línea <code>POWER_ON</code>, reconfigura las etiquetas informativas de la UI, visualiza la barra de progreso e inicia el temporizador para aumentar la barra cada 100ms.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">PreEncendido_startup_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Activar retención</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;POWER_ON&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+    <span class="c1"># Cambiar texto</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_label2</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Iniciando, espere ...&quot;</span><span class="p">)</span>
+    <span class="c1"># Mostrar barra</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="c1"># Reset barra</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Inicializar placa analogica</span>
+    <span class="c1"># self.hw.initialize_AD() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!</span>
+    <span class="c1"># Arrancar timer</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Control de Estabilización del Sistema: <code>PreEncendido_update_progressbar(self)</code></summary>
+<p>Incrementa linealmente el acumulador en una unidad y actualiza el valor del widget visual de la barra de progreso. Al estar configurado a un paso por cada 100 ms, alcanzar el límite de <strong>100 pasos</strong> garantiza un delay de <strong>10 segundos</strong> de estabilización térmica/eléctrica. Cumplido el tiempo, frena el timer y transiciona el sistema a <code>MAIN_MENU</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">PreEncendido_update_progressbar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span><span class="p">)</span>
+    <span class="c1"># 100 pasos x 100ms = 10 segundos</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">startup_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="c1"># Paso a estado MAIN_MENU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">SystemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="metodos-del-estado-1-main_menu-y-cierre-seguro"><span style="color: #2196F3;">Métodos del Estado 1: MAIN_MENU y Cierre Seguro</span></h2>
+<details class="note">
+<summary>Inicialización del Menú de Operación: <code>MainMenu_init(self)</code></summary>
+<p>Produce el cambio de página en el contenedor gráfico de Qt para desplegar el entorno operativo principal (<code>MenuPrincipal</code>), donde se exponen el menu principal del equipo</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">MainMenu_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Ir al menú principal --&gt; cambio de pagina</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">stackedWidget</span><span class="o">.</span><span class="n">setCurrentWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal</span><span class="p">)</span>
+    <span class="c1"># Logica de botones Abrir puerta y Habilitar Driver</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Monitoreo del Interruptor de Apagado General: <code>MainMenu_check_power_off(self)</code></summary>
+<p>Monitorea de forma continua la línea digital de entrada <code>SYS_POWER</code> desde el menú principal. Si se detecta una caída de tensión o flanco inactivo en el lazo de potencia del equipo, setea el flag <code>offClose = 1</code> para saltearse la confirmación de software y fuerza el disparo del método nativo <code>close()</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">MainMenu_check_power_off</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;SYS_POWER&quot;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;POWER OFF DETECTADO&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offClose</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="metodo-de-cierre-del-programa"><span style="color: #2196F3;">Método de cierre del programa</span></h2>
+<details class="note">
+<summary><code>closeEvent(self, event)</code></summary>
+<p>Sobrescribe el evento nativo de destrucción de la ventana de Qt para actuar como un interlock de seguridad crítico. Discrimina el origen del cierre: si es manual por la "X" (<code>offClose == 0</code>), lanza un cuadro interactivo (<code>QMessageBox.question</code>) de confirmación; si es provocado por hardware (<code>offClose == 1</code>), muestra un aviso informativo directo. En ambos casos aceptados, fuerza la llamada a <code>hw.shutdown_state()</code> para desactivar relés y actuadores, detiene el lazo de timers y apaga el sistema en un estado pasivo seguro.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">offClose</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># --- CASO 1: Cierre por la &quot;X&quot; (Pregunta Confirmación) ---</span>
+        <span class="n">reply</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">question</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> 
+            <span class="s1">&#39;Confirmar Salida&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;¿Está seguro de que desea cerrar la aplicación?&#39;</span><span class="p">,</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Yes</span> <span class="o">|</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">No</span><span class="p">,</span> 
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">No</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">reply</span> <span class="o">==</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Yes</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Llevamos el hardware a estado seguro y frenamos el lazo de I/O</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">shutdown_state</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">io_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hardware llevado a estado seguro correctamente.&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error al intentar llevar el hardware a estado seguro: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">event</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">ignore</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># --- CASO 2: Cierre por pulsador físico OFF (Aviso obligatorio) ---</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">information</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="s1">&#39;Apagado del Sistema&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;El programa se cerrará dejando las placas en estado seguro.&#39;</span><span class="p">,</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Forzamos de igual manera el estado seguro y apagamos el timer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">shutdown_state</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">io_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hardware llevado a estado seguro de forma automática por pulsador OFF.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error al intentar llevar el hardware a estado seguro en apagado directo: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Aceptamos el cierre directamente sin más preguntas</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+</code></pre></div>
+</details>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,4 +1,4 @@
-# SOFTWARE-AURA1000-LIMPIO
+# SOFTWARE-AURA1000
 
 Proyecto de revamping para el equipo **Gasonics Aura 1000 Plasma Asher** del Departamento de Micro y Nano Tecnología realizado para la materia Proyecto Final de Ingenieria Electronica de la UTN FRBA
 

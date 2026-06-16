@@ -2,3 +2,6 @@ virt/
 testPlacasBasico/
 testPlacas_capasAbstraccion/
 site/
+# Cache de Python
+**/__pycache__/
+*.pyc

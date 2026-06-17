@@ -1,197 +1,124 @@
 # `main_window.py`
 
-El módulo `main_window.py` constituye el componente central de la interfaz gráfica de usuario (GUI) y el motor de ejecución del sistema. Implementa la clase `MainWindow`, la cual hereda de `QtWidgets.QMainWindow`, y actúa como el **orquestador principal** del equipo, vinculando los elementos visuales de PyQt5 con las acciones físicas sobre el hardware, la lógica de la máquina de estados y las rutinas críticas de interlock.
+El módulo `main_window.py` constituye el componente de interfaz gráfica de usuario (GUI) y el núcleo coordinador de estados del sistema. Implementa la clase `MainWindow`, la cual hereda de `QtWidgets.QMainWindow`. Vinculan la interfaz autogenerada de PyQt5 con el servicio de hardware y delegando la ejecución secuencial de los timers y la lógica I/O a los administradores externos de la carpeta `/logic`.
 
 ---
 
-## <span style="color: #2196F3;">Métodos de Inicialización y Control General</span>
+## <span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span>
 
 ??? note "Inicialización del Constructor: `__init__(self, hardware)`"
-    Instancia la clase base, almacena la referencia del hardware compartido para interactuar con las placas de adquisición y configura las condiciones iniciales de la UI. Lanza el temporizador cíclico principal (`io_timer`) a un intervalo de **100 ms** para lectura de entradas e inicializa la máquina de estados en la fase de pre-encendido.
+    Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. En lugar de contener timers locales, instancia el administrador externo de tiempos (`timersIOManager`) pasándose a sí mismo como referencia (`self`) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.
 
     ```python
     def __init__(self, hardware):
         super().__init__()
-
+        
         self.hw = hardware
         self.offClose = 0
+        self.startup_progress = 0  # Almacena el progreso de la barra
 
-        # Crear interfaz
+        # Crear interfaz autogenerada
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         
-        # Inicio de timer general de lectura de entradas
-        self.io_timer = QtCore.QTimer()
-        self.io_timer.timeout.connect(self.update_inputs)
-        self.io_timer.start(100)
+        # Instanciar el manager de timers pasándole 'self' (esta ventana)
+        self.timer_manager = timersIOManager(self)
+        self.timer_manager.start_all_core_timers()
 
-        # Paso al primer estado: PRE_ENCENDIDO
-        self.current_state = SystemState.PRE_ENCENDIDO
-        self.change_state(SystemState.PRE_ENCENDIDO)
+        # Iniciar la máquina de estados en PRE_ENCENDIDO
+        self.current_state = systemState.PRE_ENCENDIDO
+        self.change_state(systemState.PRE_ENCENDIDO)
     ```
 
 ??? note "Transición de la Máquina de Estados: `change_state(self, new_state)`"
-    Gestiona de forma centralizada los cambios de estado del sistema. Imprime en la consola el flanco de transición, actualiza la variable de estado actual (`current_state`) y deriva el flujo hacia el método de inicialización (*init*) de la fase entrante (`PRE_ENCENDIDO` o `MAIN_MENU`).
+    Gestiona de forma centralizada las transiciones de la máquina de estados. Actualiza el registro de estado interno (`current_state`) y deriva el flujo operacional. Si ingresa a `PRE_ENCENDIDO`, delega la inicialización visual y de variables al módulo externo `preEncendido.init(self)`. Si ingresa a `MAIN_MENU`, invoca el método local de carga de la pantalla principal.
 
     ```python
     def change_state(self, new_state):
         print(f"STATE: {self.current_state} -> {new_state}")
         self.current_state = new_state
-        if new_state == SystemState.PRE_ENCENDIDO:
-            self.PreEncendido_init()
-        elif new_state == SystemState.MAIN_MENU:
+        
+        if new_state == systemState.PRE_ENCENDIDO:
+            preEncendido.init(self)
+        elif new_state == systemState.MAIN_MENU:
             self.MainMenu_init()
     ```
 
-??? note "Lectura de entradas: `update_inputs(self)`"
-    Es llamado cuando pasan los 100ms del `io_timer`. Evalúa de forma condicional el estado lógico en el que se encuentra la máquina y luego llama a las funciones de lectura de las entradas de interes en ese estado
-
-    ```python
-    def update_inputs(self):
-        # Lectura de entradas del estado PRE_ENCENDIDO
-        if self.current_state == SystemState.PRE_ENCENDIDO:
-            self.PreEncendido_check_power_on()
-        # Lectura de entradas del estado MAIN_MENU
-        elif self.current_state == SystemState.MAIN_MENU:
-            self.MainMenu_check_power_off()
-    ```
-
 ---
 
-## <span style="color: #2196F3;">Métodos del Estado 0: PRE-ENCENDIDO</span>
+## <span style="color: #2196F3;">Acciones Invocadas por la Lógica Externa</span>
 
-??? note "Preparación del Entorno de Arranque: `PreEncendido_init(self)`"
-    Se llama al iniciar el programa, fuerza al contenedor multi-página (`stackedWidget`) de la UI a conmutar hacia la pantalla visual indexada como `PreEncendido`, oculta inicialmente la barra de progreso, reseteea el acumulador a cero e instancia el temporizador dedicado (`startup_timer`) para controlar la barra de progreso.
-
-    ```python
-    def PreEncendido_init(self):
-        #Inicio en pagina 1 de la GUI
-        self.ui.stackedWidget.setCurrentWidget(self.ui.PreEncendido)
-        # Ocultar barra inicialmente
-        self.ui.PreEncendido_progressBar.hide()
-        # Variables startup
-        self.startup_progress = 0
-        # Timer para update de progressbar
-        self.startup_timer = QtCore.QTimer()
-        self.startup_timer.timeout.connect(self.PreEncendido_update_progressbar)
-    ```
-
-??? note "Monitoreo del Pulsador de Marcha: `PreEncendido_check_power_on(self)`"
-    Consulta cíclicamente mediante la abstracción de hardware el estado de la línea digital asociada al interruptor físico de marcha (`POWER_ON_SWITCH`). Al detectar un nivel alto (pulsador activo) invoca la secuencia de inicio del equipo.
+??? note "Inicio de Secuencia de encendido: `preEncendido_startup_sequence(self)`"
+    Funciona como un punto de entrada de callback. Cuando el lazo de lectura de entradas detecta que el operador presionó el pulsador físico de marcha (`POWER_ON_SWITCH`), invoca esta función, la cual desvía inmediatamente el control al script de lógica específico (`preEncendido.startup(self)`) para procesar el enclavamiento y la barra de progreso de 10 segundos.
 
     ```python
-    def PreEncendido_check_power_on(self):
-        if self.hw.digital_read("POWER_ON_SWITCH"):
-            self.PreEncendido_startup_sequence()
+    def preEncendido_startup_sequence(self):
+        # La lógica de timers detectó el botón ON y le ordena a la ventana ejecutar el startup
+        preEncendido.startup(self)
     ```
 
-??? note "Secuencia de Enclavamiento de Potencia: `PreEncendido_startup_sequence(self)`"
-    Gobernado por la activación del pulsador físico de marcha, ejecuta de manera secuencial el enclavamiento eléctrico por software de la línea `POWER_ON`, reconfigura las etiquetas informativas de la UI, visualiza la barra de progreso e inicia el temporizador para aumentar la barra cada 100ms.
-
-    ```python
-    def PreEncendido_startup_sequence(self):
-        # Activar retención
-        self.hw.digital_set("POWER_ON", ACTIVE)
-        # Cambiar texto
-        self.ui.PreEncendido_label2.setText("Iniciando, espere ...")
-        # Mostrar barra
-        self.ui.PreEncendido_progressBar.show()
-        # Reset barra
-        self.startup_progress = 0
-        self.ui.PreEncendido_progressBar.setValue(0)
-        # Inicializar placa analogica
-        # self.hw.initialize_AD() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
-        # Arrancar timer
-        self.startup_timer.start(100)
-    ```
-
-??? note "Control de Estabilización del Sistema: `PreEncendido_update_progressbar(self)`"
-    Incrementa linealmente el acumulador en una unidad y actualiza el valor del widget visual de la barra de progreso. Al estar configurado a un paso por cada 100 ms, alcanzar el límite de **100 pasos** garantiza un delay de **10 segundos** de estabilización térmica/eléctrica. Cumplido el tiempo, frena el timer y transiciona el sistema a `MAIN_MENU`.
-
-    ```python
-    def PreEncendido_update_progressbar(self):
-        self.startup_progress += 1
-        self.ui.PreEncendido_progressBar.setValue(self.startup_progress)
-        # 100 pasos x 100ms = 10 segundos
-        if self.startup_progress >= 100:
-            self.startup_timer.stop()
-            # Paso a estado MAIN_MENU
-            self.change_state(SystemState.MAIN_MENU)
-    ```
-
----
-
-## <span style="color: #2196F3;">Métodos del Estado 1: MAIN_MENU y Cierre Seguro</span>
-
-??? note "Inicialización del Menú de Operación: `MainMenu_init(self)`"
-    Produce el cambio de página en el contenedor gráfico de Qt para desplegar el entorno operativo principal (`MenuPrincipal`), donde se exponen el menu principal del equipo
+??? note "Inicialización del Menú Inicial: `MainMenu_init(self)`"
+    Se encarga exclusivamente de la conmutación de la interfaz gráfica a nivel visual, forzando al contenedor multipágina (`stackedWidget`) a desplegar la pantalla indexada del entorno operativo principal (`MenuPrincipal`).
 
     ```python
     def MainMenu_init(self):
-        # Ir al menú principal --> cambio de pagina
+        # Inicializa visualmente el menú principal
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
-        # Logica de botones Abrir puerta y Habilitar Driver
+        # Próximamente llamarás acá a: logic.vacuum.init_menu(self)
     ```
 
-??? note "Monitoreo del Interruptor de Apagado General: `MainMenu_check_power_off(self)`"
-    Monitorea de forma continua la línea digital de entrada `SYS_POWER` desde el menú principal. Si se detecta una caída de tensión o flanco inactivo en el lazo de potencia del equipo, setea el flag `offClose = 1` para saltearse la confirmación de software y fuerza el disparo del método nativo `close()`.
+??? note "Apagado por Hardware: `trigger_hardware_off(self)`"
+    Es invocado por el administrador de timers externo cuando detecta un nivel alto en la línea digital `SYS_POWER` (pulsador físico de OFF). Eleva la bandera de control (`offClose = 1`) para indicar un cierre por hardware y ejecuta la llamada al método nativo `self.close()`, lo que desvía el flujo de manera segura hacia el manejador de eventos `closeEvent`.
 
     ```python
-    def MainMenu_check_power_off(self):
-        if self.hw.digital_read("SYS_POWER"):
-            print("POWER OFF DETECTADO")
-            self.offClose = 1
-            self.close()
+    def trigger_hardware_off(self):
+        # Fuerza el cierre seguro por pulsador físico OFF
+        self.offClose = 1
+        self.close() # Esto llama a closeEvent
     ```
+
 ---
 
-## <span style="color: #2196F3;">Método de cierre del programa</span>
+## <span style="color: #2196F3;">Control de Cierre Seguro de Ventana</span>
 
-??? note "`closeEvent(self, event)`"
-    Sobrescribe el evento nativo de destrucción de la ventana de Qt para actuar como un interlock de seguridad crítico. Discrimina el origen del cierre: si es manual por la "X" (`offClose == 0`), lanza un cuadro interactivo (`QMessageBox.question`) de confirmación; si es provocado por hardware (`offClose == 1`), muestra un aviso informativo directo. En ambos casos aceptados, fuerza la llamada a `hw.shutdown_state()` para desactivar relés y actuadores, detiene el lazo de timers y apaga el sistema en un estado pasivo seguro.
+??? note "Cierre de la interfaz: `closeEvent(self, event)`"
+    Sobrescribe el método nativo de PyQt para el cierre de la ventana, actuando como un enclavamiento de seguridad crítico de la aplicación. Lo primero que realiza es congelar inmediatamente todos los lazos y timers activos del sistema (`stop_all_timers()`). Luego discrimina el tipo de apagado: si es por interfaz manual (`offClose == 0`), exige confirmación del usuario; si es por pulsador físico (`offClose == 1`), muestra un cuadro informativo directo. En ambos casos confirmados, invoca la rutina de desactivación del hardware.
 
     ```python
     def closeEvent(self, event):
+        # Frenamos todos los lazos de tiempo antes de abrir diálogos
+        self.timer_manager.stop_all_timers()
+
         if self.offClose == 0:
-            # --- CASO 1: Cierre por la "X" (Pregunta Confirmación) ---
+            # --- CASO 1: Cierre por la "X" del software ---
             reply = QtWidgets.QMessageBox.question(
-                self, 
-                'Confirmar Salida',
-                '¿Está seguro de que desea cerrar la aplicación?',
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, 
-                QtWidgets.QMessageBox.No
+                self, 'Confirmar Salida', '¿Está seguro de que desea cerrar la aplicación?',
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No
             )
-            
             if reply == QtWidgets.QMessageBox.Yes:
-                try:
-                    # Llevamos el hardware a estado seguro y frenamos el lazo de I/O
-                    self.hw.shutdown_state()
-                    self.io_timer.stop()
-                    print("Hardware llevado a estado seguro correctamente.")
-                except Exception as e:
-                    print(f"Error al intentar llevar el hardware a estado seguro: {e}")
-                
+                self._safely_shutdown()
                 event.accept()
             else:
+                # Si cancela, reactivamos los timers de lectura
+                self.timer_manager.start_all_core_timers()
                 event.ignore()
-                
         else:
-            # --- CASO 2: Cierre por pulsador físico OFF (Aviso obligatorio) ---
+            # --- CASO 2: Cierre por pulsador físico OFF ---
             QtWidgets.QMessageBox.information(
-                self,
-                'Apagado del Sistema',
-                'El programa se cerrará dejando las placas en estado seguro.',
-                QtWidgets.QMessageBox.Ok
+                self, 'Apagado del Sistema', 'El programa se cerrará dejando las placas en estado seguro.', QtWidgets.QMessageBox.Ok
             )
-            
-            try:
-                # Forzamos de igual manera el estado seguro y apagamos el timer
-                self.hw.shutdown_state()
-                self.io_timer.stop()
-                print("Hardware llevado a estado seguro de forma automática por pulsador OFF.")
-            except Exception as e:
-                print(f"Error al intentar llevar el hardware a estado seguro en apagado directo: {e}")
-            
-            # Aceptamos el cierre directamente sin más preguntas
+            self._safely_shutdown()
             event.accept()
+    ```
+
+??? note "Desactivación Crítica de Periféricos: `_safely_shutdown(self)`"
+    Método privado encargado de la seguridad de la sala limpia. Llama de forma directa a las funciones de bajo nivel encapsuladas en `hw.shutdown_state()`, garantizando de forma obligatoria que todos los actuadores, válvulas y relés de potencia de RF se desactiven y queden en un estado pasivo y seguro, previniendo daños eléctricos ante errores de la app.
+
+    ```python
+    def _safely_shutdown(self):
+        try:
+            self.hw.shutdown_state()
+            print("Hardware llevado a estado seguro correctamente.")
+        except Exception as e:
+            print(f"Error al intentar llevar el hardware a estado seguro: {e}")
     ```

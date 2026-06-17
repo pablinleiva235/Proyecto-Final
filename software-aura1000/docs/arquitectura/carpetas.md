@@ -15,17 +15,20 @@ SOFTWARE-AURA1000/
 │   └── digital_signals.py      # Mapeo de señales digitales (USBDIO96H)
 ├── docs/                    # Archivos fuente de esta documentación (Markdown)
 ├── drivers/                 # Capa de abstracción de hardware (Bajo nivel) usando APIs de la UL 'cbw32.dll'
-│   ├── analog_driver.py        # Traduccion de APIs de USB-2527 a python mediante ctypes 
-│   └── dio_driver.py           # Traduccion de APIs de USBDIO96H a python mediante ctypes
-├── gui/                     # Archivos de la interfaz gráfica de usuario
-│   ├── main_window.py          # Orquestador principal, timers y máquina de estados
+│   ├── analog_driver.py        # Traducción de APIs de USB-2527 a Python mediante ctypes 
+│   └── dio_driver.py           # Traducción de APIs de USBDIO96H a Python mediante ctypes
+├── gui/                     # Archivos de la interfaz gráfica de usuario (Vista pura)
+│   ├── main_window.py          # Coordinador de la GUI, eventos de cierre y máquina de estados principal
 │   ├── pyqt_gui.py             # Código Python auto-generado por pyuic5
 │   └── pyqt_gui.ui             # Archivo de diseño original de Qt Designer
-├── services/                # Servicios y lógica de hardware intermedia
-│   ├── hardware.py             # Clase principal de abstracción y control de hardware de alto nivel
-│   └── system_state.py         # Definición de la enumeración de estados (Enum)
-├── .gitignore               # Archivos excluidos del control de versiones (ej: site/)
-├── main.py                  # Punto de entrada de la aplicación
+├── logic/                   # NUEVO: Capa de lógica intermedia y procesos secuenciales
+│   ├── pre_encendido.py        # Secuencia de arranque del equipo (barra de progreso y estados iniciales)
+│   └── timers_io.py            # Administrador central de Timers y lazo de lectura de entradas (100ms)
+├── services/                # Servicios de hardware de alto nivel
+│   ├── hardware.py             # Clase principal de abstracción y control integrado de placas
+│   └── system_state.py         # Definición de la enumeración de estados del equipo (Enum)
+├── .gitignore               # Archivos excluidos del control de versiones (ej: site/, __pycache__/)
+├── main.py                  # Punto de entrada de la aplicación (Instanciación y arranque)
 ├── mkdocs.yml               # Archivo de configuración principal de MkDocs
 └── requirements.txt         # Dependencias del proyecto (PyQt5, etc.)
 ```
@@ -43,7 +46,10 @@ Para entender el flujo de trabajo del software, cada directorio cumple un rol es
     Contiene la lógica encargada de realizar llamadas dinámicas a la API de C de la *Universal Library* (`cbw32.dll`) utilizando `ctypes`. Convierte los tipos de datos de Python a estructuras de bajo nivel para interactuar con las placas **USB-2527** y **USBDIO96H**.
 
 ??? note "📂 Carpeta `gui/`"
-    Contiene todo lo relacionado con el entorno visual del operador. Aquí se encuentra el archivo `.ui` de diseño, el script generado por el compilador `pyuic5`, y fundamentalmente el **Orquestador Principal (`main_window.py`)**, encargado de correr el programa principal y administrar la máquina de estados mediante llamadas a funciones de alto nivel de la class Hardware de la carpeta services.
+    Contiene todo lo relacionado con el entorno visual del operador. Aquí se encuentra el archivo `.ui` de diseño, el script generado por el compilador `pyuic5`, y el coordinador de la interfaz (**`main_window.py`**). Este último se encarga de administrar la máquina de estados principal, gestionar el cambio de páginas de la GUI y asegurar el cierre correcto del sistema, delegando las tareas pesadas a la capa de lógica.
+
+??? note "📂 Carpeta `logic/`"
+    Aloja la lógica intermedia de control y los procesos secuenciales del equipo. Contiene el administrador central de tiempos (**`timers_io.py`**), encargado de orquestar todos los timers y el lazo periódico de lectura de entradas (100ms), y scripts de logica específicos por estado (como **`pre_encendido.py`**). Estos módulos interactúan en paralelo tanto con el hardware como con los elementos visuales de la interfaz.
 
 ??? note "📂 Carpeta `services/`"
     Contiene la capa que hace de intermediaria entre la GUI y las funciones de bajo nivel del hardware, y un archivo para enumerar los estados de la maquina de estados:

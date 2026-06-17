@@ -1,8 +1,8 @@
 from PyQt5 import QtWidgets
 from gui.pyqt_gui import Ui_MainWindow
-from services.system_state import SystemState
-from logic.timers_io import TimersIOManager
-import logic.pre_encendido as pre_encendido_logic
+from services.system_state import systemState
+from logic.timers_io import timersIOManager
+import logic.pre_encendido as preEncendido
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
@@ -17,12 +17,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         
         # Instanciar el manager de timers pasándole 'self' (esta ventana)
-        self.timer_manager = TimersIOManager(self)
+        self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
-        self.current_state = SystemState.PRE_ENCENDIDO
-        self.change_state(SystemState.PRE_ENCENDIDO)
+        self.current_state = systemState.PRE_ENCENDIDO
+        self.change_state(systemState.PRE_ENCENDIDO)
 
     # =========================================================
     # MAQUINA DE ESTADOS PRINCIPAL
@@ -31,9 +31,9 @@ class MainWindow(QtWidgets.QMainWindow):
         print(f"STATE: {self.current_state} -> {new_state}")
         self.current_state = new_state
         
-        if new_state == SystemState.PRE_ENCENDIDO:
-            pre_encendido_logic.iniciar_interfaz_pre_encendido(self)
-        elif new_state == SystemState.MAIN_MENU:
+        if new_state == systemState.PRE_ENCENDIDO:
+            preEncendido.init(self)
+        elif new_state == systemState.MAIN_MENU:
             self.MainMenu_init()
 
     # =========================================================
@@ -41,20 +41,20 @@ class MainWindow(QtWidgets.QMainWindow):
     # =========================================================
 
     # ------------- DEL PRE-ENCENDIDO --------------------------
-    def PreEncendido_startup_sequence(self):
-        """La lógica de timers detectó el botón ON y le ordena a la ventana ejecutar el startup"""
-        pre_encendido_logic.ejecutar_secuencia_startup(self)
+    def preEncendido_startup_sequence(self):
+        # La lógica de timers detectó el botón ON y le ordena a la ventana ejecutar el startup
+        preEncendido.startup(self)
 
     # ----------------- DEL MAIN MENU --------------------------
     def MainMenu_init(self):
-        """Inicializa visualmente el menú principal"""
+        # Inicializa visualmente el menú principal
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
         # Próximamente llamarás acá a: logic.vacuum.init_menu(self)
 
     def trigger_hardware_off(self):
-        """Fuerza el cierre seguro por pulsador físico OFF"""
+        #Fuerza el cierre seguro por pulsador físico OFF
         self.offClose = 1
-        self.close()
+        self.close() # Esto llama a closeEvent
 
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA

@@ -1,7 +1,7 @@
 from enum import Enum
 
 # La idea es ir agregando estados aca
-class SystemState(Enum):
+class systemState(Enum):
     PRE_ENCENDIDO = 0
     MAIN_MENU = 1
   

@@ -1,13 +1,14 @@
 # logic/pre_encendido.py
 from config.digital_signals import ACTIVE
+from services.system_state import systemState
 
-def iniciar_interfaz_pre_encendido(win):
+def init(win):
     """Configura el estado visual inicial del Pre-Encendido"""
     win.ui.stackedWidget.setCurrentWidget(win.ui.PreEncendido)
     win.ui.PreEncendido_progressBar.hide()
     win.startup_progress = 0
 
-def ejecutar_secuencia_startup(win):
+def startup(win):
     """Lógica pesada al detectar el flanco de ON"""
     # 1. Activar retención en hardware digital
     win.hw.digital_set("POWER_ON", ACTIVE)
@@ -27,10 +28,10 @@ def ejecutar_secuencia_startup(win):
     except TypeError:
         pass # No estaba conectado antes
         
-    win.timer_manager.timers['startup'].timeout.connect(lambda: avanzar_barra_progreso(win))
+    win.timer_manager.timers['startup'].timeout.connect(lambda: update_progressBar(win))
     win.timer_manager.timers['startup'].start(100)
 
-def avanzar_barra_progreso(win):
+def update_progressBar(win):
     """Callback del timer de startup (cada 100ms)"""
     win.startup_progress += 1
     win.ui.PreEncendido_progressBar.setValue(win.startup_progress)
@@ -38,7 +39,4 @@ def avanzar_barra_progreso(win):
     # 100 pasos * 100ms = 10 segundos
     if win.startup_progress >= 100:
         win.timer_manager.timers['startup'].stop()
-        
-        # Le ordena a la ventana cambiar al estado MAIN_MENU
-        from services.system_state import SystemState
-        win.change_state(SystemState.MAIN_MENU)
+        win.change_state(systemState.MAIN_MENU)

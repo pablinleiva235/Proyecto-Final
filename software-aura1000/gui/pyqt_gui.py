@@ -50,7 +50,7 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_pushButton_EnableDisableDrivers.setObjectName("MenuPrincipal_pushButton_EnableDisableDrivers")
         self.stackedWidget.addWidget(self.MenuPrincipal)
         self.PreEncendido = QtWidgets.QWidget()
-        self.PreEncendido.setObjectName("PreEncendido")
+        self.PreEncendido.setObjectName("preEncendido")
         self.PreEncendido_label2 = QtWidgets.QLabel(self.PreEncendido)
         self.PreEncendido_label2.setGeometry(QtCore.QRect(0, 220, 941, 231))
         font = QtGui.QFont()

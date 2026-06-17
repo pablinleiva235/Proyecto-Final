@@ -1,8 +1,8 @@
 # logic/timers_io.py
 from PyQt5 import QtCore
-from services.system_state import SystemState
+from services.system_state import systemState
 
-class TimersIOManager:
+class timersIOManager:
     def __init__(self, main_window):
         self.win = main_window      # Referencia a la ventana principal (GUI)
         self.hw = main_window.hw    # Referencia al hardware
@@ -30,11 +30,11 @@ class TimersIOManager:
     def _update_inputs_loop(self):
         """Lazo centralizado que corre cada 100ms"""
         # Evalúa según el estado actual de la ventana
-        if self.win.current_state == SystemState.PRE_ENCENDIDO:
+        if self.win.current_state == systemState.PRE_ENCENDIDO:
             if self.hw.digital_read("POWER_ON_SWITCH"):
-                self.win.PreEncendido_startup_sequence()
+                self.win.preEncendido_startup_sequence()
                 
-        elif self.win.current_state == SystemState.MAIN_MENU:
+        elif self.win.current_state == systemState.MAIN_MENU:
             if self.hw.digital_read("SYS_POWER"):
                 print("POWER OFF DETECTADO POR LAZO CENTRAL")
                 self.win.trigger_hardware_off()

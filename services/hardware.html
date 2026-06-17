@@ -1,0 +1,1554 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="index.html">
+      
+      
+        <link rel="next" href="system_state.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Clase con metodos de alto nivel para control de hardware (hardware.py) - Reautomatizacion Aura 1000</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#hardwarepy" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="Reautomatizacion Aura 1000" class="md-header__button md-logo" aria-label="Reautomatizacion Aura 1000" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Reautomatizacion Aura 1000
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Clase con metodos de alto nivel para control de hardware (hardware.py)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../index.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../arquitectura/carpetas.html" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Estructura de Carpetas
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../config/index.html" class="md-tabs__link">
+          
+  
+  
+  /config (Señales)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../drivers/index.html" class="md-tabs__link">
+          
+  
+  
+  /drivers
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../gui/index.html" class="md-tabs__link">
+          
+  
+  
+  /gui
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../logic/index.html" class="md-tabs__link">
+          
+  
+  
+  /logic
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="index.html" class="md-tabs__link">
+          
+  
+  
+  /services
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="Reautomatizacion Aura 1000" class="md-nav__button md-logo" aria-label="Reautomatizacion Aura 1000" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Reautomatizacion Aura 1000
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arquitectura/carpetas.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estructura de Carpetas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /config (Señales)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /config (Señales)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Indice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/digital_signals.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Digitales (digital_signals.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/analog_signals.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analogicas (analog_signals.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /drivers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /drivers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/analogico.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analogico (analog_driver.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../drivers/digital.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Digital (dio_driver.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /gui
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /gui
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gui/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gui/pyqt_gui.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interfaz diseñada en PyQt5 (pyqt_gui.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gui/main_window.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ventana de arranque y ejecucion de programa (main_window.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /logic
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /logic
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logic/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logic/pre_encendido.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre Encendido (pre_encendido.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logic/timers_io.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gestion de timers y entradas digitales (timers_io.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    /services
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    /services
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos de alto nivel para control de hardware (hardware.py)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="hardware.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos de alto nivel para control de hardware (hardware.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inicializacion-y-configuracion-de-arranque" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inicialización y Configuración de Arranque
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rutinas-criticas-de-interlock-y-parada-de-emergencia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rutinas Críticas de Interlock y Parada de Emergencia
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logica-de-conmutacion-de-registros-96-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lógica de Conmutación de Registros (96 Bits)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operaciones-digitales-de-alto-nivel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operaciones Digitales de Alto Nivel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operaciones-analogicas-de-alto-nivel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operaciones Analógicas de Alto Nivel
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="system_state.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enumeracion de estados de maquina de estados (system_state.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inicializacion-y-configuracion-de-arranque" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inicialización y Configuración de Arranque
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rutinas-criticas-de-interlock-y-parada-de-emergencia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rutinas Críticas de Interlock y Parada de Emergencia
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logica-de-conmutacion-de-registros-96-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lógica de Conmutación de Registros (96 Bits)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operaciones-digitales-de-alto-nivel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operaciones Digitales de Alto Nivel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operaciones-analogicas-de-alto-nivel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operaciones Analógicas de Alto Nivel
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="hardwarepy"><code>hardware.py</code></h1>
+<p>El módulo <code>hardware.py</code> implementa la clase <code>Hardware</code>, la cual actúa como una <strong>API de servicios de alto nivel</strong>. Su propósito fundamental es unificar el control de las dos placas de adquisición (<strong>USBDIO96H</strong> y <strong>USB-2527</strong>) para que puedan ser controladas por la GUI. Traduce los alias definidos en las tablas de configuración (<code>config/</code>) hacia comandos de hardware puros, encargándose de la conversión de puertos de 96 bits, enmascaramiento de estados activos/inactivos y lazos automáticos de parada de emergencia.</p>
+<hr />
+<h2 id="inicializacion-y-configuracion-de-arranque"><span style="color: #2196F3;">Inicialización y Configuración de Arranque</span></h2>
+<details class="note">
+<summary>Constructor del Sistema: <code>__init__(self)</code></summary>
+<p>Define las direcciones lógicas asignadas por la <em>Universal Library</em> para cada placa (<code>dio_board = 0</code> y <code>ad_board = 1</code>). Lanza inmediatamente la inicialización física de los puertos digitales para garantizar que el hardware arranque en un estado controlado de entrada/salida.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># ---------- USBDIO96H ----------</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dio_board</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># ---------- USB-2527 ----------</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ad_board</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">initialize_DIO</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Configuración Física Digital: <code>initialize_DIO(self)</code></summary>
+<p>Configura de manera explícita la dirección de datos (Entrada o Salida) de los 16 puertos lógicos que componen los 96 bits de la placa <strong>USBDIO96H</strong>. Al finalizar el mapeo direccional, invoca la rutina de estado seguro para asegurar que ningún actuador se enclave de forma imprevista durante el arranque eléctrico.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">initialize_DIO</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># 1) ------------ Inicializacion de puertos como I/O----------------</span>
+    <span class="n">ports</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTA</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTB</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="c1"># FIRSTPORTCL solo usa P1.48 para señal Power On, el resto las pongo en 0V</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTCL</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="c1"># FIRSTPORTCH no conectado, lo dejamos como entrada</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTCH</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTA</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTB</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="c1"># SECONDPORTC no conectado, lo dejamos como entrada</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTCL</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTCH</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTA</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTB</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTCL</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTCH</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTA</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTB</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">),</span>
+        <span class="c1"># FOURTHPORTCL no conectado, lo dejamos como entrada</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTCL</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALIN</span><span class="p">),</span>
+        <span class="c1"># Del FOURTHPORTCH solo usa P2.67 para señal Driver Enable, el resto las pongo en 0V</span>
+        <span class="p">(</span><span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTCH</span><span class="p">,</span> <span class="n">dio</span><span class="o">.</span><span class="n">DIGITALOUT</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">port</span><span class="p">,</span> <span class="n">direction</span> <span class="ow">in</span> <span class="n">ports</span><span class="p">:</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">dio</span><span class="o">.</span><span class="n">config_port</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dio_board</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error configurando puerto </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 2) ------------ Inicializacion de salidas ----------------</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">digital_safe_state</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Configuración Física Analógica: <code>initialize_AD(self)</code></summary>
+<p>Inicializa el subsistema analógico de la placa <strong>USB-2527</strong>. Su función principal es asegurar que los convertidores digital-analógicos (DAC) se listen en cero voltios para apagar por completo las consignas de los controladores de flujo de gas (MFC).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">initialize_AD</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">analog_safe_state</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="rutinas-criticas-de-interlock-y-parada-de-emergencia"><span style="color: #2196F3;">Rutinas Críticas de Interlock y Parada de Emergencia</span></h2>
+<details class="note">
+<summary>Lazo de Desconexión Segura: <code>shutdown_state(self)</code></summary>
+<p>Es el método maestro de seguridad invocado por el <code>closeEvent</code> de la GUI. Lleva todas las líneas de salida físicas (digitales y analógicas) a sus valores de reposo e inhibición eléctrica, desactivando válvulas neumáticas, relés de potencia y consignas de flujo para prevenir accidentes en la cámara del reactor.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">shutdown_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># 1) Llevar salidas a estado seguro</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">digital_safe_state</span><span class="p">()</span>
+    <span class="c1">#self.analog_safe_state() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="logica-de-conmutacion-de-registros-96-bits"><span style="color: #2196F3;">Lógica de Conmutación de Registros (96 Bits)</span></h2>
+<details class="note">
+<summary>Lógica de Re-mapeo del Driver: <code>map_to_ul_bit(self, port, bit)</code></summary>
+<p><strong>Algoritmo Crítico:</strong> Resuelve una limitación de direccionamiento de la librería nativa para la placa de 96 bits. En lugar de operar puertos aislados, calcula un desplazamiento lineal de bits (<code>global_bit</code>) basándose en una matriz de offsets fijos. Retorna las coordenadas indexadas desde <code>FIRSTPORTA</code> para que la función de bajo nivel (<code>cbDBitOut</code>/<code>cbDBitIn</code>) pueda hallar el pin físico exacto.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">map_to_ul_bit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">bit</span><span class="p">):</span>
+    <span class="n">port_offsets</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTA</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTB</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTCL</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTCH</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+
+        <span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTA</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTB</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTCL</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">SECONDPORTCH</span><span class="p">:</span> <span class="mi">44</span><span class="p">,</span>
+
+        <span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTA</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTB</span><span class="p">:</span> <span class="mi">56</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTCL</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">THIRDPORTCH</span><span class="p">:</span> <span class="mi">68</span><span class="p">,</span>
+
+        <span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTA</span><span class="p">:</span> <span class="mi">72</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTB</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTCL</span><span class="p">:</span> <span class="mi">88</span><span class="p">,</span>
+        <span class="n">dio</span><span class="o">.</span><span class="n">FOURTHPORTCH</span><span class="p">:</span> <span class="mi">92</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">global_bit</span> <span class="o">=</span> <span class="n">port_offsets</span><span class="p">[</span><span class="n">port</span><span class="p">]</span> <span class="o">+</span> <span class="n">bit</span>
+    <span class="k">return</span> <span class="n">dio</span><span class="o">.</span><span class="n">FIRSTPORTA</span><span class="p">,</span> <span class="n">global_bit</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="operaciones-digitales-de-alto-nivel"><span style="color: #2196F3;">Operaciones Digitales de Alto Nivel</span></h2>
+<details class="note">
+<summary>Inhibición Digital de Reposo: <code>digital_safe_state(self)</code></summary>
+<p>Recorre el diccionario completo de señales digitales (<code>DIGITALSIGNALS</code>). Identifica de forma automática cuáles están configuradas como salidas (<code>OUT</code>), traduce sus coordenadas mediante <code>map_to_ul_bit</code> y escribe en el hardware el valor binario declarado en su clave <code>initial_state</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">digital_safe_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">signal</span> <span class="ow">in</span> <span class="n">DIGITALSIGNALS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;dir&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;OUT&quot;</span><span class="p">:</span>
+            <span class="c1"># 1) Traducimos el puerto y bit usando la lógica de 96 bits de la placa</span>
+            <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_to_ul_bit</span><span class="p">(</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;port&quot;</span><span class="p">],</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;bit&quot;</span><span class="p">])</span>
+            <span class="c1"># 2) Ahora sí llamamos a bajo nivel con las coordenadas que la UL entiende</span>
+            <span class="n">dio</span><span class="o">.</span><span class="n">write_bit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dio_board</span><span class="p">,</span> <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span><span class="p">,</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;initial_state&quot;</span><span class="p">])</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Escritura digital: <code>digital_set(self, signal_name, active)</code></summary>
+<p>Permite a la GUI escribir estados lógicos pasando como parametros el nombre de la señal y estado activo o inactivo de la misma que ya esta definido en el diccionario digital, abstrayendo asi la logica que use la señal deseada. </p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">digital_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal_name</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">DIGITALSIGNALS</span><span class="p">[</span><span class="n">signal_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">active</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;active_state&quot;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="ow">not</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;active_state&quot;</span><span class="p">])</span>
+    <span class="c1"># Traducimos usando la lógica completa de 96 bits</span>
+    <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_to_ul_bit</span><span class="p">(</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;port&quot;</span><span class="p">],</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;bit&quot;</span><span class="p">])</span>
+    <span class="n">dio</span><span class="o">.</span><span class="n">write_bit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dio_board</span><span class="p">,</span> <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura Digital: <code>digital_read(self, signal_name)</code></summary>
+<p>Permite a la GUI leer estados lógicos pasando como parametro el nombre de la señal, la misma devuelve el estado en que se encuentra la misma, siendo activo o inactivo, por lo tanto al usarla para ver si una entrada cambio de estado preguntaremos si la misma == ACTIVE abstrayendonos asi de la logica que utilice la entrada</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">digital_read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal_name</span><span class="p">):</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">DIGITALSIGNALS</span><span class="p">[</span><span class="n">signal_name</span><span class="p">]</span>
+
+    <span class="c1"># Traducimos usando la lógica completa de 96 bits</span>
+    <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_to_ul_bit</span><span class="p">(</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;port&quot;</span><span class="p">],</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;bit&quot;</span><span class="p">])</span>
+
+    <span class="n">raw_value</span> <span class="o">=</span> <span class="n">dio</span><span class="o">.</span><span class="n">read_bit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dio_board</span><span class="p">,</span> <span class="n">port_base</span><span class="p">,</span> <span class="n">bit_offset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">raw_value</span> <span class="o">==</span> <span class="n">signal</span><span class="p">[</span><span class="s2">&quot;active_state&quot;</span><span class="p">]</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="operaciones-analogicas-de-alto-nivel"><span style="color: #2196F3;">Operaciones Analógicas de Alto Nivel</span></h2>
+<details class="note">
+<summary>Inhibición de Setpoints de MFCs: <code>analog_safe_state(self)</code></summary>
+<p>Escribe un valor estricto de <code>0.0</code> voltios en las líneas de Setpoint de los cuatro controladores de flujo de masa (MFC).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">analog_safe_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC3_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC4_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Escritura Analógica: <code>analog_write(self, signal_name, voltage)</code></summary>
+<p>Controla los canales de salida del DAC de la placa <strong>USB-2527</strong> pasando como parametros el nombre de la señal y la tension a escribir. Aplica un algoritmo de <em>clamping</em> o saturación utilizando los límites <code>min_voltage</code> y <code>max_voltage</code> declarados en la configuración. Esto previene errores de software que intenten enviar tensiones destructivas o fuera de escala a las entradas analógicas proporcionales de los MFC.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">analog_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal_name</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">ANALOG_OUTPUTS</span><span class="p">[</span><span class="n">signal_name</span><span class="p">]</span>
+    <span class="n">voltage</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;min_voltage&quot;</span><span class="p">],</span> <span class="nb">min</span><span class="p">(</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;max_voltage&quot;</span><span class="p">],</span> <span class="n">voltage</span><span class="p">))</span>
+    <span class="n">ad</span><span class="o">.</span><span class="n">write_voltage</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_board</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;channel&quot;</span><span class="p">],</span> <span class="n">voltage</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span> <span class="n">voltage_range</span><span class="o">=</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">])</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura Analógica: <code>analog_read(self, signal_name)</code></summary>
+<p>Lee un canal del ADC configurado (como la presión del sensor Baratron o el caudal del MFC) pasando como parametro el nombre de la señal y devuelve el valor leido en tension.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">analog_read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal_name</span><span class="p">):</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">ANALOG_INPUTS</span><span class="p">[</span><span class="n">signal_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">read_voltage</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_board</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;channel&quot;</span><span class="p">],</span> <span class="n">voltage_range</span><span class="o">=</span><span class="n">signal</span><span class="p">[</span><span class="s2">&quot;range&quot;</span><span class="p">])</span>    
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura de termocupla: <code>analog_read_temperature(self, tc_name)</code></summary>
+<p>Invoca las funciones del driver analógico asociadas al bloque de compensación de junta fría integrado de la placa para leer de forma directa la temperatura de la cámara en grados centígrados, abstrayendo el cálculo polinomial de las termocuplas de proceso.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">analog_read_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tc_name</span><span class="p">):</span>
+    <span class="n">tc</span> <span class="o">=</span> <span class="n">THERMOCOUPLE</span><span class="p">[</span><span class="n">tc_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ad</span><span class="o">.</span><span class="n">read_temperature</span><span class="p">(</span><span class="n">board</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ad_board</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="n">tc</span><span class="p">[</span><span class="s2">&quot;channel&quot;</span><span class="p">])</span>    
+</code></pre></div>
+</details>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -3,6 +3,8 @@ from gui.pyqt_gui import Ui_MainWindow
 from services.system_state import systemState
 from logic.timers_io import timersIOManager
 import logic.pre_encendido as preEncendido
+from logic.throttle_test import ThrottleController
+from config.digital_signals import ACTIVE, INACTIVE
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
@@ -19,6 +21,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Instanciar el manager de timers pasándole 'self' (esta ventana)
         self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
+
+        # Instanciamos el controlador de pruebas del motor
+        self.throttle = ThrottleController(self)
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO
@@ -40,19 +45,69 @@ class MainWindow(QtWidgets.QMainWindow):
     # ACCIONES INVOCADAS POR LA LOGICA EXTERNA
     # =========================================================
 
-    # ------------- DEL PRE-ENCENDIDO --------------------------
+    # ==================== DEL PRE-ENCENDIDO ====================
     def preEncendido_startup_sequence(self):
         # La lógica de timers detectó el botón ON y le ordena a la ventana ejecutar el startup
         preEncendido.startup(self)
 
-    # ----------------- DEL MAIN MENU --------------------------
+    # ==================== DEL MAIN MENU ====================
+    
+    # ------------ Inicializa visualmente el menú principal ----------------
     def MainMenu_init(self):
-        # Inicializa visualmente el menú principal
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
-        # Próximamente llamarás acá a: logic.vacuum.init_menu(self)
+        
+        # Prueba de motor paso a paso
+        #1. Habilitar / Deshabilitar Driver
+        self.ui.MenuPrincipal_btn_toggle_enable.clicked.connect(self._on_enable_toggled)
+        # 2. Configuración de Pasos (Full / Half)
+        self.ui.MenuPrincipal_btn_toggle_step.clicked.connect(self._on_step_toggled)
+        # 3. Sentido de Giro (Cierre / Apertura)
+        self.ui.MenuPrincipal_btn_toggle_dir.clicked.connect(self._on_dir_toggled)
+        # 4. Marcha / Parada del Tren de Pulsos
+        self.ui.MenuPrincipal_btn_toggle_run.clicked.connect(self._on_run_toggled) 
 
+    # ------------- Funciones del pulsado de los botones para prueba motor paso a paso --------------
+    def _on_enable_toggled(self):
+        # Leemos el texto actual para saber qué acción tomar
+        if self.ui.MenuPrincipal_btn_toggle_enable.text() == "Habilitar Driver":
+            self.throttle.set_enable(ACTIVE)
+            self.ui.MenuPrincipal_btn_toggle_enable.setText("Deshabilitar Driver")
+            # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
+            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("background-color: #f44336; color: white;")
+        else:
+            self.throttle.set_enable(INACTIVE)
+            self.ui.MenuPrincipal_btn_toggle_enable.setText("Habilitar Driver")
+            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("")
+
+    def _on_step_toggled(self):
+        if "Full Step" in self.ui.MenuPrincipal_btn_toggle_step.text():
+            self.throttle.set_half_step(ACTIVE) # Pasamos a Half
+            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Half Step")
+        else:
+            self.throttle.set_half_step(INACTIVE) # Volvemos a Full
+            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Full Step")
+
+    def _on_dir_toggled(self):
+        if "Apertura" in self.ui.MenuPrincipal_btn_toggle_dir.text():
+            self.throttle.set_direction(ACTIVE) # DIR = 1 (Cierre)
+            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Cierre")
+        else:
+            self.throttle.set_direction(INACTIVE) # DIR = 0 (Apertura)
+            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Apertura")
+
+    def _on_run_toggled(self):
+        if self.ui.MenuPrincipal_btn_toggle_run.text() == "Girar Motor":
+            # Iniciamos el movimiento lento (ej: 6ms por semiciclo)
+            self.throttle.start_movement(speed_ms=6)
+            self.ui.MenuPrincipal_btn_toggle_run.setText("Detener Motor")
+            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("background-color: #ff9800; color: black;")
+        else:
+            self.throttle.stop_movement()
+            self.ui.MenuPrincipal_btn_toggle_run.setText("Girar Motor")
+            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("")   
+    
+    # ------- Fuerza el cierre seguro por pulsador físico OFF -----------
     def trigger_hardware_off(self):
-        #Fuerza el cierre seguro por pulsador físico OFF
         self.offClose = 1
         self.close() # Esto llama a closeEvent
 

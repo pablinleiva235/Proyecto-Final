@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'powerOnGUI.ui'
+# Form implementation generated from reading ui file 'pyqt_gui.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -36,21 +36,33 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_label.setAlignment(QtCore.Qt.AlignCenter)
         self.MenuPrincipal_label.setWordWrap(True)
         self.MenuPrincipal_label.setObjectName("MenuPrincipal_label")
-        self.MenuPrincipal_pushButton_OpenCloseDoor = QtWidgets.QPushButton(self.MenuPrincipal)
-        self.MenuPrincipal_pushButton_OpenCloseDoor.setGeometry(QtCore.QRect(250, 300, 171, 81))
+        self.MenuPrincipal_btn_toggle_enable = QtWidgets.QPushButton(self.MenuPrincipal)
+        self.MenuPrincipal_btn_toggle_enable.setGeometry(QtCore.QRect(50, 360, 171, 81))
         font = QtGui.QFont()
-        font.setPointSize(10)
-        self.MenuPrincipal_pushButton_OpenCloseDoor.setFont(font)
-        self.MenuPrincipal_pushButton_OpenCloseDoor.setObjectName("MenuPrincipal_pushButton_OpenCloseDoor")
-        self.MenuPrincipal_pushButton_EnableDisableDrivers = QtWidgets.QPushButton(self.MenuPrincipal)
-        self.MenuPrincipal_pushButton_EnableDisableDrivers.setGeometry(QtCore.QRect(510, 300, 171, 81))
+        font.setPointSize(12)
+        self.MenuPrincipal_btn_toggle_enable.setFont(font)
+        self.MenuPrincipal_btn_toggle_enable.setObjectName("MenuPrincipal_btn_toggle_enable")
+        self.MenuPrincipal_btn_toggle_step = QtWidgets.QPushButton(self.MenuPrincipal)
+        self.MenuPrincipal_btn_toggle_step.setGeometry(QtCore.QRect(260, 360, 171, 81))
         font = QtGui.QFont()
-        font.setPointSize(10)
-        self.MenuPrincipal_pushButton_EnableDisableDrivers.setFont(font)
-        self.MenuPrincipal_pushButton_EnableDisableDrivers.setObjectName("MenuPrincipal_pushButton_EnableDisableDrivers")
+        font.setPointSize(12)
+        self.MenuPrincipal_btn_toggle_step.setFont(font)
+        self.MenuPrincipal_btn_toggle_step.setObjectName("MenuPrincipal_btn_toggle_step")
+        self.MenuPrincipal_btn_toggle_dir = QtWidgets.QPushButton(self.MenuPrincipal)
+        self.MenuPrincipal_btn_toggle_dir.setGeometry(QtCore.QRect(470, 360, 171, 81))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.MenuPrincipal_btn_toggle_dir.setFont(font)
+        self.MenuPrincipal_btn_toggle_dir.setObjectName("MenuPrincipal_btn_toggle_dir")
+        self.MenuPrincipal_btn_toggle_run = QtWidgets.QPushButton(self.MenuPrincipal)
+        self.MenuPrincipal_btn_toggle_run.setGeometry(QtCore.QRect(680, 360, 171, 81))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.MenuPrincipal_btn_toggle_run.setFont(font)
+        self.MenuPrincipal_btn_toggle_run.setObjectName("MenuPrincipal_btn_toggle_run")
         self.stackedWidget.addWidget(self.MenuPrincipal)
         self.PreEncendido = QtWidgets.QWidget()
-        self.PreEncendido.setObjectName("preEncendido")
+        self.PreEncendido.setObjectName("PreEncendido")
         self.PreEncendido_label2 = QtWidgets.QLabel(self.PreEncendido)
         self.PreEncendido_label2.setGeometry(QtCore.QRect(0, 220, 941, 231))
         font = QtGui.QFont()
@@ -117,7 +129,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.stackedWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 957, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 957, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -132,7 +144,19 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Aura 1000 Software"))
         self.MenuPrincipal_label.setText(_translate("MainWindow", "Menu Principal"))
-        self.MenuPrincipal_pushButton_OpenCloseDoor.setText(_translate("MainWindow", "Abrir Puerta"))
-        self.MenuPrincipal_pushButton_EnableDisableDrivers.setText(_translate("MainWindow", "Habilitar Drivers"))
+        self.MenuPrincipal_btn_toggle_enable.setText(_translate("MainWindow", "Habilitar Driver"))
+        self.MenuPrincipal_btn_toggle_step.setText(_translate("MainWindow", "Modo: Full Step"))
+        self.MenuPrincipal_btn_toggle_dir.setText(_translate("MainWindow", "Dir: Apertura"))
+        self.MenuPrincipal_btn_toggle_run.setText(_translate("MainWindow", "Girar Motor"))
         self.PreEncendido_label2.setText(_translate("MainWindow", "Para acceder al Menu Principal, encienda el equipo con el pulsador de ON"))
         self.PreEncendido_label1.setText(_translate("MainWindow", "¡Bienvenido!"))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())

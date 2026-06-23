@@ -121,7 +121,7 @@ DIGITALSIGNALS = {
     "THROTTLE_CLOSED":            {"port": dio.THIRDPORTCH, "bit": 1, "dir": "IN", "active_state": 0, "initial_state": 1}, # Entrada
     "THROTTLE_OPEN":              {"port": dio.THIRDPORTCH, "bit": 0, "dir": "IN", "active_state": 0, "initial_state": 0}, # Entrada
     "STEPPER_STEP":               {"port": dio.THIRDPORTCL, "bit": 3, "dir": "OUT", "active_state": 1, "initial_state": 0}, # Salida
-    "STEPPER_DIR":                {"port": dio.THIRDPORTCL, "bit": 2, "dir": "OUT", "open": 1, "close": 0, "initial_state": 1}, # Salida
+    "STEPPER_DIR":                {"port": dio.THIRDPORTCL, "bit": 2, "dir": "OUT", "active_state": 1, "initial_state": 1}, # Salida
     "STEPPER_HALF_STEP":          {"port": dio.THIRDPORTCL, "bit": 1, "dir": "OUT", "active_state": 1, "initial_state": 0}, # Salida
     "STEPPER_OUTPUT_ENABLE":      {"port": dio.THIRDPORTCL, "bit": 0, "dir": "OUT", "active_state": 0, "initial_state": 1}, # Salida
 }

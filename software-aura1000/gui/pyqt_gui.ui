@@ -52,40 +52,76 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_pushButton_OpenCloseDoor">
+       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_enable">
         <property name="geometry">
          <rect>
-          <x>250</x>
-          <y>300</y>
+          <x>50</x>
+          <y>360</y>
           <width>171</width>
           <height>81</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>12</pointsize>
          </font>
         </property>
         <property name="text">
-         <string>Abrir Puerta</string>
+         <string>Habilitar Driver</string>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_pushButton_EnableDisableDrivers">
+       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_step">
         <property name="geometry">
          <rect>
-          <x>510</x>
-          <y>300</y>
+          <x>260</x>
+          <y>360</y>
           <width>171</width>
           <height>81</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>10</pointsize>
+          <pointsize>12</pointsize>
          </font>
         </property>
         <property name="text">
-         <string>Habilitar Drivers</string>
+         <string>Modo: Full Step</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_dir">
+        <property name="geometry">
+         <rect>
+          <x>470</x>
+          <y>360</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Dir: Apertura</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_run">
+        <property name="geometry">
+         <rect>
+          <x>680</x>
+          <y>360</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Girar Motor</string>
         </property>
        </widget>
       </widget>
@@ -284,7 +320,7 @@
      <x>0</x>
      <y>0</y>
      <width>957</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

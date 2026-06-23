@@ -17,6 +17,9 @@ class timersIOManager:
         # 2. Timer de la barra de progreso de Pre-Encendido
         self.timers['startup'] = QtCore.QTimer()
 
+        # 3. Timer rápido dedicado exclusivamente a los pulsos del motor paso a paso
+        self.timers['stepper_pulse'] = QtCore.QTimer()
+
     def start_all_core_timers(self):
         """Arranca el lazo principal de I/O"""
         self.timers['io_loop'].start(100)

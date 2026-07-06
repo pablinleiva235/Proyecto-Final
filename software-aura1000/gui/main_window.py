@@ -23,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_manager.start_all_core_timers()
 
         # Instanciamos el controlador de pruebas del motor
-        self.throttle = ThrottleController(self)
+        # self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO
@@ -56,55 +56,35 @@ class MainWindow(QtWidgets.QMainWindow):
     def MainMenu_init(self):
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
         
-        # Prueba de motor paso a paso
-        #1. Habilitar / Deshabilitar Driver
-        self.ui.MenuPrincipal_btn_toggle_enable.clicked.connect(self._on_enable_toggled)
-        # 2. Configuración de Pasos (Full / Half)
-        self.ui.MenuPrincipal_btn_toggle_step.clicked.connect(self._on_step_toggled)
-        # 3. Sentido de Giro (Cierre / Apertura)
-        self.ui.MenuPrincipal_btn_toggle_dir.clicked.connect(self._on_dir_toggled)
-        # 4. Marcha / Parada del Tren de Pulsos
-        self.ui.MenuPrincipal_btn_toggle_run.clicked.connect(self._on_run_toggled) 
+        # Habilitar / Deshabilitar Driver de la AURA 1000 DIO
+        self.ui.MenuPrincipal_btn_enable_driver.clicked.connect(self._btn_enable_driver)
+        # Abrir / Cerrar puerta de camara
+        self.ui.MenuPrincipal_btn_open_door.clicked.connect(self._btn_open_door)
 
-    # ------------- Funciones del pulsado de los botones para prueba motor paso a paso --------------
-    def _on_enable_toggled(self):
+    # ------------- Funciones de habilitacion de driver y apertura cierra de puerta --------------
+    def _btn_enable_driver(self):
         # Leemos el texto actual para saber qué acción tomar
-        if self.ui.MenuPrincipal_btn_toggle_enable.text() == "Habilitar Driver":
-            self.throttle.set_enable(ACTIVE)
-            self.ui.MenuPrincipal_btn_toggle_enable.setText("Deshabilitar Driver")
+        if self.ui.MenuPrincipal_btn_enable_driver.text() == "Habilitar Drivers":
+            self.hw.digital_set("DRIVER_ENABLE",ACTIVE)
+            self.ui.MenuPrincipal_btn_enable_driver.setText("Deshabilitar Drivers")
             # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
-            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("background-color: #f44336; color: white;")
+            self.ui.MenuPrincipal_btn_enable_driver.setStyleSheet("background-color: #f44336; color: white;")
         else:
-            self.throttle.set_enable(INACTIVE)
-            self.ui.MenuPrincipal_btn_toggle_enable.setText("Habilitar Driver")
-            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("")
+            self.hw.digital_set("DRIVER_ENABLE",INACTIVE)
+            self.ui.MenuPrincipal_btn_enable_driver.setText("Habilitar Drivers")
+            self.ui.MenuPrincipal_btn_enable_driver.setStyleSheet("")
 
-    def _on_step_toggled(self):
-        if "Full Step" in self.ui.MenuPrincipal_btn_toggle_step.text():
-            self.throttle.set_half_step(ACTIVE) # Pasamos a Half
-            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Half Step")
+    def _btn_open_door(self):
+        # Leemos el texto actual para saber qué acción tomar
+        if self.ui.MenuPrincipal_btn_open_door.text() == "Abrir Puerta":
+            self.hw.digital_set("DOOR_OPEN_CMD",ACTIVE)
+            self.ui.MenuPrincipal_btn_open_door.setText("Cerrar Puerta")
+            # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
+            self.ui.MenuPrincipal_btn_open_door.setStyleSheet("background-color: #f44336; color: white;")
         else:
-            self.throttle.set_half_step(INACTIVE) # Volvemos a Full
-            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Full Step")
-
-    def _on_dir_toggled(self):
-        if "Apertura" in self.ui.MenuPrincipal_btn_toggle_dir.text():
-            self.throttle.set_direction(ACTIVE) # DIR = 1 (Cierre)
-            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Cierre")
-        else:
-            self.throttle.set_direction(INACTIVE) # DIR = 0 (Apertura)
-            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Apertura")
-
-    def _on_run_toggled(self):
-        if self.ui.MenuPrincipal_btn_toggle_run.text() == "Girar Motor":
-            # Iniciamos el movimiento lento (ej: 6ms por semiciclo)
-            self.throttle.start_movement(speed_ms=6)
-            self.ui.MenuPrincipal_btn_toggle_run.setText("Detener Motor")
-            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("background-color: #ff9800; color: black;")
-        else:
-            self.throttle.stop_movement()
-            self.ui.MenuPrincipal_btn_toggle_run.setText("Girar Motor")
-            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("")   
+            self.hw.digital_set("DOOR_OPEN_CMD",INACTIVE)
+            self.ui.MenuPrincipal_btn_open_door.setText("Abrir Puerta")
+            self.ui.MenuPrincipal_btn_open_door.setStyleSheet("")
     
     # ------- Fuerza el cierre seguro por pulsador físico OFF -----------
     def trigger_hardware_off(self):

@@ -52,25 +52,7 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_enable">
-        <property name="geometry">
-         <rect>
-          <x>50</x>
-          <y>360</y>
-          <width>171</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Habilitar Driver</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_step">
+       <widget class="QPushButton" name="MenuPrincipal_btn_enable_driver">
         <property name="geometry">
          <rect>
           <x>260</x>
@@ -85,13 +67,13 @@
          </font>
         </property>
         <property name="text">
-         <string>Modo: Full Step</string>
+         <string>Habilitar Drivers</string>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_dir">
+       <widget class="QPushButton" name="MenuPrincipal_btn_open_door">
         <property name="geometry">
          <rect>
-          <x>470</x>
+          <x>520</x>
           <y>360</y>
           <width>171</width>
           <height>81</height>
@@ -103,25 +85,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Dir: Apertura</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_toggle_run">
-        <property name="geometry">
-         <rect>
-          <x>680</x>
-          <y>360</y>
-          <width>171</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Girar Motor</string>
+         <string>Abrir Puerta</string>
         </property>
        </widget>
       </widget>

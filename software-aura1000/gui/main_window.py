@@ -77,12 +77,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def _btn_open_door(self):
         # Leemos el texto actual para saber qué acción tomar
         if self.ui.MenuPrincipal_btn_open_door.text() == "Abrir Puerta":
+            self.hw.digital_set("DOOR_CLOSE_CMD",INACTIVE)
             self.hw.digital_set("DOOR_OPEN_CMD",ACTIVE)
             self.ui.MenuPrincipal_btn_open_door.setText("Cerrar Puerta")
             # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
             self.ui.MenuPrincipal_btn_open_door.setStyleSheet("background-color: #f44336; color: white;")
         else:
             self.hw.digital_set("DOOR_OPEN_CMD",INACTIVE)
+            self.hw.digital_set("DOOR_CLOSE_CMD",ACTIVE)
             self.ui.MenuPrincipal_btn_open_door.setText("Abrir Puerta")
             self.ui.MenuPrincipal_btn_open_door.setStyleSheet("")
     

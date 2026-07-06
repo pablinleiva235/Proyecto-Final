@@ -16,7 +16,7 @@ DIGITALSIGNALS = {
     "MFC1_OPEN":                  {"port": dio.SECONDPORTA, "bit": 0, "dir": "OUT", "active_state": 0, "initial_state": 1},
 
     # --------- SEÑALES SECONDPORTB: P1-9 a P1-16 / SALIDAS ------------
-    "MAIN_PNEUMATIC_ENABLE":      {"port": dio.SECONDPORTB, "bit": 7, "dir": "OUT", "active_state": 1, "initial_state": 0},
+    "MAIN_PNEUMATIC_ENABLE":      {"port": dio.SECONDPORTB, "bit": 7, "dir": "OUT", "active_state": 1, "initial_state": 1},
     "SOFT_START_CONTROL":         {"port": dio.SECONDPORTB, "bit": 6, "dir": "OUT", "active_state": 1, "initial_state": 0},
     "FILAMENT_ENABLE":            {"port": dio.SECONDPORTB, "bit": 5, "dir": "OUT", "active_state": 1, "initial_state": 0},
     "LOAD_VACUUM_CONTROL":        {"port": dio.SECONDPORTB, "bit": 4, "dir": "OUT", "active_state": 1, "initial_state": 0},

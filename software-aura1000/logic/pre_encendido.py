@@ -1,5 +1,5 @@
 # logic/pre_encendido.py
-from config.digital_signals import ACTIVE
+from config.digital_signals import ACTIVE, INACTIVE
 from services.system_state import systemState
 
 def init(win):
@@ -39,4 +39,6 @@ def update_progressBar(win):
     # 100 pasos * 100ms = 10 segundos
     if win.startup_progress >= 100:
         win.timer_manager.timers['startup'].stop()
+        # Deja de accionar el SSR pues el contactor queda autoretenido
+        win.hw.digital_set("POWER_ON", INACTIVE)
         win.change_state(systemState.MAIN_MENU)

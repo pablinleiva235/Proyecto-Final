@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout
 
-from config.strings import (
+from config_gui.strings import (
     MAINTAINER_TITLE,
     MAINTAINER_PLACEHOLDER,
     BACK_BUTTON_TEXT,

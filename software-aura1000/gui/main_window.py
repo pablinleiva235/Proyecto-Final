@@ -7,12 +7,12 @@ from PyQt5.QtWidgets import (
     QDialog,
 )
 
-from config.strings import (
+from config_gui.strings import (
     APP_TITLE,
     EXIT_CONFIRMATION_TITLE,
     EXIT_CONFIRMATION_MESSAGE,
 )
-from config.constants import (
+from config_gui.constants import (
     WELCOME_SCREEN,
     MAINTAINER_SCREEN,
     STATISTICS_SCREEN,

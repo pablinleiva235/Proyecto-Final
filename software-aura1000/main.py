@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication
 
 #from services.hardware import Hardware
 from gui.main_window import MainWindow
-from config.theme import APP_STYLE
+from config_gui.theme import APP_STYLE
 
 
 def main():

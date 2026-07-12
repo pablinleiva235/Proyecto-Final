@@ -8,11 +8,11 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
 )
 
-from config.users import (
+from config_gui.users import (
     MAINTAINER_USERNAME,
     MAINTAINER_PASSWORD,
 )
-from config.strings import (
+from config_gui.strings import (
     LOGIN_WINDOW_TITLE,
     LOGIN_TITLE,
     USERNAME_LABEL,

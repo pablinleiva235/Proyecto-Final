@@ -1,4 +1,150 @@
-from config.digital_signals import ACTIVE, INACTIVE
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QStackedWidget,
+    QMessageBox,
+    QDialog,
+)
+
+from config.strings import (
+    APP_TITLE,
+    EXIT_CONFIRMATION_TITLE,
+    EXIT_CONFIRMATION_MESSAGE,
+)
+from config.constants import (
+    WELCOME_SCREEN,
+    MAINTAINER_SCREEN,
+    STATISTICS_SCREEN,
+)
+from controllers.navigation_controller import NavigationController
+from gui.widgets.top_bar_widget import TopBarWidget
+from gui.welcome_screen import WelcomeScreen
+from gui.maintainer_screen import MaintainerScreen
+from gui.statistics_screen import StatisticsScreen
+from gui.login_dialog import LoginDialog
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.create_widgets()
+        self.setup_layout()
+        self.connect_signals()
+
+        self._show_welcome_screen()
+
+    def create_widgets(self):
+        # Configura la ventana principal
+        self.setWindowTitle(APP_TITLE)
+
+        # Componentes principales de la aplicación
+        self.central_widget = QWidget()
+        self.top_bar = TopBarWidget()
+        self.stack = QStackedWidget()
+
+        # Pantallas
+        self.welcome_screen = WelcomeScreen()
+        self.maintainer_screen = MaintainerScreen()
+        self.statistics_screen = StatisticsScreen()
+
+        # Controlador de navegación
+        self.navigation_controller = NavigationController(self.stack)
+
+        # Registra las pantallas con nombres lógicos
+        self.navigation_controller.register_screen(
+            WELCOME_SCREEN,
+            self.welcome_screen,
+        )
+        self.navigation_controller.register_screen(
+            MAINTAINER_SCREEN,
+            self.maintainer_screen,
+        )
+        self.navigation_controller.register_screen(
+            STATISTICS_SCREEN,
+            self.statistics_screen,
+        )
+
+    def setup_layout(self):
+        # Organiza la barra superior y el contenido principal
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        main_layout.addWidget(self.top_bar)
+        main_layout.addWidget(self.stack)
+
+        self.central_widget.setLayout(main_layout)
+        self.setCentralWidget(self.central_widget)
+
+    def connect_signals(self):
+        # Solicita autenticación para ingresar al modo Maintainer
+        self.welcome_screen.maintainer_requested.connect(
+            self._request_maintainer_access
+        )
+
+        self.welcome_screen.statistics_requested.connect(
+            self._show_statistics_screen
+        )
+
+        # Navegación hacia la pantalla de bienvenida
+        self.maintainer_screen.back_requested.connect(
+            self._show_welcome_screen
+        )
+        self.statistics_screen.back_requested.connect(
+            self._show_welcome_screen
+        )
+
+        # Solicitud global de salida
+        self.top_bar.exit_requested.connect(
+            self._confirm_exit
+        )
+
+    def _show_welcome_screen(self):
+        # Muestra la pantalla de bienvenida
+        self.navigation_controller.show_screen(
+            WELCOME_SCREEN
+        )
+
+    def _show_maintainer_screen(self):
+        # Muestra la pantalla de mantenimiento
+        self.navigation_controller.show_screen(
+            MAINTAINER_SCREEN
+        )
+
+    def _show_statistics_screen(self):
+        # Muestra la pantalla de estadísticas
+        self.navigation_controller.show_screen(
+            STATISTICS_SCREEN
+        )
+
+    def _request_maintainer_access(self):
+    # Solicita autenticación antes de ingresar al modo de mantenimiento
+        login_dialog = LoginDialog(self)
+
+        result = login_dialog.exec_()
+
+        if result == QDialog.Accepted:
+            self._show_maintainer_screen()
+
+    def _confirm_exit(self):
+    # Confirma con el usuario antes de cerrar la aplicación
+        response = QMessageBox.question(
+        self,
+        EXIT_CONFIRMATION_TITLE,
+        EXIT_CONFIRMATION_MESSAGE,
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No,
+    )
+
+        if response == QMessageBox.Yes:
+            self.close()
+
+
+#######################################################
+
+""" from config.digital_signals import ACTIVE, INACTIVE
 from PyQt5 import QtCore, QtGui, QtWidgets
 from gui.powerOnGUI import Ui_MainWindow
 from services.system_state import SystemState
@@ -155,3 +301,4 @@ class MainWindow(QtWidgets.QMainWindow):
                 # Aceptamos el cierre directamente sin más preguntas
                 event.accept()
 
+ """

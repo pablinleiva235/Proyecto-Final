@@ -1,9 +1,23 @@
 import sys
-from PyQt5 import QtWidgets
+#from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication
 
-from services.hardware import Hardware
+#from services.hardware import Hardware
 from gui.main_window import MainWindow
+from config.theme import APP_STYLE
 
+#gui-development
+def main():
+    app = QApplication(sys.argv)
+    app.setStyleSheet(APP_STYLE)
+
+    window = MainWindow()
+    window.showFullScreen()
+
+    sys.exit(app.exec_())
+
+#main branch
+'''
 # Handler que lleva las señales a estado seguro ante alguna falla inesperada de la interfaz grafica
 def global_exception_handler(exctype, value, traceback):
     """
@@ -39,16 +53,12 @@ def global_exception_handler(exctype, value, traceback):
     # Forzamos la salida inmediata del script para evitar bucles zombis en la GUI
     sys.exit(1)
 
+'''
 
 if __name__ == "__main__":
-    # Vinculamos el gancho de excepciones global antes de arrancar la app
-    sys.excepthook = global_exception_handler
-
-    app = QtWidgets.QApplication(sys.argv)
-    hw = Hardware()
-    
-    # Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
-    window = MainWindow(hw)
-    window.show()
-    
-    sys.exit(app.exec_())
+    #app = QtWidgets.QApplication(sys.argv)
+    #hw = Hardware()
+    ##Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
+    #window = MainWindow(hw)
+    #window.show()
+    #sys.exit(app.exec_())

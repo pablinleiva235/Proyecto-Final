@@ -17,12 +17,12 @@ import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
 
-from config.strings import (
+from config_gui.strings import (
     APP_TITLE,
     EXIT_CONFIRMATION_TITLE,
     EXIT_CONFIRMATION_MESSAGE,
 )
-from config.constants import (
+from config_gui.constants import (
     WELCOME_SCREEN,
     MAINTAINER_SCREEN,
     STATISTICS_SCREEN,

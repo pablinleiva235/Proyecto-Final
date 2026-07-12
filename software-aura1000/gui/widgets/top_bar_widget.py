@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout
 
-from config.strings import APP_TITLE, EXIT_BUTTON_TEXT
+from config_gui.strings import APP_TITLE, EXIT_BUTTON_TEXT
 
 
 class TopBarWidget(QWidget):

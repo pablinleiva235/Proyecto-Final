@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
-from config.strings import (
+from config_gui.strings import (
     WELCOME_TITLE,
     APP_SUBTITLE,
     NORMAL_OPERATION_BUTTON_TEXT,

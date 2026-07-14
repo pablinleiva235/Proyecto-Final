@@ -50,11 +50,14 @@ El módulo `pre_encendido.py` encapsula la lógica secuencial y algorítmica de 
     ```
 
 ??? note "Callback de la Barra de Progreso: `update_progressBar(win)`"
-    Rutina cíclica acoplada al desbordamiento (timeout) del temporizador `startup` cada 100 ms. Incrementa linealmente la variable `startup_progress` reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de **100 pasos**, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado `MAIN_MENU`.
+    Rutina cíclica acoplada al desbordamiento (timeout) del temporizador `startup` cada 100 ms. Incrementa linealmente la variable `startup_progress` reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de **100 pasos**, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado `MAIN_MENU`. Ademas desenergiza el SSR de encendido ya que el contactor quedo autoretenido por su contacto auxiliar
 
     ```python
     # 100 pasos * 100ms = 10 segundos de delay de estabilización
     if win.startup_progress >= 100:
         win.timer_manager.timers['startup'].stop()
+        win.change_state(systemState.MAIN_MENU)
+        # Deja de accionar el SSR pues el contactor queda autoretenido
+        win.hw.digital_set("POWER_ON", INACTIVE)
         win.change_state(systemState.MAIN_MENU)
     ```

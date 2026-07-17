@@ -2,9 +2,13 @@ from PyQt5 import QtWidgets
 from gui.pyqt_gui import Ui_MainWindow
 from services.system_state import systemState
 from logic.timers_io import timersIOManager
+
 import logic.pre_encendido as preEncendido
+import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
+
+BARATRON_FULL_SCALE = 10
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
@@ -51,47 +55,63 @@ class MainWindow(QtWidgets.QMainWindow):
         preEncendido.startup(self)
 
     # ==================== DEL MAIN MENU ====================
-    
-    # ------------ Inicializa visualmente el menú principal ----------------
-    def MainMenu_init(self):
-        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
-        
-        # Habilitar / Deshabilitar Driver de la AURA 1000 DIO
-        self.ui.MenuPrincipal_btn_enable_driver.clicked.connect(self._btn_enable_driver)
-        # Abrir / Cerrar puerta de camara
-        self.ui.MenuPrincipal_btn_open_door.clicked.connect(self._btn_open_door)
-
-    # ------------- Funciones de habilitacion de driver y apertura cierra de puerta --------------
-    def _btn_enable_driver(self):
-        # Leemos el texto actual para saber qué acción tomar
-        if self.ui.MenuPrincipal_btn_enable_driver.text() == "Habilitar Drivers":
-            self.hw.digital_set("DRIVER_ENABLE",ACTIVE)
-            self.ui.MenuPrincipal_btn_enable_driver.setText("Deshabilitar Drivers")
-            # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
-            self.ui.MenuPrincipal_btn_enable_driver.setStyleSheet("background-color: #f44336; color: white;")
-        else:
-            self.hw.digital_set("DRIVER_ENABLE",INACTIVE)
-            self.ui.MenuPrincipal_btn_enable_driver.setText("Habilitar Drivers")
-            self.ui.MenuPrincipal_btn_enable_driver.setStyleSheet("")
-
-    def _btn_open_door(self):
-        # Leemos el texto actual para saber qué acción tomar
-        if self.ui.MenuPrincipal_btn_open_door.text() == "Abrir Puerta":
-            self.hw.digital_set("DOOR_CLOSE_CMD",INACTIVE)
-            self.hw.digital_set("DOOR_OPEN_CMD",ACTIVE)
-            self.ui.MenuPrincipal_btn_open_door.setText("Cerrar Puerta")
-            # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
-            self.ui.MenuPrincipal_btn_open_door.setStyleSheet("background-color: #f44336; color: white;")
-        else:
-            self.hw.digital_set("DOOR_OPEN_CMD",INACTIVE)
-            self.hw.digital_set("DOOR_CLOSE_CMD",ACTIVE)
-            self.ui.MenuPrincipal_btn_open_door.setText("Abrir Puerta")
-            self.ui.MenuPrincipal_btn_open_door.setStyleSheet("")
-    
     # ------- Fuerza el cierre seguro por pulsador físico OFF -----------
     def trigger_hardware_off(self):
         self.offClose = 1
         self.close() # Esto llama a closeEvent
+
+    # =========================================================
+    # METODOS DE INICIALIZACION DE LOS ESTADOS
+    # =========================================================
+    # ------------ Inicializa visualmente el menú principal ----------------
+    def MainMenu_init(self):
+        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
+        #Inicia modo de prueba modular
+        maintenanceProcess.init(self)
+
+    # =================================================================================
+    # METODO PARA TOGGLEAR ESTADO VISUAL DE INDICADORES (ATM, Puerta, Lamparas, Plasma)
+    # =================================================================================   
+    def update_led_indicator(self, label_widget, state_active, text_active, text_inactive):
+        """
+        Actualiza dinámicamente el estilo de un QLabel para simular un indicador LED.
+        """
+        if state_active:
+            label_widget.setText(text_active)
+            label_widget.setStyleSheet("""
+                background-color: #2ec4b6; color: black; font-weight: bold; 
+                border: 1px solid #0f625a; border-radius: 4px; padding: 4px;
+            """)
+        else:
+            label_widget.setText(text_inactive)
+            label_widget.setStyleSheet("""
+                background-color: #e0e0e0; color: #757575; font-weight: bold; 
+                border: 1px solid #9e9e9e; border-radius: 4px; padding: 4px;
+            """)
+
+    # ===================================================================
+    # METODO PARA MOSTRAR LA LECTURA DEL BARATRON Y ESTADO DEL ATM SWITCH
+    # ===================================================================
+    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
+    def update_pressure_display(self):
+            """
+            Lee el Baratron y el ATM_SWITCH, actualiza la GUI y retorna el estado de ATM.
+            """
+            try:
+                voltage = self.hw.analog_read("BARATRON")
+                pressure_torr = max(0.0, voltage * (self.BARATRON_FULL_SCALE / 10.0))
+                self.ui.lcd_pressure.display(f"{pressure_torr:.2f}")
+                
+                # Leemos una única vez el hardware
+                atm_active = self.hw.digital_get("ATM_SWITCH")
+                self.update_led_indicator(self.ui.lbl_status_atm, atm_active, "PRESION ATM", "VACIO / CAMARA")
+                
+                # RETORNAMOS EL VALOR LEÍDO
+                return atm_active
+
+            except Exception as e:
+                print(f"Error al actualizar la presión en el lazo de la GUI: {e}")
+                return False
 
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA

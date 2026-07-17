@@ -38,6 +38,19 @@ class timersIOManager:
                 self.win.preEncendido_startup_sequence()
                 
         elif self.win.current_state == systemState.MAIN_MENU:
+            # 1. Actualización constante de presion de baratron en display y captura del estado ATM 
+            is_atm = self.win.update_pressure_display()
+
+            # 2. MONITOREO DEL VENTEO EN SEGUNDO PLANO
+            if self.win.ui.MenuPrincipal_btn_vent_chamber.text() == "Venteando...":
+                if is_atm:  # Si el ATM Switch detecto presion atmosferica
+                    self.win.ui.MenuPrincipal_btn_vent_chamber.setText("Presión ATM alcanzada...")
+                    print("ATM Detectado por lazo central. Iniciando temporización de seguridad...")
+                    # Seguira venteando por 4s luego de detectar ATM para que la camara se ventee completamente
+                    import logic.maintenance_process as mp
+                    QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
+
+            # 3. Control de apagado general existente
             if self.hw.digital_read("SYS_POWER"):
                 print("POWER OFF DETECTADO POR LAZO CENTRAL")
                 self.win.trigger_hardware_off()

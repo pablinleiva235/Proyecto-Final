@@ -56,7 +56,7 @@
         <property name="geometry">
          <rect>
           <x>260</x>
-          <y>360</y>
+          <y>230</y>
           <width>171</width>
           <height>81</height>
          </rect>
@@ -74,7 +74,7 @@
         <property name="geometry">
          <rect>
           <x>520</x>
-          <y>360</y>
+          <y>230</y>
           <width>171</width>
           <height>81</height>
          </rect>
@@ -86,6 +86,101 @@
         </property>
         <property name="text">
          <string>Abrir Puerta</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_soft_vacuum">
+        <property name="geometry">
+         <rect>
+          <x>260</x>
+          <y>350</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Soft Vacuum On</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_main_vacuum">
+        <property name="geometry">
+         <rect>
+          <x>520</x>
+          <y>350</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Main Vacuum On</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_vent_chamber">
+        <property name="geometry">
+         <rect>
+          <x>260</x>
+          <y>470</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Vent Chamber On</string>
+        </property>
+       </widget>
+       <widget class="QLCDNumber" name="MenuPrincipal_chamber_pressure">
+        <property name="geometry">
+         <rect>
+          <x>520</x>
+          <y>470</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_pressure_lbl">
+        <property name="geometry">
+         <rect>
+          <x>700</x>
+          <y>470</y>
+          <width>161</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Torr</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_lbl_status_atm">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>560</y>
+          <width>121</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>36</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </widget>
@@ -284,7 +379,7 @@
      <x>0</x>
      <y>0</y>
      <width>957</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>

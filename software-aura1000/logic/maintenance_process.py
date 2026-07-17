@@ -137,7 +137,8 @@ def vent_chamber(win):
 
     # 1. INTERBLOQUEOS DE SEGURIDAD (Solo para cuando se quiere arrancar el venteo)
     if btn_vent.text() == "Vent Chamber":
-        if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off":
+        #Off porque eso muestran cuando estan encendidos
+        if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
             QtWidgets.QMessageBox.warning(
                 win,
                 "Secuencia Inválida",

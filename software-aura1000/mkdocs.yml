@@ -10,6 +10,7 @@ theme:
 nav:
   - Inicio: index.md
   - Estructura de Carpetas: arquitectura/carpetas.md
+  - main: main.md
   - /config (Señales):
     - Indice: config/index.md
     - Digitales (digital_signals.py): config/digital_signals.md
@@ -25,6 +26,7 @@ nav:
   - /logic:
     - Índice: logic/index.md
     - Pre Encendido (pre_encendido.py): logic/pre_encendido.md
+    - Ejecucion de proceso en modo mantenimiento (maintenance_process.py): logic/maintenance_process.md
     - Gestion de timers y entradas digitales (timers_io.py): logic/timers_io.md
   - /services:
     - Índice: services/index.md

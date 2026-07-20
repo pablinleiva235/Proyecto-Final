@@ -34,19 +34,21 @@ La nueva arquitectura de software fue diseñada de forma modular utilizando las 
 Para facilitar el análisis del código y el mantenimiento en el laboratorio, podés acceder directamente a cada sección desde los siguientes enlaces:
 
 1. **[Estructura de Carpetas](arquitectura/carpetas.md)**
-2. **[Tablas de Configuración <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/config)</span>](config/index.md)**
+2. **[main](main.md)**
+3. **[Tablas de Configuración <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/config)</span>](config/index.md)**
     * **[Señales Digitales <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/config/digital_signals.py)</span>](config/digital_signals.md)**
     * **[Señales Analógicas <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/config/analog_signals.py)</span>](config/analog_signals.md)**
-3. **[Drivers de Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/drivers)</span>](drivers/index.md)**
+4. **[Drivers de Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/drivers)</span>](drivers/index.md)**
     * **[Driver Digital <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/drivers/dio_driver.py)</span>](drivers/digital.md)**
     * **[Driver Analógico <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/drivers/analog_driver.py)</span>](drivers/analogico.md)**
-4. **[Entorno Gráfico <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/gui)</span>](gui/index.md)**
+5. **[Entorno Gráfico <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/gui)</span>](gui/index.md)**
     * **[Ventana Principal <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/gui/main_window.py)</span>](gui/main_window.md)**
     * **[Interfaz de PyQt5Designer <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/gui/pyqt_gui.py)</span>](gui/pyqt_gui.md)**
-5. **[Logica <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic)</span>](logic/index.md)**
+6. **[Logica <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic)</span>](logic/index.md)**
     * **[Pre Encendido <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/pre_encendido.py)</span>](logic/pre_encendido.md)**
+    * **[Proceso en modo mantenimiento <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/maintenance_process.py)</span>](logic/maintenance_process.md)**
     * **[Gestion de timers y entradas digitales<span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/timers_io.py)</span>](logic/timers_io.md)**    
-6. **[Intermediario entre GUI y Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services)</span>](services/index.md)**
+7. **[Intermediario entre GUI y Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services)</span>](services/index.md)**
     * **[Abstracción de Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services/hardware.py)</span>](services/hardware.md)**
     * **[Estados de máquina de estados <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services/system_state.py)</span>](services/system_state.md)**
 

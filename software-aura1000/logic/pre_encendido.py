@@ -14,7 +14,7 @@ def startup(win):
     win.hw.digital_set("POWER_ON", ACTIVE)
     
     # [DESCOMENTAR EN NOTEBOOK DE SALA]
-    # win.hw.initialize_AD()  
+    win.hw.initialize_AD()  
     
     # 2. Modificar la interfaz gráfica directamente
     win.ui.PreEncendido_label2.setText("Iniciando, espere ...")

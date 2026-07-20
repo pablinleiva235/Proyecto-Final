@@ -66,7 +66,7 @@ class Hardware:
     def shutdown_state(self):
         # 1) Llevar salidas a estado seguro
         self.digital_safe_state()
-        #self.analog_safe_state() DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
+        self.analog_safe_state() #DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
         
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL

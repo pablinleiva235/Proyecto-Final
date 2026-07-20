@@ -99,11 +99,11 @@ class MainWindow(QtWidgets.QMainWindow):
             """
             try:
                 voltage = self.hw.analog_read("BARATRON")
-                pressure_torr = max(0.0, voltage * (self.BARATRON_FULL_SCALE / 10.0))
+                pressure_torr = max(0.0, voltage * (BARATRON_FULL_SCALE / 10.0))
                 self.ui.MenuPrincipal_chamber_pressure.display(f"{pressure_torr:.2f}")
                 
                 # Leemos una única vez el hardware
-                atm_active = self.hw.digital_get("ATM_SWITCH")
+                atm_active = self.hw.digital_read("ATM_SWITCH")
                 self.update_led_indicator(self.ui.MenuPrincipal_lbl_status_atm, atm_active, "PRESION ATM", "VACIO / CAMARA")
                 
                 # RETORNAMOS EL VALOR LEÍDO

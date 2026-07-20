@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui/pyqt_gui.ui'
+# Form implementation generated from reading ui file 'pyqt_gui.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -73,9 +73,9 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_pressure_lbl.setGeometry(QtCore.QRect(700, 470, 161, 81))
         self.MenuPrincipal_pressure_lbl.setObjectName("MenuPrincipal_pressure_lbl")
         self.MenuPrincipal_lbl_status_atm = QtWidgets.QLabel(self.MenuPrincipal)
-        self.MenuPrincipal_lbl_status_atm.setGeometry(QtCore.QRect(550, 560, 121, 71))
+        self.MenuPrincipal_lbl_status_atm.setGeometry(QtCore.QRect(520, 560, 181, 71))
         font = QtGui.QFont()
-        font.setPointSize(36)
+        font.setPointSize(12)
         self.MenuPrincipal_lbl_status_atm.setFont(font)
         self.MenuPrincipal_lbl_status_atm.setText("")
         self.MenuPrincipal_lbl_status_atm.setObjectName("MenuPrincipal_lbl_status_atm")
@@ -148,7 +148,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.stackedWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 957, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 957, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)

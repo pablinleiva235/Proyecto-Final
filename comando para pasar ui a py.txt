@@ -1,1 +1,1 @@
-pyuic5 -x nombre.ui -o nombre.py
+pyuic5 -x pyqt_gui.ui -o pyqt_gui.py

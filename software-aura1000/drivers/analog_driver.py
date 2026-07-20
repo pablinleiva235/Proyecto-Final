@@ -85,7 +85,7 @@ cbw.cbTIn.restype = ctypes.c_int
 def read_voltage(board, channel, voltage_range):
     raw_value = ctypes.c_ushort()
     # 1. Lee las cuentas binarias del hardware
-    err = cbw.cbAIn(board, channel, voltage_range, ctypes.byref(raw_value)) [cite: 7]
+    err = cbw.cbAIn(board, channel, voltage_range, ctypes.byref(raw_value)) 
     if err != 0:
         raise Exception(f"cbAIn error {err}")
     # 2. Convierte las cuentas a voltios por software
@@ -106,7 +106,7 @@ def write_voltage(board, channel, voltage, voltage_range):
     if err != 0:
         raise Exception(f"cbFromEngUnits error {err}")
     # 2. Envía las cuentas calculadas al DAC de la placa
-    err = cbw.cbAOut(board, channel, voltage_range, raw_counts.value) [cite: 40]
+    err = cbw.cbAOut(board, channel, voltage_range, raw_counts.value) 
     if err != 0:
         raise Exception(f"cbAOut error {err}")
 

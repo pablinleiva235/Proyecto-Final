@@ -113,6 +113,31 @@ class MainWindow(QtWidgets.QMainWindow):
                 print(f"Error al actualizar la presión en el lazo de la GUI: {e}")
                 return False
 
+    # ===================================================================
+    # METODO PARA MOSTRAR EL READOUT DE LOS MFCs
+    # ===================================================================
+    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
+    def update_mfc_displays(self):
+        """
+        Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW
+        y actualiza los LCDs de la GUI.
+        """
+        try:
+            # --- 1. Lectura de MFC1 (O2) ---
+            v_mfc1 = self.hw.analog_read("MFC1_FLOW")
+            slm_mfc1 = v_mfc1 
+            slm_mfc1 = max(0.0, slm_mfc1)
+            self.ui.MenuPrincipal_mfc1_readout.display(f"{slm_mfc1:.2f}")
+
+            # --- 2. Lectura de MFC2 (N2) ---
+            v_mfc2 = self.hw.analog_read("MFC2_FLOW")
+            slm_mfc2 = v_mfc2 
+            slm_mfc2 = max(0.0, slm_mfc2)
+            self.ui.MenuPrincipal_mfc2_readout.display(f"{slm_mfc2:.2f}")
+
+        except Exception as e:
+            print(f"Error al leer flujo de MFCs: {e}")
+
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA
     # =========================================================

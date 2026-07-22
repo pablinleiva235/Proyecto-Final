@@ -10,6 +10,7 @@ cbw = ctypes.windll.LoadLibrary(r"C:\Program Files (x86)\Measurement Computing\D
 # RANGOS ANALOGICOS
 # (Universal Library constants)
 # =========================================================
+BIP1VOLTS  = 4     # -1V a +1V
 BIP5VOLTS  = 0     # -5V a +5V
 BIP10VOLTS = 1     # -10V a +10V
 

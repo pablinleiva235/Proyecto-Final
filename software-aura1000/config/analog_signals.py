@@ -12,8 +12,8 @@ ANALOG_INPUTS = {
 ANALOG_OUTPUTS = {
     # El rango se cambia a BIP10VOLTS porque el DAC de la USB-2527 es fijo.
     # El escalado de 0-5V se garantiza con min_voltage y max_voltage.
-    "MFC1_SETPOINT": {"channel": 0, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 5.0,},
-    "MFC2_SETPOINT": {"channel": 2, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 5.0,},
+    "MFC1_SETPOINT": {"channel": 0, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 10.0,},
+    "MFC2_SETPOINT": {"channel": 2, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 1.0,},
     "MFC3_SETPOINT": {"channel": 1, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 5.0,},
     "MFC4_SETPOINT": {"channel": 3, "range": ad.BIP10VOLTS, "min_voltage": 0.0, "max_voltage": 5.0,},
 }

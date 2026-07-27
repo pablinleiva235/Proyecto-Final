@@ -51,9 +51,9 @@ El módulo `timers_io.py` implementa la clase `timersIOManager`, para adminsitra
 
 ---
 
-## <span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion y temperatura</span>
+## <span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion, MFCs y temperatura</span>
 
-??? note "Escaneo de Entradas Digitales, presion atmosferica, baratron y temperatura: `_update_inputs_loop(self)`"
+??? note "Escaneo de Entradas Digitales, presion atmosferica, baratron, MFCs y temperatura: `_update_inputs_loop(self)`"
     Manejador privado encargado de leer cada 100ms entradas digitales y actualizar la lectura de presion y temperatura del sistema:
 
     * **Fase `PRE_ENCENDIDO`**: Sondea de forma continua la línea digital del switch físico de marcha. Al registrar un flanco ascendente (`1`), corta el ciclo de sondeo y ordena a la ventana despachar la secuencia de enclavamiento de potencia.

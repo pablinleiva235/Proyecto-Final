@@ -209,8 +209,8 @@
        <widget class="QLCDNumber" name="MenuPrincipal_mfc1_readout">
         <property name="geometry">
          <rect>
-          <x>110</x>
-          <y>560</y>
+          <x>100</x>
+          <y>500</y>
           <width>171</width>
           <height>81</height>
          </rect>
@@ -224,8 +224,8 @@
        <widget class="QLCDNumber" name="MenuPrincipal_mfc2_readout">
         <property name="geometry">
          <rect>
-          <x>570</x>
-          <y>560</y>
+          <x>560</x>
+          <y>500</y>
           <width>171</width>
           <height>81</height>
          </rect>
@@ -242,7 +242,7 @@
           <x>470</x>
           <y>380</y>
           <width>16</width>
-          <height>291</height>
+          <height>211</height>
          </rect>
         </property>
         <property name="orientation">
@@ -341,7 +341,7 @@
         <property name="geometry">
          <rect>
           <x>20</x>
-          <y>470</y>
+          <y>440</y>
           <width>121</width>
           <height>51</height>
          </rect>
@@ -359,7 +359,7 @@
         <property name="geometry">
          <rect>
           <x>500</x>
-          <y>470</y>
+          <y>440</y>
           <width>111</width>
           <height>51</height>
          </rect>
@@ -377,7 +377,7 @@
         <property name="geometry">
          <rect>
           <x>150</x>
-          <y>480</y>
+          <y>450</y>
           <width>71</width>
           <height>31</height>
          </rect>
@@ -395,7 +395,7 @@
         <property name="geometry">
          <rect>
           <x>620</x>
-          <y>480</y>
+          <y>450</y>
           <width>71</width>
           <height>31</height>
          </rect>
@@ -413,7 +413,7 @@
         <property name="geometry">
          <rect>
           <x>320</x>
-          <y>470</y>
+          <y>440</y>
           <width>81</width>
           <height>51</height>
          </rect>
@@ -433,7 +433,7 @@
         <property name="geometry">
          <rect>
           <x>780</x>
-          <y>470</y>
+          <y>440</y>
           <width>81</width>
           <height>51</height>
          </rect>
@@ -452,8 +452,8 @@
        <widget class="QLabel" name="MenuPrincipal_mfc1_readout_lbl">
         <property name="geometry">
          <rect>
-          <x>290</x>
-          <y>570</y>
+          <x>280</x>
+          <y>510</y>
           <width>121</width>
           <height>61</height>
          </rect>
@@ -470,8 +470,8 @@
        <widget class="QLabel" name="MenuPrincipal_mfc2_readout_lbl">
         <property name="geometry">
          <rect>
-          <x>750</x>
-          <y>570</y>
+          <x>740</x>
+          <y>510</y>
           <width>121</width>
           <height>61</height>
          </rect>
@@ -489,7 +489,7 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>670</y>
+          <y>590</y>
           <width>921</width>
           <height>16</height>
          </rect>
@@ -501,7 +501,7 @@
        <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
         <property name="geometry">
          <rect>
-          <x>510</x>
+          <x>40</x>
           <y>710</y>
           <width>171</width>
           <height>81</height>
@@ -516,8 +516,8 @@
        <widget class="QLabel" name="MenuPrincipal_temp_lbl">
         <property name="geometry">
          <rect>
-          <x>150</x>
-          <y>700</y>
+          <x>10</x>
+          <y>610</y>
           <width>321</width>
           <height>91</height>
          </rect>
@@ -542,7 +542,7 @@
        <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
         <property name="geometry">
          <rect>
-          <x>690</x>
+          <x>220</x>
           <y>720</y>
           <width>91</width>
           <height>71</height>
@@ -561,6 +561,81 @@
         </property>
         <property name="text">
          <string>°C</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_lamps_menu_lbl">
+        <property name="geometry">
+         <rect>
+          <x>400</x>
+          <y>620</y>
+          <width>491</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>28</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Control de Lamparas</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_outerLamps">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>680</y>
+          <width>191</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Lamps 1 y 3 On</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_centralLamp">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>740</y>
+          <width>191</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Lamp 2 On</string>
+        </property>
+       </widget>
+       <widget class="Line" name="line_2">
+        <property name="geometry">
+         <rect>
+          <x>380</x>
+          <y>600</y>
+          <width>20</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
         </property>
        </widget>
       </widget>

@@ -1,6 +1,7 @@
 # logic/maintenance_process.py
 
 from PyQt5 import QtWidgets 
+from PyQt5.QtCore import QEventLoop, QTimer
 from config.digital_signals import ACTIVE, INACTIVE
 
 # Constantes físicas de los MFCs (Unit UFC-1100A)
@@ -8,7 +9,21 @@ MFC1_MAX_SLM = 10.0
 MFC2_MAX_SLM = 1.0    
 
 MFC1_MAX_VOLT = 10.0  
-MFC2_MAX_VOLT = 1.0   
+MFC2_MAX_VOLT = 1.0
+
+# =============================================================================
+# PAUSA TEMPORAL PARA PULSO DE ENCENDIDO DE LAMPS 1 Y 3
+# =============================================================================
+
+def qt_sleep(ms: int):
+    """Pausa no bloqueante para la interfaz de PyQt."""
+    loop = QEventLoop()
+    QTimer.singleShot(ms, loop.quit)
+    loop.exec_()
+
+# =============================================================================
+# INICIALIZACION
+# =============================================================================
 
 def init(win):
     """
@@ -24,7 +39,9 @@ def init(win):
         win.ui.MenuPrincipal_btn_mfc1_open,
         win.ui.MenuPrincipal_btn_mfc2_open,
         win.ui.MenuPrincipal_btn_mfc1_set,
-        win.ui.MenuPrincipal_btn_mfc2_set
+        win.ui.MenuPrincipal_btn_mfc2_set,
+        win.ui.MenuPrincipal_btn_outerLamps,
+        win.ui.MenuPrincipal_btn_centralLamp
     ]
     for btn in buttons:
         try:
@@ -42,21 +59,27 @@ def init(win):
     win.ui.MenuPrincipal_btn_mfc2_open.clicked.connect(lambda: toggle_mfc2_valve(win))
     win.ui.MenuPrincipal_btn_mfc1_set.clicked.connect(lambda: set_mfc1_flow(win))
     win.ui.MenuPrincipal_btn_mfc2_set.clicked.connect(lambda: set_mfc2_flow(win))
+    win.ui.MenuPrincipal_btn_outerLamps.clicked.connect(lambda: trigger_lamps_1_3(win))
+    win.ui.MenuPrincipal_btn_centralLamp.clicked.connect(lambda: toggle_lamp_2(win))
 
     # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs al arrancar
-    set_mfc_controls_enabled(win, False)
+    set_mfc_lamps_controls_enabled(win, False)
 
 
 # =============================================================================
 # HELPER DE BLOQUEO/DESBLOQUEO DE CONTROLES MFC
 # =============================================================================
 
-def set_mfc_controls_enabled(win, enabled: bool):
+def set_mfc_lamps_controls_enabled(win, enabled: bool):
     """
-    Habilita o deshabilita en bloque las entradas y botones de control de los MFCs.
-    Si se deshabilita (enabled=False), fuerza el cierre de válvulas y setpoints a 0V.
+    Habilita o deshabilita en bloque las entradas y botones de control
+    de los MFCs y del Sistema de Lámparas.
+    Si se deshabilita (enabled=False), fuerza el cierre de válvulas,
+    setpoints a 0V y apagado de comandos de lámparas.
     """
-    # 1. Habilitar/Deshabilitar widgets de interfaz
+    # -------------------------------------------------------------------------
+    # 1. Habilitar/Deshabilitar widgets de interfaz (MFCs)
+    # -------------------------------------------------------------------------
     win.ui.MenuPrincipal_btn_mfc1_open.setEnabled(enabled)
     win.ui.MenuPrincipal_mfc1_setpoint.setEnabled(enabled)
     win.ui.MenuPrincipal_btn_mfc1_set.setEnabled(enabled)
@@ -65,21 +88,36 @@ def set_mfc_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_mfc2_setpoint.setEnabled(enabled)
     win.ui.MenuPrincipal_btn_mfc2_set.setEnabled(enabled)
 
-    # 2. Si se están deshabilitando por pérdida de vacío/venteo, apagamos salidas por hardware
+    # -------------------------------------------------------------------------
+    # 2. Habilitar/Deshabilitar widgets de interfaz (Lámparas)
+    # -------------------------------------------------------------------------
+    win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
+    win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
+
+    # -------------------------------------------------------------------------
+    # 3. Si se deshabilitan por pérdida de vacío / venteo:
+    # -------------------------------------------------------------------------
     if not enabled:
-        # Cierre físico de válvulas de inyección
+        # A. Cierre físico de válvulas de inyección y setpoints de MFCs
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
-        
-        # Setpoints analógicos a cero
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
 
-        # Reseteo estético de botones
+        # Reseteo estético de botones de MFCs
         win.ui.MenuPrincipal_btn_mfc1_open.setText("Abrir Valvula MFC1: O2")
         win.ui.MenuPrincipal_btn_mfc1_open.setStyleSheet("")
         win.ui.MenuPrincipal_btn_mfc2_open.setText("Abrir Valvula MFC2: N2")
         win.ui.MenuPrincipal_btn_mfc2_open.setStyleSheet("")
+
+        # B. Apagado físico de comandos de Lámparas
+        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)  # Reposo del monoestable
+        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)  # Reposo del monoestable
+        win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)  # Lámpara 2 apagada
+
+        # Reseteo estético del botón de Lámpara 2
+        win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
+        win.ui.MenuPrincipal_btn_centralLamp.setStyleSheet("")
 
 
 # =============================================================================
@@ -144,7 +182,6 @@ def toggle_soft_vacuum(win):
         if btn_main.text() == "Main Vacuum On":
             btn_door.setEnabled(True)
 
-
 def toggle_main_vacuum(win):
     """
     Controla la activación de Main Vacuum.
@@ -179,14 +216,14 @@ def toggle_main_vacuum(win):
             print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
         
         # Habilitación de MFCs al alcanzar vacío principal
-        set_mfc_controls_enabled(win, True)
+        set_mfc_lamps_controls_enabled(win, True)
     else:
         win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
         btn_main.setText("Main Vacuum On")
         btn_main.setStyleSheet("")
         
         # Corte de vacío principal: deshabilitamos MFCs
-        set_mfc_controls_enabled(win, False)
+        set_mfc_lamps_controls_enabled(win, False)
 
 # =============================================================================
 # CONTROL DE VENTEO DE CAMARA
@@ -219,7 +256,7 @@ def vent_chamber(win):
         btn_soft.setEnabled(False)
         btn_main.setEnabled(False)
         win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
-        set_mfc_controls_enabled(win, False)
+        set_mfc_lamps_controls_enabled(win, False)
         
     else:
         # Cancelación manual
@@ -231,7 +268,6 @@ def vent_chamber(win):
         btn_main.setEnabled(True)
         win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
         print("Venteo cancelado manualmente por el operario.")
-
 
 def finish_vent_sequence(win):
     """ Se ejecuta automáticamente por timer X segundos después de detectar ATM. """
@@ -249,12 +285,12 @@ def finish_vent_sequence(win):
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
-    set_mfc_controls_enabled(win, False)
+    set_mfc_lamps_controls_enabled(win, False)
     
     print("Secuencia de venteo finalizada con éxito. Cámara segura para apertura.")
 
 # =============================================================================
-# CONTROL DE VÁLVULAS SOLENOIDES DE GAS (MFC OPEN / CLOSE)
+# CONTROL DE MFCs
 # =============================================================================
 
 def toggle_mfc1_valve(win):
@@ -270,7 +306,6 @@ def toggle_mfc1_valve(win):
         btn.setText("Abrir Valvula MFC1: O2")
         btn.setStyleSheet("")
 
-
 def toggle_mfc2_valve(win):
     """ Habilita / Deshabilita la válvula de corte de N2 (MFC2) """
     btn = win.ui.MenuPrincipal_btn_mfc2_open
@@ -283,11 +318,6 @@ def toggle_mfc2_valve(win):
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
         btn.setText("Abrir Valvula MFC2: N2")
         btn.setStyleSheet("")
-
-
-# =============================================================================
-# CONTROL DE CONSIGNA DE CAUDAL (SETPOINTS ANALÓGICOS)
-# =============================================================================
 
 def set_mfc1_flow(win):
     """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
@@ -336,3 +366,46 @@ def set_mfc2_flow(win):
             win, "Entrada Inválida",
             "Por favor ingrese un número válido para el setpoint de N2."
         )
+
+# =============================================================================
+# CONTROL DE ENCENDIDO DE LAMPARAS
+# =============================================================================
+
+def trigger_lamps_1_3(win):
+    """
+    Envía la señal de activación (ACTIVE) a las lámparas 1 y 3 para disparar 
+    el monoestable y vuelve a poner la línea en reposo (INACTIVE).
+    """
+    try:
+        # 1. Pulso de activación (ACTIVE)
+        win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
+        win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
+        
+        # 2. Mantener el pulso unos milisegundos para asegurar el trigger
+        qt_sleep(15)
+
+        # 3. Retorno al estado de reposo (INACTIVE)
+        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+
+        print("[INFO] Pulso enviado a Lámparas 1 y 3 (Monoestable disparado).")
+
+    except Exception as e:
+        print(f"[ERROR] Fallo al enviar pulso a Lámparas 1 y 3: {e}")
+
+def toggle_lamp_2(win):
+    """
+    Controla el encendido y apagado de la Lámpara 2 (Central) mediante un estado ON/OFF.
+    """
+    btn = win.ui.MenuPrincipal_btn_centralLamp  
+
+    if btn.text() == "Lamp 2 On":
+        win.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+        btn.setText("Lamp 2 Off")
+        btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+        print("[INFO] Lámpara 2 (Central) Encendida.")
+    else:
+        win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+        btn.setText("Lamp 2 On")
+        btn.setStyleSheet("")
+        print("[INFO] Lámpara 2 (Central) Apagada.")

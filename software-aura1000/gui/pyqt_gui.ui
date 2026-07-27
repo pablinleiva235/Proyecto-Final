@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>957</width>
-    <height>730</height>
+    <width>955</width>
+    <height>872</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -153,11 +153,11 @@
         </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
-    color: rgb(255, 100, 0);   
+    color: rgb(0, 0, 255);   
 }</string>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_pressure_lbl">
+       <widget class="QLabel" name="MenuPrincipal_pressureUnit_lbl">
         <property name="geometry">
          <rect>
           <x>670</x>
@@ -217,7 +217,7 @@
         </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
-    color: rgb(255, 100, 0);   
+    color: rgb(0, 0, 255);   
 }</string>
         </property>
        </widget>
@@ -232,7 +232,7 @@
         </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
-    color: rgb(255, 100, 0);   
+    color: rgb(0, 0, 255);   
 }</string>
         </property>
        </widget>
@@ -485,6 +485,84 @@
          <string>SPLM</string>
         </property>
        </widget>
+       <widget class="Line" name="MenuPrincipal_line_2">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>670</y>
+          <width>921</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
+        <property name="geometry">
+         <rect>
+          <x>510</x>
+          <y>710</y>
+          <width>171</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLCDNumber{
+    color: rgb(255, 130, 0);   
+}</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_temp_lbl">
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>700</y>
+          <width>321</width>
+          <height>91</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>28</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Temperatura de camara</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
+        <property name="geometry">
+         <rect>
+          <x>690</x>
+          <y>720</y>
+          <width>91</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Nachlieli CLM</family>
+          <pointsize>55</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">color: rgb(255, 130, 0); </string>
+        </property>
+        <property name="text">
+         <string>°C</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="PreEncendido">
        <widget class="QLabel" name="PreEncendido_label2">
@@ -680,7 +758,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>957</width>
+     <width>955</width>
      <height>21</height>
     </rect>
    </property>

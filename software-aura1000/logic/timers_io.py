@@ -44,7 +44,10 @@ class timersIOManager:
             # 2. Actualización en tiempo real de los caudales de los MFCs
             self.win.update_mfc_displays()
 
-            # 3. Monitoreo del venteo para ver si alcanzo presion atmosferica y darle unos segundos mas
+            # 3. Lectura y actualización de temperatura
+            self.win.update_temp_display()
+
+            # 4. Monitoreo del venteo para ver si alcanzo presion atmosferica y darle unos segundos mas
             if self.win.ui.MenuPrincipal_btn_vent_chamber.text() == "Venteando...":
                 if is_atm:  # Si el ATM Switch detecto presion atmosferica
                     self.win.ui.MenuPrincipal_btn_vent_chamber.setText("Presión ATM alcanzada...")
@@ -53,7 +56,7 @@ class timersIOManager:
                     import logic.maintenance_process as mp
                     QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
 
-            # 4. Control de apagado general existente
+            # 5. Control de apagado general existente
             if self.hw.digital_read("SYS_POWER"):
                 print("POWER OFF DETECTADO POR LAZO CENTRAL")
                 self.win.trigger_hardware_off()

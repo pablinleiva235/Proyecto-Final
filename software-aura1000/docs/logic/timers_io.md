@@ -58,7 +58,8 @@ El módulo `timers_io.py` implementa la clase `timersIOManager`, para adminsitra
 
     * **Fase `PRE_ENCENDIDO`**: Sondea de forma continua la línea digital del switch físico de marcha. Al registrar un flanco ascendente (`1`), corta el ciclo de sondeo y ordena a la ventana despachar la secuencia de enclavamiento de potencia.
     * **Fase `MAIN_MENU`**: Monitorea de forma prioritaria la línea de presencia de tensión en el lazo de seguridad principal (`SYS_POWER`). Si la línea cae a cero (apertura o parada por hardware), detecta el corte, escribe la alarma en el registro de la consola e invoca el método de apagado inmediato y cierre preventivo de la aplicación.
-    Ademas llama cada 100ms a la funcion de lectura de presion del baratron update_pressure_display() que la muestra en la interfaz constantemente . Esta funcion a su vez lee el estado del ATM Switch, para que al ventear, si detecta presion atmosferica, lanze un timer de 4s desde ese momento para que siga venteando un tiempo mas que permite a la camara alcanzar realmente la presion atmosferica ya que el ATM Switch detecta un poco antes. Pasados esos 4s llama a finish_vent_sequence (metodo de maintenace_process.py) para finalizar el venteo.
+    Ademas llama cada 100ms a la funcion de lectura de presion del baratron update_pressure_display() que la muestra en la interfaz constantemente . Esta funcion a su vez lee el estado del ATM Switch, para que al ventear, si detecta presion atmosferica, lanze un timer de 4s desde ese momento para que siga venteando un tiempo mas que permite a la camara alcanzar realmente la presion atmosferica ya que el ATM Switch detecta un poco antes. Pasados esos 4s llama a finish_vent_sequence (metodo de maintenace_process.py) para finalizar el venteo. 
+    Tambien llama a las funciones que actualizan la medicion en pantalla de los Readouts de los MFCs y la temperatura de camara
 
     ```python
     def _update_inputs_loop(self):
@@ -72,7 +73,13 @@ El módulo `timers_io.py` implementa la clase `timersIOManager`, para adminsitra
             # 1. Actualización constante de presion de baratron en display y captura del estado ATM 
             is_atm = self.win.update_pressure_display()
 
-            # 2. MONITOREO DEL VENTEO EN SEGUNDO PLANO
+            # 2. Actualización en tiempo real de los caudales de los MFCs
+            self.win.update_mfc_displays()
+
+            # 3. Lectura y actualización de temperatura
+            self.win.update_temp_display()
+
+            # 4. Monitoreo del venteo para ver si alcanzo presion atmosferica y darle unos segundos mas
             if self.win.ui.MenuPrincipal_btn_vent_chamber.text() == "Venteando...":
                 if is_atm:  # Si el ATM Switch detecto presion atmosferica
                     self.win.ui.MenuPrincipal_btn_vent_chamber.setText("Presión ATM alcanzada...")
@@ -81,7 +88,7 @@ El módulo `timers_io.py` implementa la clase `timersIOManager`, para adminsitra
                     import logic.maintenance_process as mp
                     QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
 
-            # 3. Control de apagado general existente
+            # 5. Control de apagado general existente
             if self.hw.digital_read("SYS_POWER"):
                 print("POWER OFF DETECTADO POR LAZO CENTRAL")
                 self.win.trigger_hardware_off()

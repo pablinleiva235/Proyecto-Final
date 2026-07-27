@@ -115,6 +115,28 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # ===================================================================
     # METODO PARA MOSTRAR EL READOUT DE LOS MFCs
+    # ===================================================================  
+    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
+    def update_temp_display(self):
+        """
+        Lee el canal de temperatura de la cámara a través del módulo hardware
+        y actualiza el indicador LCD de la interfaz.
+        """
+        try:
+            # Lectura de la termocupla configurada como "CHAMBER_TEMP"
+            temp_c = self.hw.analog_read_temperature("CHAMBER_TEMP")
+            
+            if temp_c is not None:
+                # Muestra el valor con 1 decimal en el QLCDNumber
+                self.ui.MenuPrincipal_chamber_temp.display(f"{temp_c:.1f}")
+            else:
+                self.ui.MenuPrincipal_chamber_temp.display("---")
+        except Exception as e:
+            print(f"[ERROR] Error al leer la temperatura de la cámara: {e}")
+            self.ui.MenuPrincipal_chamber_temp.display("ERR")
+
+    # ===================================================================
+    # METODO PARA MOSTRAR EL READOUT DE LOS MFCs
     # ===================================================================
     # Se llama constantemente cada 100ms desde el timer general de timers_io.py
     def update_mfc_displays(self):

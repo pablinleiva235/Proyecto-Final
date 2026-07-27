@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from gui.pyqt_gui import Ui_MainWindow
 from services.system_state import systemState
 from logic.timers_io import timersIOManager
@@ -21,6 +22,32 @@ class MainWindow(QtWidgets.QMainWindow):
         # Crear interfaz autogenerada
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # =====================================================================
+        # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
+        # =====================================================================
+        old_central = self.centralWidget()
+
+        if old_central:
+            # A. Le fijamos un alto mínimo real a la UI original para que NO se comprima.
+            # 950px asegura que entre todo el contenido de Lámparas y Temperatura holgadamente.
+            old_central.setMinimumSize(980, 950)
+
+            # B. Creamos el QScrollArea y configuramos sus políticas
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidget(old_central)
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+            # C. Forzamos la barra de scroll vertical para que aparezca siempre
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            scroll.setHorizontalScrollBarPolicy(
+                Qt.ScrollBarAsNeeded
+            )  # Por si el ancho también se queda corto
+
+            # D. Reemplazamos el widget central
+            self.setCentralWidget(scroll)
+        # =====================================================================
         
         # Instanciar el manager de timers pasándole 'self' (esta ventana)
         self.timer_manager = timersIOManager(self)
@@ -32,6 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO
         self.change_state(systemState.PRE_ENCENDIDO)
+
 
     # =========================================================
     # MAQUINA DE ESTADOS PRINCIPAL

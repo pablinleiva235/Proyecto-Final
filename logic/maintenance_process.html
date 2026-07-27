@@ -1365,9 +1365,11 @@
 </details>
 <details class="note">
 <summary>Encendido/Apagado de valvula de Soft Vacuum: <code>toggle_soft_vacuum(win)</code></summary>
-<p>Modula la válvula neumática encargada del vacío lento o inicial (<code>SOFT_START_CONTROL</code>). Al encenderse, bloquea de forma mandatoria la interfaz del operario para impedir la apertura física de la puerta bajo vacío. Al intentar apagarse, interroga el estado de la válvula principal, denegando la acción mediante un <code>QMessageBox</code> de advertencia si el vacío principal sigue activo.</p>
+<p>Modula la válvula neumática encargada del vacío lento o inicial (<code>SOFT_START_CONTROL</code>). Al encenderse, bloquea de forma mandatoria la interfaz del operario para impedir la apertura física de la puerta bajo vacío. </p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_soft_vacuum</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Controla la válvula de soft vacuum y bloquea el apagado si hay vacío principal activo.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
     <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
     <span class="n">btn_door</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
@@ -1376,32 +1378,31 @@
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
         <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">)</span>
         <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># &lt;-- BLOQUEO DE SEGURIDAD</span>
+        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">:</span>
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="n">win</span><span class="p">,</span> 
-                <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span> 
-                <span class="s2">&quot;No se puede apagar Soft Vacuum mientras Main Vacuum esté encendido.</span><span class="se">\n</span><span class="s2">Apague primero el vacío principal.&quot;</span><span class="p">,</span>
-                <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
-            <span class="p">)</span>
-            <span class="k">return</span>
-
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
         <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Habilita la puerta solo si Main Vacuum tampoco está activo</span>
+        <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
+            <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">
 <summary>Encendido/Apagado de valvula de Soft Vacuum: <code>toggle_main_vacuum(win)</code></summary>
-<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Actúa bajo una restricción jerárquica de hardware simulada por software: si el sistema detecta que la etapa previa de Soft Vacuum está inactiva, interrumpe el flujo de ejecución previniendo turbulencias térmicas o daños mecánicos en la cámara. Al acoplarse, restringe el uso de la compuerta.</p>
+<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_main_vacuum</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Controla la válvula de vacío principal, permitiendo la acción SOLO si Soft Vacuum está activo.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Controla la activación de Main Vacuum.</span>
+<span class="sd">    Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
     <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
     <span class="n">btn_door</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
 
-    <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">:</span>
+    <span class="c1"># 1. Validación de prerrequisito</span>
+    <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum On&quot;</span> <span class="ow">and</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
         <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="n">win</span><span class="p">,</span> 
             <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span> 
@@ -1410,39 +1411,65 @@
         <span class="p">)</span>
         <span class="k">return</span>
 
+    <span class="c1"># 2. Encendido / Apagado de Main Vacuum</span>
     <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
         <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
         <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># &lt;-- BLOQUEO DE SEGURIDAD</span>
+        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># &lt;-- APAGADO AUTOMÁTICO DE SOFT VACUUM</span>
+        <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
+            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Habilitación de MFCs al alcanzar vacío principal</span>
+        <span class="n">set_mfc_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">)</span>
         <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Corte de vacío principal: deshabilitamos MFCs</span>
+        <span class="n">set_mfc_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">
 <summary>Venteo de camara: <code>vent_chamber(win)</code></summary>
 <p>Maneja la apertura física de la línea de nitrógeno/aire hacia el interior de la cámara (<code>VENT_VALVE_CONTROL</code>). Evalúa rigurosamente que no existan líneas de vacío succionando en simultáneo. Si pasa los filtros, inicia el venteo y congela temporalmente todos los mandos periféricos del panel. Cuenta con una rutina de escape que permite la cancelación manual inmediata por parte del operario.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">vent_chamber</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Controla el inicio y la cancelación manual del proceso de venteo de la cámara.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Controla el inicio y la cancelación manual del proceso de venteo. &quot;&quot;&quot;</span>
     <span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
     <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
     <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
 
     <span class="k">if</span> <span class="n">btn_vent</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Vent Chamber&quot;</span><span class="p">:</span>
+        <span class="c1"># Verifica que NINGUNA de las dos válvulas de vacío esté abierta</span>
         <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span> <span class="ow">or</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">:</span> 
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Cierre las válvulas de vacío primero.&quot;</span><span class="p">,</span>
+                <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="p">)</span>
             <span class="k">return</span>
 
+        <span class="c1"># Inicio de venteo</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
         <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Venteando...&quot;</span><span class="p">)</span>
         <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #2ec4b6; color: black; font-weight: bold;&quot;</span><span class="p">)</span>
 
+        <span class="c1"># Bloqueos de seguridad durante el venteo</span>
         <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">set_mfc_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
     <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Cancelación manual</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Vent Chamber&quot;</span><span class="p">)</span>
         <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
@@ -1469,6 +1496,96 @@
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Apertura/Cierre de válvula shutoff de MFC1 (O2): <code>toggle_mfc1_valve(win)</code></summary>
+<p>Controla la señal digital de corte para la línea de Oxígeno (<code>MFC1_OPEN</code>). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_mfc1_valve</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Habilita / Deshabilita la válvula de corte de O2 (MFC1) &quot;&quot;&quot;</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span>
+    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrar Valvula MFC1: O2&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Apertura/Cierre de válvula shutoff de MFC2 (N2): <code>toggle_mfc2_valve(win)</code></summary>
+<p>Controla la señal digital de corte para la línea de Nitrógeno (<code>MFC2_OPEN</code>). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_mfc2_valve</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Habilita / Deshabilita la válvula de corte de N2 (MFC2) &quot;&quot;&quot;</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_open</span>
+    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Abrir Valvula MFC2: N2&quot;</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC2_OPEN&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrar Valvula MFC2: N2&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC2_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC2: N2&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Ajuste de setpoint de MFC1 (O2): <code>set_mfc1_flow(win)</code></summary>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc1_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 &quot;&quot;&quot;</span>
+    <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">slm_target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">text_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC1_MAX_SLM</span><span class="p">:</span>
+            <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC1_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC1_MAX_VOLT</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC1 O2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
+            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;El caudal de O2 debe estar entre 0.0 y </span><span class="si">{</span><span class="n">MFC1_MAX_SLM</span><span class="si">}</span><span class="s2"> SLM.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de O2.&quot;</span>
+        <span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Ajuste de setpoint MFC2 (N2): <code>set_mfc2_flow(win)</code></summary>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC2_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc2_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para N2 &quot;&quot;&quot;</span>
+    <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_set</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">slm_target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">text_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC2_MAX_SLM</span><span class="p">:</span>
+            <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC2_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC2_MAX_VOLT</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC2 N2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
+            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;El caudal de N2 debe estar entre 0.0 y </span><span class="si">{</span><span class="n">MFC2_MAX_SLM</span><span class="si">}</span><span class="s2"> SLM.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de N2.&quot;</span>
+        <span class="p">)</span>
 </code></pre></div>
 </details>
 

@@ -1097,10 +1097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lectura-periodica-de-entradas-digitales-presion-y-temperatura" class="md-nav__link">
+  <a href="#lectura-periodica-de-entradas-digitales-presion-mfcs-y-temperatura" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lectura periódica de entradas digitales, presion y temperatura
+        Lectura periódica de entradas digitales, presion, MFCs y temperatura
       
     </span>
   </a>
@@ -1315,10 +1315,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#lectura-periodica-de-entradas-digitales-presion-y-temperatura" class="md-nav__link">
+  <a href="#lectura-periodica-de-entradas-digitales-presion-mfcs-y-temperatura" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lectura periódica de entradas digitales, presion y temperatura
+        Lectura periódica de entradas digitales, presion, MFCs y temperatura
       
     </span>
   </a>
@@ -1385,9 +1385,9 @@
 </code></pre></div>
 </details>
 <hr />
-<h2 id="lectura-periodica-de-entradas-digitales-presion-y-temperatura"><span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion y temperatura</span></h2>
+<h2 id="lectura-periodica-de-entradas-digitales-presion-mfcs-y-temperatura"><span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion, MFCs y temperatura</span></h2>
 <details class="note">
-<summary>Escaneo de Entradas Digitales, presion atmosferica, baratron y temperatura: <code>_update_inputs_loop(self)</code></summary>
+<summary>Escaneo de Entradas Digitales, presion atmosferica, baratron, MFCs y temperatura: <code>_update_inputs_loop(self)</code></summary>
 <p>Manejador privado encargado de leer cada 100ms entradas digitales y actualizar la lectura de presion y temperatura del sistema:</p>
 <ul>
 <li><strong>Fase <code>PRE_ENCENDIDO</code></strong>: Sondea de forma continua la línea digital del switch físico de marcha. Al registrar un flanco ascendente (<code>1</code>), corta el ciclo de sondeo y ordena a la ventana despachar la secuencia de enclavamiento de potencia.</li>

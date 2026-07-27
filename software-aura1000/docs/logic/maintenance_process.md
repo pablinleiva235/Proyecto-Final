@@ -71,11 +71,13 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "Encendido/Apagado de valvula de Soft Vacuum: `toggle_soft_vacuum(win)`"
-    Modula la válvula neumática encargada del vacío lento o inicial (`SOFT_START_CONTROL`). Al encenderse, bloquea de forma mandatoria la interfaz del operario para impedir la apertura física de la puerta bajo vacío. Al intentar apagarse, interroga el estado de la válvula principal, denegando la acción mediante un `QMessageBox` de advertencia si el vacío principal sigue activo.
+    Modula la válvula neumática encargada del vacío lento o inicial (`SOFT_START_CONTROL`). Al encenderse, bloquea de forma mandatoria la interfaz del operario para impedir la apertura física de la puerta bajo vacío. 
 
     ```python
     def toggle_soft_vacuum(win):
-        """Controla la válvula de soft vacuum y bloquea el apagado si hay vacío principal activo."""
+        """
+        Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.
+        """
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
         btn_door = win.ui.MenuPrincipal_btn_open_door
@@ -84,33 +86,32 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             win.hw.digital_set("SOFT_START_CONTROL", ACTIVE)
             btn_soft.setText("Soft Vacuum Off")
             btn_soft.setStyleSheet("background-color: #f44336; color: white;")
-            btn_door.setEnabled(False)  # <-- BLOQUEO DE SEGURIDAD
+            btn_door.setEnabled(False)
         else:
-            if btn_main.text() == "Main Vacuum Off":
-                QtWidgets.QMessageBox.warning(
-                    win, 
-                    "Secuencia Inválida", 
-                    "No se puede apagar Soft Vacuum mientras Main Vacuum esté encendido.\nApague primero el vacío principal.",
-                    QtWidgets.QMessageBox.Ok
-                )
-                return
-                
             win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
             btn_soft.setText("Soft Vacuum On")
             btn_soft.setStyleSheet("")
+            
+            # Habilita la puerta solo si Main Vacuum tampoco está activo
+            if btn_main.text() == "Main Vacuum On":
+                btn_door.setEnabled(True)
     ```
 
 ??? note "Encendido/Apagado de valvula de Soft Vacuum: `toggle_main_vacuum(win)`"
-    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Actúa bajo una restricción jerárquica de hardware simulada por software: si el sistema detecta que la etapa previa de Soft Vacuum está inactiva, interrumpe el flujo de ejecución previniendo turbulencias térmicas o daños mecánicos en la cámara. Al acoplarse, restringe el uso de la compuerta.
+    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum
 
     ```python
     def toggle_main_vacuum(win):
-        """Controla la válvula de vacío principal, permitiendo la acción SOLO si Soft Vacuum está activo."""
+        """
+        Controla la activación de Main Vacuum.
+        Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.
+        """
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_door = win.ui.MenuPrincipal_btn_open_door
         
-        if btn_soft.text() == "Soft Vacuum On":
+        # 1. Validación de prerrequisito
+        if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
             QtWidgets.QMessageBox.warning(
                 win, 
                 "Secuencia Inválida", 
@@ -119,15 +120,29 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             )
             return
 
+        # 2. Encendido / Apagado de Main Vacuum
         if btn_main.text() == "Main Vacuum On":
             win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
             btn_main.setText("Main Vacuum Off")
             btn_main.setStyleSheet("background-color: #f44336; color: white;")
-            btn_door.setEnabled(False)  # <-- BLOQUEO DE SEGURIDAD
+            btn_door.setEnabled(False)
+            
+            # <-- APAGADO AUTOMÁTICO DE SOFT VACUUM
+            if btn_soft.text() == "Soft Vacuum Off":
+                win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
+                btn_soft.setText("Soft Vacuum On")
+                btn_soft.setStyleSheet("")
+                print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
+            
+            # Habilitación de MFCs al alcanzar vacío principal
+            set_mfc_controls_enabled(win, True)
         else:
             win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
             btn_main.setText("Main Vacuum On")
             btn_main.setStyleSheet("")
+            
+            # Corte de vacío principal: deshabilitamos MFCs
+            set_mfc_controls_enabled(win, False)
     ```
 
 ??? note "Venteo de camara: `vent_chamber(win)`"
@@ -135,24 +150,36 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 
     ```python
     def vent_chamber(win):
-        """Controla el inicio y la cancelación manual del proceso de venteo de la cámara."""
+        """ Controla el inicio y la cancelación manual del proceso de venteo. """
         btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
 
         if btn_vent.text() == "Vent Chamber":
+            # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
             if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
-                QtWidgets.QMessageBox.warning(win, "Secuencia Inválida", "...", QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(
+                    win,
+                    "Secuencia Inválida",
+                    "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
+                    "Cierre las válvulas de vacío primero.",
+                    QtWidgets.QMessageBox.Ok
+                )
                 return
 
+            # Inicio de venteo
             win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
             btn_vent.setText("Venteando...")
             btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
             
+            # Bloqueos de seguridad durante el venteo
             btn_soft.setEnabled(False)
             btn_main.setEnabled(False)
             win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
+            set_mfc_controls_enabled(win, False)
+            
         else:
+            # Cancelación manual
             win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
             btn_vent.setText("Vent Chamber")
             btn_vent.setStyleSheet("")
@@ -180,4 +207,98 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
         win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
         win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
+    ```
+
+??? note "Apertura/Cierre de válvula shutoff de MFC1 (O2): `toggle_mfc1_valve(win)`"
+    Controla la señal digital de corte para la línea de Oxígeno (`MFC1_OPEN`). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea.
+
+    ```python
+    def toggle_mfc1_valve(win):
+        """ Habilita / Deshabilita la válvula de corte de O2 (MFC1) """
+        btn = win.ui.MenuPrincipal_btn_mfc1_open
+        if btn.text() == "Abrir Valvula MFC1: O2":
+            win.hw.digital_set("MFC1_OPEN", ACTIVE)
+            btn.setText("Cerrar Valvula MFC1: O2")
+            btn.setStyleSheet("background-color: #f44336; color: white;")
+        else:
+            win.hw.digital_set("MFC1_OPEN", INACTIVE)
+            win.hw.analog_write("MFC1_SETPOINT", 0.0)
+            btn.setText("Abrir Valvula MFC1: O2")
+            btn.setStyleSheet("")
+    ```
+
+??? note "Apertura/Cierre de válvula shutoff de MFC2 (N2): `toggle_mfc2_valve(win)`"
+    Controla la señal digital de corte para la línea de Nitrógeno (`MFC2_OPEN`). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V.
+
+    ```python
+    def toggle_mfc2_valve(win):
+        """ Habilita / Deshabilita la válvula de corte de N2 (MFC2) """
+        btn = win.ui.MenuPrincipal_btn_mfc2_open
+        if btn.text() == "Abrir Valvula MFC2: N2":
+            win.hw.digital_set("MFC2_OPEN", ACTIVE)
+            btn.setText("Cerrar Valvula MFC2: N2")
+            btn.setStyleSheet("background-color: #f44336; color: white;")
+        else:
+            win.hw.digital_set("MFC2_OPEN", INACTIVE)
+            win.hw.analog_write("MFC2_SETPOINT", 0.0)
+            btn.setText("Abrir Valvula MFC2: N2")
+            btn.setStyleSheet("")
+    ```
+
+??? note "Ajuste de setpoint de MFC1 (O2): `set_mfc1_flow(win)`"
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`.
+
+    ```python
+    def set_mfc1_flow(win):
+        """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
+        text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
+        btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+        try:
+            slm_target = float(text_val)
+            if 0.0 <= slm_target <= MFC1_MAX_SLM:
+                voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
+                win.hw.analog_write("MFC1_SETPOINT", voltage)
+                print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
+                btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+            else:
+                btn_set.setStyleSheet("background-color: #f44336; color: white;")
+                QtWidgets.QMessageBox.warning(
+                    win, "Rango Inválido",
+                    f"El caudal de O2 debe estar entre 0.0 y {MFC1_MAX_SLM} SLM."
+                )
+        except ValueError:
+            btn_set.setStyleSheet("background-color: #f44336; color: white;")
+            QtWidgets.QMessageBox.warning(
+                win, "Entrada Inválida",
+                "Por favor ingrese un número válido para el setpoint de O2."
+            )
+    ```
+
+??? note "Ajuste de setpoint MFC2 (N2): `set_mfc2_flow(win)`"
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC2_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`.
+
+    ```python
+    def set_mfc2_flow(win):
+        """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para N2 """
+        text_val = win.ui.MenuPrincipal_mfc2_setpoint.text().replace(',', '.')
+        btn_set = win.ui.MenuPrincipal_btn_mfc2_set
+        try:
+            slm_target = float(text_val)
+            if 0.0 <= slm_target <= MFC2_MAX_SLM:
+                voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
+                win.hw.analog_write("MFC2_SETPOINT", voltage)
+                print(f"[MFC2 N2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
+                btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+            else:
+                btn_set.setStyleSheet("background-color: #f44336; color: white;")
+                QtWidgets.QMessageBox.warning(
+                    win, "Rango Inválido",
+                    f"El caudal de N2 debe estar entre 0.0 y {MFC2_MAX_SLM} SLM."
+                )
+        except ValueError:
+            btn_set.setStyleSheet("background-color: #f44336; color: white;")
+            QtWidgets.QMessageBox.warning(
+                win, "Entrada Inválida",
+                "Por favor ingrese un número válido para el setpoint de N2."
+            )
     ```

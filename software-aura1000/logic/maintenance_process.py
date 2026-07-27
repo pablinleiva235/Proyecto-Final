@@ -125,7 +125,6 @@ def toggle_door(win):
 def toggle_soft_vacuum(win):
     """
     Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.
-    Bloquea el apagado si el vacío principal (Main Vacuum) sigue encendido.
     """
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
@@ -137,30 +136,26 @@ def toggle_soft_vacuum(win):
         btn_soft.setStyleSheet("background-color: #f44336; color: white;")
         btn_door.setEnabled(False)
     else:
-        if btn_main.text() == "Main Vacuum Off":
-            QtWidgets.QMessageBox.warning(
-                win, 
-                "Secuencia Inválida", 
-                "No se puede apagar Soft Vacuum mientras Main Vacuum esté encendido.\nApague primero el vacío principal.",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
-            
         win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
         btn_soft.setText("Soft Vacuum On")
         btn_soft.setStyleSheet("")
+        
+        # Habilita la puerta solo si Main Vacuum tampoco está activo
+        if btn_main.text() == "Main Vacuum On":
+            btn_door.setEnabled(True)
 
 
 def toggle_main_vacuum(win):
     """
-    Controla la habilitación y deshabilitación de la válvula de vacío principal.
-    Habilita los controles de los MFCs al estar en vacío principal y los bloquea al apagarlo.
+    Controla la activación de Main Vacuum.
+    Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.
     """
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_door = win.ui.MenuPrincipal_btn_open_door
     
-    if btn_soft.text() == "Soft Vacuum On":
+    # 1. Validación de prerrequisito
+    if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
         QtWidgets.QMessageBox.warning(
             win, 
             "Secuencia Inválida", 
@@ -169,20 +164,28 @@ def toggle_main_vacuum(win):
         )
         return
 
+    # 2. Encendido / Apagado de Main Vacuum
     if btn_main.text() == "Main Vacuum On":
         win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
         btn_main.setText("Main Vacuum Off")
         btn_main.setStyleSheet("background-color: #f44336; color: white;")
         btn_door.setEnabled(False)
         
-        # <-- VACÍO ALCANZADO: HABILITAMOS CONTROLES DE MFCs
+        # <-- APAGADO AUTOMÁTICO DE SOFT VACUUM
+        if btn_soft.text() == "Soft Vacuum Off":
+            win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
+            btn_soft.setText("Soft Vacuum On")
+            btn_soft.setStyleSheet("")
+            print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
+        
+        # Habilitación de MFCs al alcanzar vacío principal
         set_mfc_controls_enabled(win, True)
     else:
         win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
         btn_main.setText("Main Vacuum On")
         btn_main.setStyleSheet("")
         
-        # <-- SE CORTÓ VACÍO PRINCIPAL: DESHABILITAMOS CONTROLES DE MFCs
+        # Corte de vacío principal: deshabilitamos MFCs
         set_mfc_controls_enabled(win, False)
 
 # =============================================================================
@@ -190,35 +193,36 @@ def toggle_main_vacuum(win):
 # =============================================================================
 
 def vent_chamber(win):
-    """ Controla el inicio y la cancelación manual del proceso de venteo de la cámara. """
+    """ Controla el inicio y la cancelación manual del proceso de venteo. """
     btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
 
     if btn_vent.text() == "Vent Chamber":
+        # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
         if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
             QtWidgets.QMessageBox.warning(
                 win,
                 "Secuencia Inválida",
-                "No se puede ventear la cámara si Soft Vacuum o Main Vacuum están encendidos.\n"
+                "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
                 "Cierre las válvulas de vacío primero.",
                 QtWidgets.QMessageBox.Ok
             )
             return
 
-        # SI PASÓ LOS FILTROS: INICIA EL VENTEO
+        # Inicio de venteo
         win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
         btn_vent.setText("Venteando...")
         btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
         
-        # Bloqueamos resto de controles y aseguramos MFCs en estado seguro
+        # Bloqueos de seguridad durante el venteo
         btn_soft.setEnabled(False)
         btn_main.setEnabled(False)
         win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
-        set_mfc_controls_enabled(win, False)  # <-- SEGURIDAD MFC EN VENTEO
+        set_mfc_controls_enabled(win, False)
         
     else:
-        # CANCELACIÓN MANUAL
+        # Cancelación manual
         win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
         btn_vent.setText("Vent Chamber")
         btn_vent.setStyleSheet("")

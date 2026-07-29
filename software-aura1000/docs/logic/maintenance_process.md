@@ -51,21 +51,30 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "Apertura/Cierre de puerta: `toggle_door(win)`"
-    Administra la apertura y cierre del pistón neumático de la puerta de cámara de proceso.
+    Administra la apertura y cierre del pistón neumático de la puerta de cámara de proceso. Si abre, deshabilita los botones para hacer vacio y ventear
 
     ```python
     def toggle_door(win):
-        """Controla la apertura y el cierre seguro de la puerta de la cámara."""
+        """ Controla la apertura y el cierre seguro de la puerta de la cámara. """
         btn = win.ui.MenuPrincipal_btn_open_door
+        btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
+        btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+        btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
         
         if btn.text() == "Abrir Puerta":
             win.hw.digital_set("DOOR_CLOSE_CMD", INACTIVE)
             win.hw.digital_set("DOOR_OPEN_CMD", ACTIVE)
+            btn_soft.setEnabled(False)
+            btn_main.setEnabled(False)
+            btn_vent.setEnabled(False)
             btn.setText("Cerrar Puerta")
             btn.setStyleSheet("background-color: #f44336; color: white;")
         else:
             win.hw.digital_set("DOOR_OPEN_CMD", INACTIVE)
             win.hw.digital_set("DOOR_CLOSE_CMD", ACTIVE)
+            btn_soft.setEnabled(True)
+            btn_main.setEnabled(True)
+            btn_vent.setEnabled(True)
             btn.setText("Abrir Puerta")
             btn.setStyleSheet("")
     ```
@@ -301,4 +310,47 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
                 win, "Entrada Inválida",
                 "Por favor ingrese un número válido para el setpoint de N2."
             )
+    ```
+
+??? note "Encendido de lamparas 1 y 3: `trigger_lamps_1_3(win)`"
+    Envía un pulso de una duracion dada por el parametro pasado a qt_sleep a las lámparas 1 y 3 y las apaga. Si el pulso dura mas de 28s, la placa de los monoestables previa a las lamparas por donde pasan estas señales hace que las lamparas se apaguen cortando el pulso
+
+    ```python
+    def trigger_lamps_1_3(win):
+        try:
+            # 1. Pulso de activación (ACTIVE)
+            win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
+            win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
+            
+            # 2. Mantener el pulso unos milisegundos para asegurar el trigger
+            qt_sleep(20000)
+
+            # 3. Retorno al estado de reposo (INACTIVE)
+            win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+            win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+
+            print("[INFO] Pulso enviado a Lámparas 1 y 3 (Monoestable disparado).")
+
+        except Exception as e:
+            print(f"[ERROR] Fallo al enviar pulso a Lámparas 1 y 3: {e}")
+
+    ```
+
+??? note "Encendido de lampara 2: `toggle_lamp_2(win)`"
+    Controla el encendido y apagado de la Lámpara 2 (Central) mediante un estado ON/OFF.
+
+    ```python   
+    def toggle_lamp_2(win):
+        btn = win.ui.MenuPrincipal_btn_centralLamp  
+
+        if btn.text() == "Lamp 2 On":
+            win.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+            btn.setText("Lamp 2 Off")
+            btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+            print("[INFO] Lámpara 2 (Central) Encendida.")
+        else:
+            win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+            btn.setText("Lamp 2 On")
+            btn.setStyleSheet("")
+            print("[INFO] Lámpara 2 (Central) Apagada.")
     ```

@@ -1346,19 +1346,28 @@
 </details>
 <details class="note">
 <summary>Apertura/Cierre de puerta: <code>toggle_door(win)</code></summary>
-<p>Administra la apertura y cierre del pistón neumático de la puerta de cámara de proceso.</p>
+<p>Administra la apertura y cierre del pistón neumático de la puerta de cámara de proceso. Si abre, deshabilita los botones para hacer vacio y ventear</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_door</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Controla la apertura y el cierre seguro de la puerta de la cámara.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Controla la apertura y el cierre seguro de la puerta de la cámara. &quot;&quot;&quot;</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
+    <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
+    <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
+    <span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
 
     <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Abrir Puerta&quot;</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;DOOR_CLOSE_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;DOOR_OPEN_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrar Puerta&quot;</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;DOOR_OPEN_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;DOOR_CLOSE_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Puerta&quot;</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -1586,6 +1595,46 @@
             <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de N2.&quot;</span>
         <span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Encendido de lamparas 1 y 3: <code>trigger_lamps_1_3(win)</code></summary>
+<p>Envía un pulso de una duracion dada por el parametro pasado a qt_sleep a las lámparas 1 y 3 y las apaga. Si el pulso dura mas de 28s, la placa de los monoestables previa a las lamparas por donde pasan estas señales hace que las lamparas se apaguen cortando el pulso</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trigger_lamps_1_3</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># 1. Pulso de activación (ACTIVE)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+
+        <span class="c1"># 2. Mantener el pulso unos milisegundos para asegurar el trigger</span>
+        <span class="n">qt_sleep</span><span class="p">(</span><span class="mi">20000</span><span class="p">)</span>
+
+        <span class="c1"># 3. Retorno al estado de reposo (INACTIVE)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Pulso enviado a Lámparas 1 y 3 (Monoestable disparado).&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Fallo al enviar pulso a Lámparas 1 y 3: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Encendido de lampara 2: <code>toggle_lamp_2(win)</code></summary>
+<p>Controla el encendido y apagado de la Lámpara 2 (Central) mediante un estado ON/OFF.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_lamp_2</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span>  
+
+    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Lamp 2 On&quot;</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP2_ON_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Lamp 2 Off&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #ff9800; color: black; font-weight: bold;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Lámpara 2 (Central) Encendida.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP2_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Lamp 2 On&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Lámpara 2 (Central) Apagada.&quot;</span><span class="p">)</span>
 </code></pre></div>
 </details>
 

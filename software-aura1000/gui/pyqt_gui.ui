@@ -638,24 +638,6 @@
          <enum>Qt::Vertical</enum>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_outerLamps_test">
-        <property name="geometry">
-         <rect>
-          <x>70</x>
-          <y>190</y>
-          <width>171</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Lamps 1 y 3 On</string>
-        </property>
-       </widget>
       </widget>
       <widget class="QWidget" name="PreEncendido">
        <widget class="QLabel" name="PreEncendido_label2">

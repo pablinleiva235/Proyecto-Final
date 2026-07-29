@@ -42,7 +42,6 @@ def init(win):
         win.ui.MenuPrincipal_btn_mfc2_set,
         win.ui.MenuPrincipal_btn_outerLamps,
         win.ui.MenuPrincipal_btn_centralLamp
-        win.ui.MenuPrincipal_btn_outerLamps_test
     ]
     for btn in buttons:
         try:
@@ -62,7 +61,6 @@ def init(win):
     win.ui.MenuPrincipal_btn_mfc2_set.clicked.connect(lambda: set_mfc2_flow(win))
     win.ui.MenuPrincipal_btn_outerLamps.clicked.connect(lambda: trigger_lamps_1_3(win))
     win.ui.MenuPrincipal_btn_centralLamp.clicked.connect(lambda: toggle_lamp_2(win))
-    win.ui.MenuPrincipal_btn_outerLamps_test.clicked.connect(lambda: toggle_lamps_1_3(win))
 
     # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs al arrancar
     set_mfc_lamps_controls_enabled(win, False)
@@ -146,15 +144,24 @@ def toggle_drivers(win):
 def toggle_door(win):
     """ Controla la apertura y el cierre seguro de la puerta de la cámara. """
     btn = win.ui.MenuPrincipal_btn_open_door
+    btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
+    btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+    btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
     
     if btn.text() == "Abrir Puerta":
         win.hw.digital_set("DOOR_CLOSE_CMD", INACTIVE)
         win.hw.digital_set("DOOR_OPEN_CMD", ACTIVE)
+        btn_soft.setEnabled(False)
+        btn_main.setEnabled(False)
+        btn_vent.setEnabled(False)
         btn.setText("Cerrar Puerta")
         btn.setStyleSheet("background-color: #f44336; color: white;")
     else:
         win.hw.digital_set("DOOR_OPEN_CMD", INACTIVE)
         win.hw.digital_set("DOOR_CLOSE_CMD", ACTIVE)
+        btn_soft.setEnabled(True)
+        btn_main.setEnabled(True)
+        btn_vent.setEnabled(True)
         btn.setText("Abrir Puerta")
         btn.setStyleSheet("")
 
@@ -384,7 +391,7 @@ def trigger_lamps_1_3(win):
         win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
         
         # 2. Mantener el pulso unos milisegundos para asegurar el trigger
-        qt_sleep(15)
+        qt_sleep(20000)
 
         # 3. Retorno al estado de reposo (INACTIVE)
         win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
@@ -411,22 +418,3 @@ def toggle_lamp_2(win):
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
         print("[INFO] Lámpara 2 (Central) Apagada.")
-
-def toggle_lamps_1_3(win):
-    """
-    Controla el encendido y apagado de la Lámpara 1 y 3 (Extremas) mediante un estado ON/OFF.
-    """
-    btn = win.ui.MenuPrincipal_btn_outerLamps_test  
-
-    if btn.text() == "Lamps 1 y 3 On":
-        win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
-        win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
-        btn.setText("Lamps 1 y 3 Off")
-        btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
-        print("[INFO] Lámpara 1 y 3 (Extremas) Encendidas.")
-    else:
-        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-        btn.setText("Lamps 1 y 3 On")
-        btn.setStyleSheet("")
-        print("[INFO] Lámpara 1 y 3 (Extremas) Apagadas.")

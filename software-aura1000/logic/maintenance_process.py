@@ -42,6 +42,7 @@ def init(win):
         win.ui.MenuPrincipal_btn_mfc2_set,
         win.ui.MenuPrincipal_btn_outerLamps,
         win.ui.MenuPrincipal_btn_centralLamp
+        win.ui.MenuPrincipal_btn_outerLamps_test
     ]
     for btn in buttons:
         try:
@@ -61,6 +62,7 @@ def init(win):
     win.ui.MenuPrincipal_btn_mfc2_set.clicked.connect(lambda: set_mfc2_flow(win))
     win.ui.MenuPrincipal_btn_outerLamps.clicked.connect(lambda: trigger_lamps_1_3(win))
     win.ui.MenuPrincipal_btn_centralLamp.clicked.connect(lambda: toggle_lamp_2(win))
+    win.ui.MenuPrincipal_btn_outerLamps_test.clicked.connect(lambda: toggle_lamps_1_3(win))
 
     # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs al arrancar
     set_mfc_lamps_controls_enabled(win, False)
@@ -409,3 +411,22 @@ def toggle_lamp_2(win):
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
         print("[INFO] Lámpara 2 (Central) Apagada.")
+
+def toggle_lamps_1_3(win):
+    """
+    Controla el encendido y apagado de la Lámpara 1 y 3 (Extremas) mediante un estado ON/OFF.
+    """
+    btn = win.ui.MenuPrincipal_btn_outerLamps_test  
+
+    if btn.text() == "Lamps 1 y 3 On":
+        win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
+        win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
+        btn.setText("Lamps 1 y 3 Off")
+        btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+        print("[INFO] Lámpara 1 y 3 (Extremas) Encendidas.")
+    else:
+        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+        btn.setText("Lamps 1 y 3 On")
+        btn.setStyleSheet("")
+        print("[INFO] Lámpara 1 y 3 (Extremas) Apagadas.")

@@ -1,6 +1,6 @@
 # `pre_encendido.py`
 
-El módulo `pre_encendido.py` encapsula la lógica secuencial y algorítmica de la fase inicial del equipo. Aislando las funciones de control del hilo de la interfaz de usuario, este módulo se encarga del enclavamiento eléctrico por software, la inicialización de periféricos analógicos y la gestión de la temporización crítica de 10 segundos necesaria para la estabilización del Gasonics Aura 1000.
+El módulo `pre_encendido.py` encapsula la lógica secuencial y algorítmica de la fase inicial del equipo. Aislando las funciones de control del hilo de la interfaz de usuario, este módulo se encarga del enclavamiento eléctrico por software, la inicialización de periféricos analógicos y la gestión de la temporización crítica de 30 segundos necesaria para la estabilización del Gasonics Aura 1000, principalmente para el precalentado del filamento del magnetron
 
 ---
 
@@ -50,14 +50,15 @@ El módulo `pre_encendido.py` encapsula la lógica secuencial y algorítmica de 
     ```
 
 ??? note "Callback de la Barra de Progreso: `update_progressBar(win)`"
-    Rutina cíclica acoplada al desbordamiento (timeout) del temporizador `startup` cada 100 ms. Incrementa linealmente la variable `startup_progress` reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de **100 pasos**, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado `MAIN_MENU`. Ademas desenergiza el SSR de encendido ya que el contactor quedo autoretenido por su contacto auxiliar
+    Rutina cíclica acoplada al desbordamiento (timeout) del temporizador `startup` cada 100 ms. Incrementa linealmente la variable `startup_progress` reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de 30s que necesita el filamento para precalentar, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado `MAIN_MENU`. Ademas desenergiza el SSR de encendido ya que el contactor quedo autoretenido por su contacto auxiliar
 
     ```python
-    # 100 pasos * 100ms = 10 segundos de delay de estabilización
-    if win.startup_progress >= 100:
+    # 300 pasos * 100ms = 30 segundos de delay de estabilización
+    if win.startup_progress >= 300:
         win.timer_manager.timers['startup'].stop()
-        win.change_state(systemState.MAIN_MENU)
         # Deja de accionar el SSR pues el contactor queda autoretenido
         win.hw.digital_set("POWER_ON", INACTIVE)
+        # Energiza el filamento del magnetron pasado los 30s (especificado en el datasheet)
+        win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
         win.change_state(systemState.MAIN_MENU)
     ```

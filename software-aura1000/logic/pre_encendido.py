@@ -36,9 +36,11 @@ def update_progressBar(win):
     win.startup_progress += 1
     win.ui.PreEncendido_progressBar.setValue(win.startup_progress)
     
-    # 100 pasos * 100ms = 10 segundos
-    if win.startup_progress >= 100:
+    # 300 pasos * 100ms = 30 segundos
+    if win.startup_progress >= 300:
         win.timer_manager.timers['startup'].stop()
         # Deja de accionar el SSR pues el contactor queda autoretenido
         win.hw.digital_set("POWER_ON", INACTIVE)
+        # Energiza el filamento del magnetron pasado los 30s (especificado en el datasheet)
+        win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
         win.change_state(systemState.MAIN_MENU)

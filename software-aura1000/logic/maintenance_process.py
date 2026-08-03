@@ -22,6 +22,35 @@ def qt_sleep(ms: int):
     loop.exec_()
 
 # =============================================================================
+# HELPERS DE SEGURIDAD Y ESTADO DE VENTEO
+# =============================================================================
+
+def check_active_power(win) -> bool:
+    """Comprueba si hay alguna lámpara o el plasma activados."""
+    l13_active = not win.ui.MenuPrincipal_btn_outerLamps.isEnabled()
+    l2_active = win.ui.MenuPrincipal_btn_centralLamp.text() == "Lamp 2 Off"
+    rf_active = win.ui.MenuPrincipal_btn_plasma.text() == "Plasma Off"
+    return l13_active or l2_active or rf_active
+
+
+def update_vent_button_state(win):
+    """
+    Habilita el botón de venteo SOLO si no hay sistemas térmicos/RF encendidos
+    y ambas válvulas de vacío (Soft y Main) se encuentran cerradas.
+    """
+    if check_active_power(win):
+        win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
+        return
+
+    soft_off = win.ui.MenuPrincipal_btn_soft_vacuum.text() == "Soft Vacuum On"
+    main_off = win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum On"
+
+    if soft_off and main_off:
+        win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(True)
+    else:
+        win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
+
+# =============================================================================
 # INICIALIZACION
 # =============================================================================
 
@@ -41,7 +70,8 @@ def init(win):
         win.ui.MenuPrincipal_btn_mfc1_set,
         win.ui.MenuPrincipal_btn_mfc2_set,
         win.ui.MenuPrincipal_btn_outerLamps,
-        win.ui.MenuPrincipal_btn_centralLamp
+        win.ui.MenuPrincipal_btn_centralLamp,
+        win.ui.MenuPrincipal_btn_plasma
     ]
     for btn in buttons:
         try:
@@ -61,10 +91,10 @@ def init(win):
     win.ui.MenuPrincipal_btn_mfc2_set.clicked.connect(lambda: set_mfc2_flow(win))
     win.ui.MenuPrincipal_btn_outerLamps.clicked.connect(lambda: trigger_lamps_1_3(win))
     win.ui.MenuPrincipal_btn_centralLamp.clicked.connect(lambda: toggle_lamp_2(win))
+    win.ui.MenuPrincipal_btn_plasma.clicked.connect(lambda: toggle_plasma(win))
 
-    # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs al arrancar
+    # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs y lamparas al arrancar
     set_mfc_lamps_controls_enabled(win, False)
-
 
 # =============================================================================
 # HELPER DE BLOQUEO/DESBLOQUEO DE CONTROLES MFC
@@ -75,7 +105,7 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     Habilita o deshabilita en bloque las entradas y botones de control
     de los MFCs y del Sistema de Lámparas.
     Si se deshabilita (enabled=False), fuerza el cierre de válvulas,
-    setpoints a 0V y apagado de comandos de lámparas.
+    setpoints a 0V y apagado de comandos de lámparas y plasma.
     """
     # -------------------------------------------------------------------------
     # 1. Habilitar/Deshabilitar widgets de interfaz (MFCs)
@@ -89,10 +119,14 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_mfc2_set.setEnabled(enabled)
 
     # -------------------------------------------------------------------------
-    # 2. Habilitar/Deshabilitar widgets de interfaz (Lámparas)
+    # 2. Habilitar/Deshabilitar widgets de interfaz (Lámparas y Plasma)
     # -------------------------------------------------------------------------
     win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
+    win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
+
+    # El botón de plasma nunca se habilita directamente al hacer vacío, solo tras el crackeo
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(False)
 
     # -------------------------------------------------------------------------
     # 3. Si se deshabilitan por pérdida de vacío / venteo:
@@ -110,15 +144,20 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
         win.ui.MenuPrincipal_btn_mfc2_open.setText("Abrir Valvula MFC2: N2")
         win.ui.MenuPrincipal_btn_mfc2_open.setStyleSheet("")
 
-        # B. Apagado físico de comandos de Lámparas
+        # B. Apagado físico de comandos de Lámparas y RF Plasma
         win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)  # Reposo del monoestable
         win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)  # Reposo del monoestable
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)  # Lámpara 2 apagada
+        win.hw.digital_set("RF_ON_CMD", INACTIVE)     # RF Plasma apagado
 
-        # Reseteo estético del botón de Lámpara 2
+        # Reseteo estético del botón de Lámpara 2 y Plasma
         win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
         win.ui.MenuPrincipal_btn_centralLamp.setStyleSheet("")
 
+        win.ui.MenuPrincipal_btn_plasma.setText("Plasma On")
+        win.ui.MenuPrincipal_btn_plasma.setStyleSheet("")
+
+    update_vent_button_state(win)
 
 # =============================================================================
 # HABILITACION DE DRIVERS SN75436 DE LA AURA 1000 DIO
@@ -161,9 +200,10 @@ def toggle_door(win):
         win.hw.digital_set("DOOR_CLOSE_CMD", ACTIVE)
         btn_soft.setEnabled(True)
         btn_main.setEnabled(True)
-        btn_vent.setEnabled(True)
         btn.setText("Abrir Puerta")
         btn.setStyleSheet("")
+
+        update_vent_button_state(win)
 
 # =============================================================================
 # CONTROL DE VALVULAS DE VACIO
@@ -190,6 +230,8 @@ def toggle_soft_vacuum(win):
         # Habilita la puerta solo si Main Vacuum tampoco está activo
         if btn_main.text() == "Main Vacuum On":
             btn_door.setEnabled(True)
+
+    update_vent_button_state(win)
 
 def toggle_main_vacuum(win):
     """
@@ -234,6 +276,8 @@ def toggle_main_vacuum(win):
         # Corte de vacío principal: deshabilitamos MFCs
         set_mfc_lamps_controls_enabled(win, False)
 
+    update_vent_button_state(win)
+
 # =============================================================================
 # CONTROL DE VENTEO DE CAMARA
 # =============================================================================
@@ -243,6 +287,16 @@ def vent_chamber(win):
     btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+
+    if check_active_power(win):
+        QtWidgets.QMessageBox.warning(
+            win,
+            "Secuencia Inválida",
+            "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
+            "Apague todos los procesos térmicos y de RF primero.",
+            QtWidgets.QMessageBox.Ok
+        )
+        return
 
     if btn_vent.text() == "Vent Chamber":
         # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
@@ -381,26 +435,50 @@ def set_mfc2_flow(win):
 # =============================================================================
 
 def trigger_lamps_1_3(win):
+    """Envía la señal de activación a las lámparas 1 y 3 durante el tiempo
+    ingresado en el Text Entry (máx 28s), deshabilitando el botón.
     """
-    Envía la señal de activación (ACTIVE) a las lámparas 1 y 3 para disparar 
-    el monoestable y vuelve a poner la línea en reposo (INACTIVE).
-    """
+    btn = win.ui.MenuPrincipal_btn_outerLamps
+    input_field = win.ui.MenuPrincipal_outerLamps_pulseTime
+
+    # 1. Obtener y validar el tiempo ingresado
     try:
-        # 1. Pulso de activación (ACTIVE)
-        win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
-        win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
-        
-        # 2. Mantener el pulso unos milisegundos para asegurar el trigger
-        qt_sleep(20000)
+        seconds = float(input_field.text().strip())
+        if seconds <= 0 or seconds > 28:
+            raise ValueError("Fuera de rango")
+    except ValueError:
+        print(
+            "[WARN] Tiempo de pulso inválido. Ingrese un valor entre 0 y 28 segundos."
+        )
+        return
 
-        # 3. Retorno al estado de reposo (INACTIVE)
-        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+    # Convertir segundos a milisegundos para qt_sleep
+    duration_ms = int(seconds * 1000)
 
-        print("[INFO] Pulso enviado a Lámparas 1 y 3 (Monoestable disparado).")
+    # 2. Bloquear UI del botón y activar salidas
+    btn.setEnabled(False)
+    btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
 
-    except Exception as e:
-        print(f"[ERROR] Fallo al enviar pulso a Lámparas 1 y 3: {e}")
+    update_vent_button_state(win)
+
+    win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
+    win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
+    print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos (crackeo).")
+
+    # 3. Esperar el tiempo configurado
+    qt_sleep(duration_ms)
+
+    # 4. Desactivar salidas (Aplica el Reset)
+    win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+    win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+    btn.setStyleSheet("")
+
+    print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso).")
+
+    # Recién luego de apagar las lámparas de precalentamiento permite encender el plasma
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
+
+    update_vent_button_state(win)
 
 def toggle_lamp_2(win):
     """
@@ -418,3 +496,26 @@ def toggle_lamp_2(win):
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
         print("[INFO] Lámpara 2 (Central) Apagada.")
+
+    update_vent_button_state(win)
+
+# =============================================================================
+# CONTROL DE ENCENDIDO DE PLASMA
+# =============================================================================
+
+def toggle_plasma(win):
+    """Controla la señal RF_ON_CMD para encender y apagar la alta tensión del magnetrón."""
+    btn = win.ui.MenuPrincipal_btn_plasma
+
+    if btn.text() == "Plasma On":
+        win.hw.digital_set("RF_ON_CMD", ACTIVE)
+        btn.setText("Plasma Off")
+        btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+        print("[INFO] Plasma Encendido.")
+    else:
+        win.hw.digital_set("RF_ON_CMD", INACTIVE)
+        btn.setText("Plasma On")
+        btn.setStyleSheet("")
+        print("[INFO] Plasma Apagado.")
+
+    update_vent_button_state(win)

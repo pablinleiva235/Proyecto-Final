@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return False
 
     # ===================================================================
-    # METODO PARA MOSTRAR EL READOUT DE LOS MFCs
+    # METODO PARA MOSTRAR TEMPERATURA DE OBLEA
     # ===================================================================  
     # Se llama constantemente cada 100ms desde el timer general de timers_io.py
     def update_temp_display(self):
@@ -187,6 +187,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         except Exception as e:
             print(f"Error al leer flujo de MFCs: {e}")
+
+    # ===================================================================
+    # METODO PARA MOSTRAR VALOR DEL END OF PROCESS
+    # ===================================================================
+    def update_eop_displays(win):
+    # Lectura del sensor de End of Process (EOP)
+    try:
+        eop_volts = self.win.hw.analog_read("EOP")
+        # Mostrar valor en el QLCDNumber con 2 decimales
+        win.ui.MenuPrincipal_eop_voltage.display(f"{eop_volts:.2f}")
+    except Exception as e:
+        print(f"[ERROR] No se pudo leer el canal EOP: {e}")
 
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA

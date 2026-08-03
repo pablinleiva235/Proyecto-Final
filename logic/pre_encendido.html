@@ -1299,7 +1299,7 @@
 
 
 <h1 id="pre_encendidopy"><code>pre_encendido.py</code></h1>
-<p>El módulo <code>pre_encendido.py</code> encapsula la lógica secuencial y algorítmica de la fase inicial del equipo. Aislando las funciones de control del hilo de la interfaz de usuario, este módulo se encarga del enclavamiento eléctrico por software, la inicialización de periféricos analógicos y la gestión de la temporización crítica de 10 segundos necesaria para la estabilización del Gasonics Aura 1000.</p>
+<p>El módulo <code>pre_encendido.py</code> encapsula la lógica secuencial y algorítmica de la fase inicial del equipo. Aislando las funciones de control del hilo de la interfaz de usuario, este módulo se encarga del enclavamiento eléctrico por software, la inicialización de periféricos analógicos y la gestión de la temporización crítica de 30 segundos necesaria para la estabilización del Gasonics Aura 1000, principalmente para el precalentado del filamento del magnetron</p>
 <hr />
 <h2 id="funciones-del-pre-encendido"><span style="color: #4CAF50;">Funciones del pre encendido</span></h2>
 <details class="note">
@@ -1346,13 +1346,14 @@
 </details>
 <details class="note">
 <summary>Callback de la Barra de Progreso: <code>update_progressBar(win)</code></summary>
-<p>Rutina cíclica acoplada al desbordamiento (timeout) del temporizador <code>startup</code> cada 100 ms. Incrementa linealmente la variable <code>startup_progress</code> reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de <strong>100 pasos</strong>, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado <code>MAIN_MENU</code>. Ademas desenergiza el SSR de encendido ya que el contactor quedo autoretenido por su contacto auxiliar</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># 100 pasos * 100ms = 10 segundos de delay de estabilización</span>
-<span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
+<p>Rutina cíclica acoplada al desbordamiento (timeout) del temporizador <code>startup</code> cada 100 ms. Incrementa linealmente la variable <code>startup_progress</code> reflejando el progreso físico en el widget visual. Al alcanzar el límite estricto de 30s que necesita el filamento para precalentar, detiene de forma definitiva el timer para liberar recursos del procesador e instruye a la ventana el avance hacia el estado <code>MAIN_MENU</code>. Ademas desenergiza el SSR de encendido ya que el contactor quedo autoretenido por su contacto auxiliar</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 300 pasos * 100ms = 30 segundos de delay de estabilización</span>
+<span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">&gt;=</span> <span class="mi">300</span><span class="p">:</span>
     <span class="n">win</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">timers</span><span class="p">[</span><span class="s1">&#39;startup&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">systemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">)</span>
     <span class="c1"># Deja de accionar el SSR pues el contactor queda autoretenido</span>
     <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;POWER_ON&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+    <span class="c1"># Energiza el filamento del magnetron pasado los 30s (especificado en el datasheet)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;FILAMENT_ENABLE&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">systemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">)</span>
 </code></pre></div>
 </details>

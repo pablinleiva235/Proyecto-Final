@@ -1317,6 +1317,7 @@
 <p>Es invocado inmediatamente después de que el lazo centralizado de I/O detecta el flanco de subida en el pulsador de marcha. Ejecuta de forma imperativa tres acciones críticas:</p>
 <ol>
 <li>Activa la retención eléctrica mediante el seteo digital de la línea <code>POWER_ON</code>.</li>
+<li>Activa el filamento del magnetron para asegurar que va a precalentar por 30s minimo</li>
 <li>Modifica dinámicamente los widgets de texto e interfaz en la ventana.</li>
 <li>Protege la conexión del timer <code>startup</code> (limpiando conexiones previas mediante un bloque <code>try-except</code>), asocia la subrutina de incremento mediante una función <code>lambda</code> y arranca el temporizador con un intervalo periódico de <strong>100 ms</strong>.</li>
 </ol>
@@ -1325,16 +1326,19 @@
     <span class="c1"># 1. Activar retención en hardware digital</span>
     <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;POWER_ON&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
 
-    <span class="c1"># [DESCOMENTAR EN NOTEBOOK DE SALA]</span>
-    <span class="c1"># win.hw.initialize_AD()  </span>
+    <span class="c1"># 2. Activa el filamento del magnetron, para asegurar que va a precalentar por 30s minimo</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;FILAMENT_ENABLE&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
 
-    <span class="c1"># 2. Modificar la interfaz gráfica directamente</span>
+    <span class="c1"># 3. Inicializa USB-2527</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">initialize_AD</span><span class="p">()</span>  
+
+    <span class="c1"># 4. Modificar la interfaz gráfica directamente</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_label2</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Iniciando, espere ...&quot;</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">PreEncendido_progressBar</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="c1"># 3. Vincular y arrancar el timer que vive en el manager</span>
+    <span class="c1"># 5. Vincular y arrancar el timer de progress bar</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">timers</span><span class="p">[</span><span class="s1">&#39;startup&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>

@@ -21,25 +21,29 @@ El módulo `pre_encendido.py` encapsula la lógica secuencial y algorítmica de 
     Es invocado inmediatamente después de que el lazo centralizado de I/O detecta el flanco de subida en el pulsador de marcha. Ejecuta de forma imperativa tres acciones críticas:
     
     1. Activa la retención eléctrica mediante el seteo digital de la línea `POWER_ON`.
-    2. Modifica dinámicamente los widgets de texto e interfaz en la ventana.
-    3. Protege la conexión del timer `startup` (limpiando conexiones previas mediante un bloque `try-except`), asocia la subrutina de incremento mediante una función `lambda` y arranca el temporizador con un intervalo periódico de **100 ms**.
+    2. Activa el filamento del magnetron para asegurar que va a precalentar por 30s minimo
+    3. Modifica dinámicamente los widgets de texto e interfaz en la ventana.
+    4. Protege la conexión del timer `startup` (limpiando conexiones previas mediante un bloque `try-except`), asocia la subrutina de incremento mediante una función `lambda` y arranca el temporizador con un intervalo periódico de **100 ms**.
 
     ```python
     def startup(win):
         """Lógica pesada al detectar el flanco de ON"""
         # 1. Activar retención en hardware digital
         win.hw.digital_set("POWER_ON", ACTIVE)
+
+        # 2. Activa el filamento del magnetron, para asegurar que va a precalentar por 30s minimo
+        win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
         
-        # [DESCOMENTAR EN NOTEBOOK DE SALA]
-        # win.hw.initialize_AD()  
+        # 3. Inicializa USB-2527
+        win.hw.initialize_AD()  
         
-        # 2. Modificar la interfaz gráfica directamente
+        # 4. Modificar la interfaz gráfica directamente
         win.ui.PreEncendido_label2.setText("Iniciando, espere ...")
         win.ui.PreEncendido_progressBar.show()
         win.ui.PreEncendido_progressBar.setValue(0)
         win.startup_progress = 0
         
-        # 3. Vincular y arrancar el timer que vive en el manager
+        # 5. Vincular y arrancar el timer de progress bar
         try:
             win.timer_manager.timers['startup'].timeout.disconnect()
         except TypeError:

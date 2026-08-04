@@ -202,7 +202,6 @@ def toggle_door(win):
         btn_main.setEnabled(True)
         btn.setText("Abrir Puerta")
         btn.setStyleSheet("")
-
         update_vent_button_state(win)
 
 # =============================================================================

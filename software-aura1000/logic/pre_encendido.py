@@ -12,17 +12,20 @@ def startup(win):
     """Lógica pesada al detectar el flanco de ON"""
     # 1. Activar retención en hardware digital
     win.hw.digital_set("POWER_ON", ACTIVE)
+
+    # 2. Activa el filamento del magnetron, para asegurar que va a precalentar por 30s minimo
+    win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
     
-    # [DESCOMENTAR EN NOTEBOOK DE SALA]
+    # 3. Inicializa USB-2527
     win.hw.initialize_AD()  
     
-    # 2. Modificar la interfaz gráfica directamente
+    # 4. Modificar la interfaz gráfica directamente
     win.ui.PreEncendido_label2.setText("Iniciando, espere ...")
     win.ui.PreEncendido_progressBar.show()
     win.ui.PreEncendido_progressBar.setValue(0)
     win.startup_progress = 0
     
-    # 3. Vincular y arrancar el timer que vive en el manager
+    # 5. Vincular y arrancar el timer de progress bar
     try:
         win.timer_manager.timers['startup'].timeout.disconnect()
     except TypeError:
@@ -41,6 +44,4 @@ def update_progressBar(win):
         win.timer_manager.timers['startup'].stop()
         # Deja de accionar el SSR pues el contactor queda autoretenido
         win.hw.digital_set("POWER_ON", INACTIVE)
-        # Energiza el filamento del magnetron pasado los 30s (especificado en el datasheet)
-        win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
         win.change_state(systemState.MAIN_MENU)

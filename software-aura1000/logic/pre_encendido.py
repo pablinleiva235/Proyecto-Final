@@ -6,7 +6,8 @@ def init(win):
     """Configura el estado visual inicial del Pre-Encendido"""
     win.ui.stackedWidget.setCurrentWidget(win.ui.PreEncendido)
     win.ui.PreEncendido_progressBar.hide()
-    win.startup_progress = 0
+    win.ui.PreEncendido_progressBar.setRange(0, 100)
+    win.startup_progress = 0.0  
 
 def startup(win):
     """Lógica pesada al detectar el flanco de ON"""
@@ -36,12 +37,17 @@ def startup(win):
 
 def update_progressBar(win):
     """Callback del timer de startup (cada 100ms)"""
-    win.startup_progress += 1
-    win.ui.PreEncendido_progressBar.setValue(win.startup_progress)
-    
-    # 300 pasos * 100ms = 30 segundos
-    if win.startup_progress >= 300:
+    # 100% total / 300 ciclos = 1/3% por cada ciclo de 100ms
+    win.startup_progress += 100.0 / 300.0  # incremento exacto (~0.333333)
+
+    # setValue solo acepta int, casteamos la variable float
+    win.ui.PreEncendido_progressBar.setValue(int(win.startup_progress))
+
+    # Cuando llegue al 100% (transcurridos los 30s)
+    if win.startup_progress >= 100.0:
+        win.ui.PreEncendido_progressBar.setValue(100)
         win.timer_manager.timers['startup'].stop()
+
         # Deja de accionar el SSR pues el contactor queda autoretenido
         win.hw.digital_set("POWER_ON", INACTIVE)
         win.change_state(systemState.MAIN_MENU)

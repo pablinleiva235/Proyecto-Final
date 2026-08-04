@@ -9,8 +9,6 @@ import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
 
-BARATRON_FULL_SCALE = 10
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
         super().__init__()
@@ -22,6 +20,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Crear interfaz autogenerada
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Estado de lamparas 1 y 3
+        self.state_lamps13_pulsing = False
+
+        # Control de ventanas emergentes de alarma/advertencia
+        self.alarm_active = False
+        self.warning_mag_shown = False
 
         # =====================================================================
         # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
@@ -41,9 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # C. Forzamos la barra de scroll vertical para que aparezca siempre
             scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            scroll.setHorizontalScrollBarPolicy(
-                Qt.ScrollBarAsNeeded
-            )  # Por si el ancho también se queda corto
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Por si el ancho también se queda corto
 
             # D. Reemplazamos el widget central
             self.setCentralWidget(scroll)
@@ -96,109 +99,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
         #Inicia modo de prueba modular
         maintenanceProcess.init(self)
-
-    # =================================================================================
-    # METODO PARA TOGGLEAR ESTADO VISUAL DE INDICADORES (ATM, Puerta, Lamparas, Plasma)
-    # =================================================================================   
-    def update_led_indicator(self, label_widget, state_active, text_active, text_inactive):
-        """
-        Actualiza dinámicamente el estilo de un QLabel para simular un indicador LED.
-        """
-        if state_active:
-            label_widget.setText(text_active)
-            label_widget.setStyleSheet("""
-                background-color: #2ec4b6; color: black; font-weight: bold; 
-                border: 1px solid #0f625a; border-radius: 4px; padding: 4px;
-            """)
-        else:
-            label_widget.setText(text_inactive)
-            label_widget.setStyleSheet("""
-                background-color: #e0e0e0; color: #757575; font-weight: bold; 
-                border: 1px solid #9e9e9e; border-radius: 4px; padding: 4px;
-            """)
-
-    # ===================================================================
-    # METODO PARA MOSTRAR LA LECTURA DEL BARATRON Y ESTADO DEL ATM SWITCH
-    # ===================================================================
-    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
-    def update_pressure_display(self):
-            """
-            Lee el Baratron y el ATM_SWITCH, actualiza la GUI y retorna el estado de ATM.
-            """
-            try:
-                voltage = self.hw.analog_read("BARATRON")
-                pressure_torr = max(0.0, voltage * (BARATRON_FULL_SCALE / 10.0))
-                self.ui.MenuPrincipal_chamber_pressure.display(f"{pressure_torr:.2f}")
-                
-                # Leemos una única vez el hardware
-                atm_active = self.hw.digital_read("ATM_SWITCH")
-                self.update_led_indicator(self.ui.MenuPrincipal_lbl_status_atm, atm_active, "PRESION ATM", "VACIO / CAMARA")
-                
-                # RETORNAMOS EL VALOR LEÍDO
-                return atm_active
-
-            except Exception as e:
-                print(f"Error al actualizar la presión en el lazo de la GUI: {e}")
-                return False
-
-    # ===================================================================
-    # METODO PARA MOSTRAR TEMPERATURA DE OBLEA
-    # ===================================================================  
-    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
-    def update_temp_display(self):
-        """
-        Lee el canal de temperatura de la cámara a través del módulo hardware
-        y actualiza el indicador LCD de la interfaz.
-        """
-        try:
-            # Lectura de la termocupla configurada como "CHAMBER_TEMP"
-            temp_c = self.hw.analog_read_temperature("CHAMBER_TEMP")
-            
-            if temp_c is not None:
-                # Muestra el valor con 1 decimal en el QLCDNumber
-                self.ui.MenuPrincipal_chamber_temp.display(f"{temp_c:.1f}")
-            else:
-                self.ui.MenuPrincipal_chamber_temp.display("---")
-        except Exception as e:
-            print(f"[ERROR] Error al leer la temperatura de la cámara: {e}")
-            self.ui.MenuPrincipal_chamber_temp.display("ERR")
-
-    # ===================================================================
-    # METODO PARA MOSTRAR EL READOUT DE LOS MFCs
-    # ===================================================================
-    # Se llama constantemente cada 100ms desde el timer general de timers_io.py
-    def update_mfc_displays(self):
-        """
-        Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW
-        y actualiza los LCDs de la GUI.
-        """
-        try:
-            # --- 1. Lectura de MFC1 (O2) ---
-            v_mfc1 = self.hw.analog_read("MFC1_FLOW")
-            slm_mfc1 = v_mfc1 
-            slm_mfc1 = max(0.0, slm_mfc1)
-            self.ui.MenuPrincipal_mfc1_readout.display(f"{slm_mfc1:.2f}")
-
-            # --- 2. Lectura de MFC2 (N2) ---
-            v_mfc2 = self.hw.analog_read("MFC2_FLOW")
-            slm_mfc2 = v_mfc2 
-            slm_mfc2 = max(0.0, slm_mfc2)
-            self.ui.MenuPrincipal_mfc2_readout.display(f"{slm_mfc2:.2f}")
-
-        except Exception as e:
-            print(f"Error al leer flujo de MFCs: {e}")
-
-    # ===================================================================
-    # METODO PARA MOSTRAR VALOR DEL END OF PROCESS
-    # ===================================================================
-    def update_eop_displays(win):
-    # Lectura del sensor de End of Process (EOP)
-    try:
-        eop_volts = self.win.hw.analog_read("EOP")
-        # Mostrar valor en el QLCDNumber con 2 decimales
-        win.ui.MenuPrincipal_eop_voltage.display(f"{eop_volts:.2f}")
-    except Exception as e:
-        print(f"[ERROR] No se pudo leer el canal EOP: {e}")
 
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA

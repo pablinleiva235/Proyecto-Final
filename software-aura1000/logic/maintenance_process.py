@@ -355,9 +355,11 @@ def finish_vent_sequence(win):
     btn_vent.setText("Vent Chamber")
     btn_vent.setStyleSheet("")
     
+    # Una vez venteado, vuelve a habilitar botones que habian sido deshabilitados en vacio
     win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
+    win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
     set_mfc_lamps_controls_enabled(win, False)

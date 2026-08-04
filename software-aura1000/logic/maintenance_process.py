@@ -12,22 +12,12 @@ MFC1_MAX_VOLT = 10.0
 MFC2_MAX_VOLT = 1.0
 
 # =============================================================================
-# PAUSA TEMPORAL PARA PULSO DE ENCENDIDO DE LAMPS 1 Y 3
-# =============================================================================
-
-def qt_sleep(ms: int):
-    """Pausa no bloqueante para la interfaz de PyQt."""
-    loop = QEventLoop()
-    QTimer.singleShot(ms, loop.quit)
-    loop.exec_()
-
-# =============================================================================
 # HELPERS DE SEGURIDAD Y ESTADO DE VENTEO
 # =============================================================================
 
 def check_active_power(win) -> bool:
     """Comprueba si hay alguna lámpara o el plasma activados."""
-    l13_active = not win.ui.MenuPrincipal_btn_outerLamps.isEnabled()
+    l13_active = win.state_lamps13_pulsing
     l2_active = win.ui.MenuPrincipal_btn_centralLamp.text() == "Lamp 2 Off"
     rf_active = win.ui.MenuPrincipal_btn_plasma.text() == "Plasma Off"
     return l13_active or l2_active or rf_active
@@ -58,6 +48,10 @@ def init(win):
     """
     Inicializa las conexiones de los botones del Menú Principal (Mantenimiento).
     """
+
+    # Flag para el encendido de lamparas 1 y 3 que usara luego el chequeo de si el pulsador de venteo se puede habilitar
+    win.state_lamps13_pulsing = False
+
     # Desconexión de seguridad previa...
     buttons = [
         win.ui.MenuPrincipal_btn_enable_driver,
@@ -132,11 +126,16 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     # 3. Si se deshabilitan por pérdida de vacío / venteo:
     # -------------------------------------------------------------------------
     if not enabled:
+        win.state_lamps13_pulsing = False
         # A. Cierre físico de válvulas de inyección y setpoints de MFCs
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
+
+        # Reseteo del texto de los QLineEdit a "0"
+        win.ui.MenuPrincipal_mfc1_setpoint.setText("0")
+        win.ui.MenuPrincipal_mfc2_setpoint.setText("0")
 
         # Reseteo estético de botones de MFCs
         win.ui.MenuPrincipal_btn_mfc1_open.setText("Abrir Valvula MFC1: O2")
@@ -149,6 +148,11 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
         win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)  # Reposo del monoestable
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)  # Lámpara 2 apagada
         win.hw.digital_set("RF_ON_CMD", INACTIVE)     # RF Plasma apagado
+
+        # limpiar flag y estilo del pulso de lámparas 1&3, por si el
+        # apagado ocurre a mitad de un qt_sleep en trigger_lamps_1_3
+        win.state_lamps13_pulsing = False
+        win.ui.MenuPrincipal_btn_outerLamps.setStyleSheet("")
 
         # Reseteo estético del botón de Lámpara 2 y Plasma
         win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
@@ -225,10 +229,6 @@ def toggle_soft_vacuum(win):
         win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
         btn_soft.setText("Soft Vacuum On")
         btn_soft.setStyleSheet("")
-        
-        # Habilita la puerta solo si Main Vacuum tampoco está activo
-        if btn_main.text() == "Main Vacuum On":
-            btn_door.setEnabled(True)
 
     update_vent_button_state(win)
 
@@ -241,7 +241,21 @@ def toggle_main_vacuum(win):
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_door = win.ui.MenuPrincipal_btn_open_door
     
-    # 1. Validación de prerrequisito
+    # -------------------------------------------------------------------------
+    # Impedir apagar el vacío si hay potencia activa
+    # -------------------------------------------------------------------------
+    is_vacuum_on = (btn_main.text() == "Main Vacuum Off")
+    if is_vacuum_on and check_active_power(win):
+        QtWidgets.QMessageBox.warning(
+            win,
+            "Acción Bloqueada por Seguridad",
+            "No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.\n"
+            "Apague todos los procesos térmicos y de RF primero.",
+            QtWidgets.QMessageBox.Ok
+        )
+        return
+
+    # 1. Validación de prerrequisito para ENCENDER
     if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
         QtWidgets.QMessageBox.warning(
             win, 
@@ -258,7 +272,7 @@ def toggle_main_vacuum(win):
         btn_main.setStyleSheet("background-color: #f44336; color: white;")
         btn_door.setEnabled(False)
         
-        # <-- APAGADO AUTOMÁTICO DE SOFT VACUUM
+        # Apagado automático de Soft Vacuum
         if btn_soft.text() == "Soft Vacuum Off":
             win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
             btn_soft.setText("Soft Vacuum On")
@@ -328,7 +342,6 @@ def vent_chamber(win):
         
         btn_soft.setEnabled(True)
         btn_main.setEnabled(True)
-        win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
         print("Venteo cancelado manualmente por el operario.")
 
 def finish_vent_sequence(win):
@@ -435,7 +448,7 @@ def set_mfc2_flow(win):
 
 def trigger_lamps_1_3(win):
     """Envía la señal de activación a las lámparas 1 y 3 durante el tiempo
-    ingresado en el Text Entry (máx 28s), deshabilitando el botón.
+    ingresado en el Text Entry (máx 28s). Usando QTimer asíncrono.
     """
     btn = win.ui.MenuPrincipal_btn_outerLamps
     input_field = win.ui.MenuPrincipal_outerLamps_pulseTime
@@ -446,38 +459,45 @@ def trigger_lamps_1_3(win):
         if seconds <= 0 or seconds > 28:
             raise ValueError("Fuera de rango")
     except ValueError:
-        print(
-            "[WARN] Tiempo de pulso inválido. Ingrese un valor entre 0 y 28 segundos."
-        )
+        print("[WARN] Tiempo de pulso inválido. Ingrese un valor entre 0 y 28 segundos.")
         return
 
-    # Convertir segundos a milisegundos para qt_sleep
     duration_ms = int(seconds * 1000)
 
-    # 2. Bloquear UI del botón y activar salidas
+    # 2. Bloquear UI del botón, marcar estado real y activar salidas
+    win.state_lamps13_pulsing = True
     btn.setEnabled(False)
     btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
-
     update_vent_button_state(win)
 
     win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
     win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
-    print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos (crackeo).")
+    print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
 
-    # 3. Esperar el tiempo configurado
-    qt_sleep(duration_ms)
+    # 3. Definir la función que se ejecutará AL FINALIZAR el tiempo
+    def on_pulse_complete():
+        # Si durante la espera se cortó el vacío o se deshabilitaron los controles,
+        # 'state_lamps13_pulsing' ya habrá sido puesto a False en set_mfc_lamps_controls_enabled
+        if not win.state_lamps13_pulsing:
+            print("[INFO] El pulso de lámparas fue abortado por seguridad antes de tiempo.")
+            return
 
-    # 4. Desactivar salidas (Aplica el Reset)
-    win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-    win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-    btn.setStyleSheet("")
+        win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+        win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+        win.state_lamps13_pulsing = False
+        btn.setStyleSheet("")
+        print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso). Precalentamiento completo.")
 
-    print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso).")
+        # Habilita Plasma solo si el vacío principal se mantuvo encendido
+        if win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off":
+            win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
+        else:
+            print("[WARN] Vacío no activo al finalizar el pulso; Plasma no habilitado.")
 
-    # Recién luego de apagar las lámparas de precalentamiento permite encender el plasma
-    win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
+        update_vent_button_state(win)
 
-    update_vent_button_state(win)
+    # 4. Programar el apagado automático (sin congelar ni crear reentrancia)
+    QTimer.singleShot(duration_ms, on_pulse_complete)
 
 def toggle_lamp_2(win):
     """

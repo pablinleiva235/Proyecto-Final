@@ -73,6 +73,8 @@ INVALID_CREDENTIALS_MESSAGE = "Usuario o contraseña inválidos."
 MAINTAINER_TITLE = "MODO MANTENIMIENTO"
 MAINTAINER_PLACEHOLDER = "Pantalla temporal de mantenimiento"
 
+DIGITAL_INPUTS_TITLE = "Entradas digitales"
+DIGITAL_OUTPUTS_TITLE = "Salidas digitales"
 
 # =============================================================================
 # Pantalla de estadísticas
@@ -87,3 +89,17 @@ STATISTICS_PLACEHOLDER = "Pantalla temporal de estadísticas"
 # =============================================================================
 
 BACK_BUTTON_TEXT = "Volver"
+
+
+
+# =============================================================================
+# SEÑALES
+# =============================================================================
+
+SIGNAL_DIRECTION_INPUT = "ENTRADA"
+SIGNAL_DIRECTION_OUTPUT = "SALIDA"
+
+SIGNAL_STATE_ACTIVE = "ACTIVA"
+SIGNAL_STATE_INACTIVE = "INACTIVA"
+SIGNAL_STATE_PROCESSING = "PROCESANDO..."
+SIGNAL_STATE_UNAVAILABLE = "SIN DATOS"

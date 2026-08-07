@@ -761,3 +761,112 @@ navigation_controller.show_screen("statistics")
 * Permite incorporar navegación hacia atrás en el futuro.
 
 ---
+
+# ADR-011: Selección de señales mediante configuración
+
+**Estado:** Aprobado
+
+## Contexto
+
+La pantalla de mantenimiento debe representar el estado de las señales digitales del equipo y permitir el control de aquellas configuradas como salidas.
+
+En una primera etapa, la pantalla mostrará únicamente cuatro señales:
+
+- `POWER_ON`
+- `POWER_ON_SWITCH`
+- `SYS_POWER`
+- `DRIVER_ENABLE`
+
+Sin embargo, la versión final deberá representar aproximadamente **42 señales digitales**, además de futuras señales analógicas.
+
+La primera implementación consistía en declarar manualmente cada `SignalWidget` dentro de `MaintainerScreen`:
+
+```python
+self.power_on_widget = SignalWidget(...)
+self.power_on_switch_widget = SignalWidget(...)
+self.sys_power_widget = SignalWidget(...)
+self.driver_enable_widget = SignalWidget(...)
+```
+
+Este enfoque presenta varios inconvenientes:
+
+- La pantalla debe modificarse cada vez que se agrega o elimina una señal.
+- Se incrementa la cantidad de código repetitivo.
+- Existe un fuerte acoplamiento entre la interfaz gráfica y el conjunto de señales del equipo.
+- La escalabilidad disminuye considerablemente al aumentar la cantidad de señales.
+
+Por otra parte, el proyecto ya dispone de una definición centralizada del hardware en:
+
+```text
+config/digital_signals.py
+```
+
+donde se encuentra toda la información técnica de cada señal:
+
+- Nombre lógico.
+- Puerto.
+- Bit.
+- Dirección (`IN` / `OUT`).
+- Estado activo (`active_state`).
+- Estado inicial (`initial_state`).
+
+Esta información constituye la **única fuente de verdad** del hardware y no debe duplicarse en la interfaz gráfica.
+
+No obstante, no todas las señales definidas necesariamente deben mostrarse en todas las pantallas de la aplicación.
+
+---
+
+## Decisión
+
+Se creará un archivo independiente:
+
+```text
+config/maintainer_signals.py
+```
+
+Este archivo contendrá únicamente la lista de señales que deberán mostrarse en la pantalla de mantenimiento.
+
+Ejemplo:
+
+```python
+MAINTAINER_SIGNALS = (
+    "POWER_ON",
+    "POWER_ON_SWITCH",
+    "SYS_POWER",
+    "DRIVER_ENABLE",
+)
+```
+
+Durante la inicialización, `MaintainerScreen` recorrerá esta colección y, para cada señal:
+
+1. Obtendrá su configuración desde `digital_signals.py`.
+2. Determinará automáticamente si corresponde crear un widget interactivo (`OUT`) o de solo lectura (`IN`).
+3. Creará dinámicamente el `SignalWidget`.
+4. Lo ubicará en la sección correspondiente (Entradas digitales o Salidas digitales).
+5. Lo almacenará en un diccionario indexado por nombre lógico para facilitar futuras actualizaciones de estado.
+
+De esta forma, la pantalla deja de conocer explícitamente las señales individuales y pasa a construirse completamente a partir de la configuración.
+
+---
+
+## Consecuencias
+
+### Ventajas
+
+- Se elimina prácticamente todo el código repetitivo asociado a la creación de señales.
+- Agregar o quitar una señal de la pantalla únicamente requiere modificar `maintainer_signals.py`.
+- `MaintainerScreen` deja de depender de nombres específicos de señales.
+- Se mantiene una única fuente de verdad para la definición técnica del hardware (`digital_signals.py`).
+- La arquitectura resulta fácilmente escalable para decenas de señales.
+- Se facilita la reutilización de `SignalWidget` en futuras pantallas.
+
+### Desventajas
+
+- La construcción dinámica introduce una pequeña complejidad adicional durante la creación de la interfaz.
+- Los errores de configuración (por ejemplo, una señal inexistente en `MAINTAINER_SIGNALS`) deberán detectarse y notificarse durante la inicialización.
+
+---
+
+Esta decisión reduce el acoplamiento entre la interfaz gráfica y el hardware, facilita la evolución del sistema y permite reutilizar la misma infraestructura para futuras pantallas de diagnóstico, configuración o monitoreo mediante la creación de nuevos archivos de selección de señales.
+
+---

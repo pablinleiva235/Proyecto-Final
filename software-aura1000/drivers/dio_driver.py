@@ -38,6 +38,7 @@ DIGITALIN  = 2
 # =========================================================
 
 # -------------- Configuracion de puerto ------------------
+
 cbw.cbDConfigPort.argtypes = [
     ctypes.c_int,   # BoardNum
     ctypes.c_int,   # PortType

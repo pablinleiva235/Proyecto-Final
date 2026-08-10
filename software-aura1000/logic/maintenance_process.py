@@ -509,11 +509,13 @@ def toggle_lamp_2(win):
 
     if btn.text() == "Lamp 2 On":
         win.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+        win.lamp2_on = True # Flag para la funcion de deteccion de fallas, que solamente detecta al estar activas
         btn.setText("Lamp 2 Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
         print("[INFO] Lámpara 2 (Central) Encendida.")
     else:
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+        win.lamp2_on = False # Vuelvo el flag a False una vez apagada para que no detecte fallas
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
         print("[INFO] Lámpara 2 (Central) Apagada.")
@@ -530,11 +532,13 @@ def toggle_plasma(win):
 
     if btn.text() == "Plasma On":
         win.hw.digital_set("RF_ON_CMD", ACTIVE)
+        win.rf_on = True
         btn.setText("Plasma Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
         print("[INFO] Plasma Encendido.")
     else:
         win.hw.digital_set("RF_ON_CMD", INACTIVE)
+        win.rf_on = False
         btn.setText("Plasma On")
         btn.setStyleSheet("")
         print("[INFO] Plasma Apagado.")

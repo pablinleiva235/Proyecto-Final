@@ -21,8 +21,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # Estado de lamparas 1 y 3
+        # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
         self.state_lamps13_pulsing = False
+        self.lamp2_on = False
+        self.rf_on = False
 
         # Control de ventanas emergentes de alarma/advertencia
         self.alarm_active = False

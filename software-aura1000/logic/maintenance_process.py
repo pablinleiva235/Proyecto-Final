@@ -1,5 +1,5 @@
 # logic/maintenance_process.py
-
+import time
 from PyQt5 import QtWidgets 
 from PyQt5.QtCore import QEventLoop, QTimer
 from config.digital_signals import ACTIVE, INACTIVE
@@ -476,6 +476,9 @@ def trigger_lamps_1_3(win):
     win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
     print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
 
+    # SACAR ESTA LINEA LUEGO DE PROBAR
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
+
     # 3. Definir la función que se ejecutará AL FINALIZAR el tiempo
     def on_pulse_complete():
         # Si durante la espera se cortó el vacío o se deshabilitaron los controles,
@@ -490,12 +493,12 @@ def trigger_lamps_1_3(win):
         btn.setStyleSheet("")
         print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso). Precalentamiento completo.")
 
-        # Habilita Plasma solo si el vacío principal se mantuvo encendido
+        """# Habilita Plasma solo si el vacío principal se mantuvo encendido
         if win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off":
             win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
         else:
             print("[WARN] Vacío no activo al finalizar el pulso; Plasma no habilitado.")
-
+        """
         update_vent_button_state(win)
 
     # 4. Programar el apagado automático (sin congelar ni crear reentrancia)
@@ -533,6 +536,7 @@ def toggle_plasma(win):
     if btn.text() == "Plasma On":
         win.hw.digital_set("RF_ON_CMD", ACTIVE)
         win.rf_on = True
+        win.rf_on_time = time.time()  # Marca de tiempo de encendido
         btn.setText("Plasma Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
         print("[INFO] Plasma Encendido.")

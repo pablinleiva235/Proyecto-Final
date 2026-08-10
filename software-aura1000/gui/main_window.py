@@ -30,6 +30,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.alarm_active = False
         self.warning_mag_shown = False
 
+        # Variable con tiempo desde que se pulsa el boton de plasma 
+        self.rf_on_time = 0.0
+
         # =====================================================================
         # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
         # =====================================================================

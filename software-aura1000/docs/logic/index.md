@@ -11,3 +11,9 @@ Aloja la inteligencia operacional, las rutinas de tiempo y los procesos algorít
 * **[Secuencia de Encendido (pre_encendido.py)](pre_encendido.md):** Implementa el algoritmo de control para el encendido del plasma asher. Gobierna de forma directa el enclavamiento eléctrico por software, inicializa la USB-2527, comuta el estado de las etiquetas en pantalla y manipula linealmente la barra de progreso de 10 segundos para garantizar la estabilización térmica y eléctrica del equipo antes de habilitar la operación.
 
 * **[Proceso en modo mantenimiento (maintenance_process.py)](maintenance_process.md):** Este modulo agrupa metodos para poder ir probando mediante la interfaz, de manera secuencial, los distintos modulos que utiliza el proceso. La idea es que quede en el modo mantenimiento para poder hacer un proceso de forma no automatica y probar que los modulos esten funcionando correctamente
+
+* **[Actualizacion de lecturas analogicas (analog_update.py)](analog_update.md):** Este modulo tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz
+
+* **[Chequeo de fallas de lampara y plasma (process_faults.py)](process_faults.md):** Este modulo tiene el metodo llamado en el timer general cada 100ms para leer las señales de falla de lamparas, magnetron y plasma, dando aviso al usuario si ocurrio alguna, encendiendo el indicador de alarma y apagando estos modulos de potencia
+
+

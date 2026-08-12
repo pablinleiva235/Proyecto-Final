@@ -547,4 +547,8 @@ def toggle_plasma(win):
         btn.setStyleSheet("")
         print("[INFO] Plasma Apagado.")
 
-    update_vent_button_state(win)
+        # Habilitar boton de Lámparas 1 y 3 solo si el Vacío Principal está activo
+        if (win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off"):  # Estado encendido
+            win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
+
+        update_vent_button_state(win)

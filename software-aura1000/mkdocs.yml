@@ -28,6 +28,8 @@ nav:
     - Pre Encendido (pre_encendido.py): logic/pre_encendido.md
     - Ejecucion de proceso en modo mantenimiento (maintenance_process.py): logic/maintenance_process.md
     - Gestion de timers y entradas digitales (timers_io.py): logic/timers_io.md
+    - Actualizacion de lecturas analogicas (analog_update.py): logic/analog_update.md
+    - Chequeo de fallas de lampara y plasma (process_faults.py): logic/process_faults.md
   - /services:
     - Índice: services/index.md
     - Clase con metodos de alto nivel para control de hardware (hardware.py): services/hardware.md

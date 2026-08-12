@@ -154,10 +154,18 @@
           <height>81</height>
          </rect>
         </property>
+        <property name="font">
+         <font>
+          <pointsize>48</pointsize>
+         </font>
+        </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
     color: rgb(0, 0, 255);   
 }</string>
+        </property>
+        <property name="digitCount">
+         <number>6</number>
         </property>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_pressureUnit_lbl">
@@ -165,7 +173,7 @@
          <rect>
           <x>670</x>
           <y>190</y>
-          <width>161</width>
+          <width>121</width>
           <height>81</height>
          </rect>
         </property>
@@ -801,7 +809,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/Pablo Leiva/Downloads/arrow2.jpg</pixmap>
+         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -820,7 +828,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/Pablo Leiva/Downloads/arrow2.jpg</pixmap>
+         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -839,7 +847,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/Pablo Leiva/Downloads/arrow2.jpg</pixmap>
+         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>

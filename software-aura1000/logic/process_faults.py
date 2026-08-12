@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets
 from config.digital_signals import ACTIVE, INACTIVE
 
 # Tiempo de gracia para dar margen a la ionización del plasma antes de evaluar la falla
-PLASMA_IGNITION_DELAY = 5.0  # en segundos
+PLASMA_IGNITION_DELAY = 2.0  # en segundos
 
 def check_process_faults(win, hw):
     if getattr(win, "alarm_active", False):

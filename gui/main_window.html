@@ -1116,6 +1116,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logic/analog_update.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actualizacion de lecturas analogicas (analog_update.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logic/process_faults.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chequeo de fallas de lampara y plasma (process_faults.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1348,7 +1404,7 @@
 <h2 id="metodos-de-inicializacion-y-maquina-de-estados"><span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span></h2>
 <details class="note">
 <summary>Inicialización del Constructor: <code>__init__(self, hardware)</code></summary>
-<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
+<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hardware</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -1360,9 +1416,24 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="n">Ui_MainWindow</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">setupUi</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+    <span class="c1"># Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Control de ventanas emergentes de alarma/advertencia</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">warning_mag_shown</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Variable con tiempo desde que se pulsa el boton de plasma </span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">rf_on_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+
     <span class="c1"># Instanciar el manager de timers pasándole &#39;self&#39; (esta ventana)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span> <span class="o">=</span> <span class="n">timersIOManager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">start_all_core_timers</span><span class="p">()</span>
+
+    <span class="c1"># Instanciamos el controlador de pruebas del motor</span>
+    <span class="c1"># self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py</span>
 
     <span class="c1"># Iniciar la máquina de estados en PRE_ENCENDIDO</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span>

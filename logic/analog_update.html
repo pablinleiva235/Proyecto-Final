@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="index.html">
+        <link rel="prev" href="timers_io.html">
       
       
-        <link rel="next" href="digital.html">
+        <link rel="next" href="process_faults.html">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Analogico (analog_driver.py) - Reautomatizacion Aura 1000</title>
+        <title>Actualizacion de lecturas analogicas (analog_update.py) - Reautomatizacion Aura 1000</title>
       
     
     
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#analog_driverpy" class="md-skip">
+        <a href="#analog_updatepy" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +100,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Analogico (analog_driver.py)
+              Actualizacion de lecturas analogicas (analog_update.py)
             
           </span>
         </div>
@@ -248,13 +248,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="index.html" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../drivers/index.html" class="md-tabs__link">
           
   
   
@@ -290,11 +288,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../logic/index.html" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="index.html" class="md-tabs__link">
           
   
   
@@ -587,29 +587,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -627,7 +624,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -645,7 +642,7 @@
   
   
     <li class="md-nav__item">
-      <a href="index.html" class="md-nav__link">
+      <a href="../drivers/index.html" class="md-nav__link">
         
   
   
@@ -670,37 +667,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Analogico (analog_driver.py)
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="analogico.html" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../drivers/analogico.html" class="md-nav__link">
         
   
   
@@ -716,48 +686,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#constantes-de-la-api" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Constantes de la API
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#funciones-de-control-api-python" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Funciones de Control API (Python)
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -770,7 +698,7 @@
   
   
     <li class="md-nav__item">
-      <a href="digital.html" class="md-nav__link">
+      <a href="../drivers/digital.html" class="md-nav__link">
         
   
   
@@ -945,26 +873,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
             
   
   
@@ -982,7 +913,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1000,7 +931,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logic/index.html" class="md-nav__link">
+      <a href="index.html" class="md-nav__link">
         
   
   
@@ -1028,7 +959,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logic/pre_encendido.html" class="md-nav__link">
+      <a href="pre_encendido.html" class="md-nav__link">
         
   
   
@@ -1056,7 +987,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logic/maintenance_process.html" class="md-nav__link">
+      <a href="maintenance_process.html" class="md-nav__link">
         
   
   
@@ -1084,7 +1015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logic/timers_io.html" class="md-nav__link">
+      <a href="timers_io.html" class="md-nav__link">
         
   
   
@@ -1109,10 +1040,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../logic/analog_update.html" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actualizacion de lecturas analogicas (analog_update.py)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="analog_update.html" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1128,6 +1086,37 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adquisicion-de-datos-y-monitoreo-analogico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adquisición de Datos y Monitoreo Analógico
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1140,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../logic/process_faults.html" class="md-nav__link">
+      <a href="process_faults.html" class="md-nav__link">
         
   
   
@@ -1338,21 +1327,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#constantes-de-la-api" class="md-nav__link">
+  <a href="#adquisicion-de-datos-y-monitoreo-analogico" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Constantes de la API
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#funciones-de-control-api-python" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Funciones de Control API (Python)
+        Adquisición de Datos y Monitoreo Analógico
       
     </span>
   </a>
@@ -1376,45 +1354,102 @@
 
 
 
-<h1 id="analog_driverpy"><code>analog_driver.py</code></h1>
-<p>Este módulo implementa la abstracción de bajo nivel para la placa de adquisición analógica <strong>USB-2527</strong>, utilizando <code>ctypes</code> para mapear las funciones nativas de la biblioteca <code>cbw32.dll</code>.</p>
-<div class="admonition info">
-<p class="admonition-title">Carga de librería cbw32.dll</p>
-<div class="highlight"><pre><span></span><code><span class="n">cbw</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">windll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;C:\Program Files (x86)\Measurement Computing\DAQ\cbw32.dll&quot;</span><span class="p">)</span>
-</code></pre></div>
-</div>
+<h1 id="analog_updatepy"><code>analog_update.py</code></h1>
+<p>El módulo <code>analog_update.py</code> tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz</p>
 <hr />
-<h2 id="constantes-de-la-api"><span style="color: #2196F3;">Constantes de la API</span></h2>
-<p>Se mapean las constantes nativas de la <em>Universal Library</em> para asegurar la compatibilidad de rangos y escalas:</p>
-<ul>
-<li><strong>Rangos de Voltaje:</strong> <code>BIP5VOLTS</code> (-5V a +5V), <code>BIP10VOLTS</code> (-10V a +10V).</li>
-<li><strong>Escalas de Temperatura:</strong> <code>CELSIUS</code> (0), <code>FAHRENHEIT</code> (1), <code>KELVIN</code> (2).</li>
-<li><strong>Filtros de Hardware:</strong> <code>FILTER</code> (0), <code>NOFILTER</code> (1024).</li>
-</ul>
-<hr />
-<h2 id="funciones-de-control-api-python"><span style="color: #2196F3;">Funciones de Control API (Python)</span></h2>
-<p>Estas son las funciones de alto nivel que el software del Asher utiliza para interactuar con los canales analógicos.</p>
+<h2 id="adquisicion-de-datos-y-monitoreo-analogico"><span style="color: #4CAF50;">Adquisición de Datos y Monitoreo Analógico</span></h2>
 <details class="note">
-<summary>Lectura de Voltaje: <code>read_voltage(board, channel, voltage_range)</code></summary>
-<p>Realiza una conversión analógica-digital (ADC). Lee las cuentas binarias crudas mediante <code>cbAIn</code> y las convierte de forma transparente a magnitudes de ingeniería (Voltios) usando <code>cbToEngUnits</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_voltage</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">voltage_range</span><span class="p">):</span>
-    <span class="n">raw_value</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ushort</span><span class="p">()</span>
-    <span class="n">err</span> <span class="o">=</span> <span class="n">cbw</span><span class="o">.</span><span class="n">cbAIn</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">voltage_range</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">raw_value</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cbAIn error </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<summary>Helper de Indicadores Visuales: <code>update_led_indicator(...)</code></summary>
+<p>Función auxiliar que aplica de forma dinámica hojas de estilo CSS (<code>setStyleSheet</code>) sobre un widget <code>QLabel</code>. Modifica el color de fondo, bordes y texto para emular visualmente el comportamiento de un indicador LED según el estado lógico (Activo/Inactivo) de un subsistema.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_led_indicator</span><span class="p">(</span><span class="n">label_widget</span><span class="p">,</span> <span class="n">state_active</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">text_active</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text_inactive</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Actualiza dinámicamente el estilo de un QLabel para simular un indicador LED.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">state_active</span><span class="p">:</span>
+        <span class="n">label_widget</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">text_active</span><span class="p">)</span>
+        <span class="n">label_widget</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            background-color: #2ec4b6; color: black; font-weight: bold; </span>
+<span class="s2">            border: 1px solid #0f625a; border-radius: 4px; padding: 4px;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">label_widget</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">text_inactive</span><span class="p">)</span>
+        <span class="n">label_widget</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            background-color: #e0e0e0; color: #757575; font-weight: bold; </span>
+<span class="s2">            border: 1px solid #9e9e9e; border-radius: 4px; padding: 4px;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura de Presión de Cámara y Estado ATM: <code>update_pressure_display(win)</code></summary>
+<p>Realiza la adquisición de tensión analógica del manómetro Baratron, escala linealmente la lectura a Torr (basado en <code>BARATRON_FULL_SCALE</code>) y la proyecta en el visor LCD de la cámara. Adicionalmente, evalúa el interruptor digital de presión atmosférica (<code>ATM_SWITCH</code>), actualiza la etiqueta LED visual correspondiente y retorna el estado booleano de la cámara.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_pressure_display</span><span class="p">(</span><span class="n">win</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee el Baratron y el ATM_SWITCH, actualiza la GUI y retorna el estado de ATM.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">voltage</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;BARATRON&quot;</span><span class="p">)</span>
+        <span class="n">pressure_torr</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span> <span class="o">*</span> <span class="p">(</span><span class="n">BARATRON_FULL_SCALE</span> <span class="o">/</span> <span class="mf">10.0</span><span class="p">))</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_chamber_pressure</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pressure_torr</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">voltage_volts</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_float</span><span class="p">()</span>
-    <span class="n">err</span> <span class="o">=</span> <span class="n">cbw</span><span class="o">.</span><span class="n">cbToEngUnits</span><span class="p">(</span><span class="n">board</span><span class="p">,</span> <span class="n">voltage_range</span><span class="p">,</span> <span class="n">raw_value</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">voltage_volts</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cbToEngUnits error </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">voltage_volts</span><span class="o">.</span><span class="n">value</span>
+        <span class="c1"># Lectura del switch de presión atmosférica</span>
+        <span class="n">atm_active</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;ATM_SWITCH&quot;</span><span class="p">)</span>
+        <span class="n">update_led_indicator</span><span class="p">(</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_lbl_status_atm</span><span class="p">,</span>
+            <span class="n">atm_active</span><span class="p">,</span>
+            <span class="s2">&quot;PRESION ATM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;VACIO / CAMARA&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">atm_active</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Al actualizar la presión en la GUI: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div>
 </details>
 <details class="note">
-<summary>Escritura de Voltaje: <code>write_voltage(board, channel, voltage, voltage_range)</code></summary>
-<p>Realiza la operación inversa (DAC). Traduce un valor analógico en voltios a cuentas binarias mediante <code>cbFromEngUnits</code> y escribe el registro físico de la placa con <code>cbAOut</code>.</p>
+<summary>Monitoreo de Temperatura de Cámara: <code>update_temp_display(win)</code></summary>
+<p>Adquiere el valor analógico escalado de la termocupla ubicada en la cámara de proceso (<code>CHAMBER_TEMP</code>) y actualiza el visor térmico en grados Celsius. Contempla excepciones y lecturas nulas para prevenir colapsos en la interfaz, mostrando indicadores de error visuales (<code>---</code> o <code>ERR</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_temp_display</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee la termocupla de temperatura de la cámara y actualiza el QLCDNumber.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">temp_c</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read_temperature</span><span class="p">(</span><span class="s2">&quot;CHAMBER_TEMP&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">temp_c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_chamber_temp</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">temp_c</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_chamber_temp</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="s2">&quot;---&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error al leer la temperatura de la cámara: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_chamber_temp</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="s2">&quot;ERR&quot;</span><span class="p">)</span>
+</code></pre></div>
 </details>
 <details class="note">
-<summary>Lectura de Temperatura: <code>read_temperature(board, channel, scale, options)</code></summary>
-<p>Interfaz directa para la lectura de termocuplas utilizando el comando <code>cbTIn</code>. Maneja la compensación de junta fría y el filtrado por hardware de manera nativa.</p>
+<summary>Lectura de readouts de flujo de MFCs: <code>update_mfc_displays(win)</code></summary>
+<p>Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal <code>MFC1_FLOW</code> (Oxígeno) y <code>MFC2_FLOW</code> (Nitrógeno). Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_mfc_displays</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW y actualiza los LCDs de la GUI.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># --- 1. Lectura de MFC1 (O2) ---</span>
+        <span class="n">v_mfc1</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC1_FLOW&quot;</span><span class="p">)</span>
+        <span class="n">slm_mfc1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc1</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc1</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># --- 2. Lectura de MFC2 (N2) ---</span>
+        <span class="n">v_mfc2</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC2_FLOW&quot;</span><span class="p">)</span>
+        <span class="n">slm_mfc2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc2</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error al leer flujo de MFCs: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lectura de señal del Sensor End of Process (EOP): <code>update_eop_displays(win)</code></summary>
+<p>Monitorea el canal analógico del sensor óptico de fin de proceso (<code>EOP</code>). Presenta la tensión instantánea medida en el visor visual correspondiente para permitir el seguimiento del avance del stripping/ataque por plasma.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_eop_displays</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee el sensor analógico de End of Process (EOP) y actualiza el LCD.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">eop_volts</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;EOP&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_eop_voltage</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eop_volts</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] No se pudo leer el canal EOP: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
 </details>
 
 

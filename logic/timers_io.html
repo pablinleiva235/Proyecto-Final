@@ -12,7 +12,7 @@
         <link rel="prev" href="maintenance_process.html">
       
       
-        <link rel="next" href="../services/index.html">
+        <link rel="next" href="analog_update.html">
       
       
         
@@ -1116,6 +1116,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="analog_update.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actualizacion de lecturas analogicas (analog_update.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="process_faults.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chequeo de fallas de lampara y plasma (process_faults.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1388,42 +1444,49 @@
 <h2 id="lectura-periodica-de-entradas-digitales-presion-mfcs-y-temperatura"><span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion, MFCs y temperatura</span></h2>
 <details class="note">
 <summary>Escaneo de Entradas Digitales, presion atmosferica, baratron, MFCs y temperatura: <code>_update_inputs_loop(self)</code></summary>
-<p>Manejador privado encargado de leer cada 100ms entradas digitales y actualizar la lectura de presion y temperatura del sistema:</p>
+<p>Manejador privado encargado de leer cada 100ms entradas digitales y analogicas</p>
 <ul>
 <li><strong>Fase <code>PRE_ENCENDIDO</code></strong>: Sondea de forma continua la línea digital del switch físico de marcha. Al registrar un flanco ascendente (<code>1</code>), corta el ciclo de sondeo y ordena a la ventana despachar la secuencia de enclavamiento de potencia.</li>
-<li><strong>Fase <code>MAIN_MENU</code></strong>: Monitorea de forma prioritaria la línea de presencia de tensión en el lazo de seguridad principal (<code>SYS_POWER</code>). Si la línea cae a cero (apertura o parada por hardware), detecta el corte, escribe la alarma en el registro de la consola e invoca el método de apagado inmediato y cierre preventivo de la aplicación.
-Ademas llama cada 100ms a la funcion de lectura de presion del baratron update_pressure_display() que la muestra en la interfaz constantemente . Esta funcion a su vez lee el estado del ATM Switch, para que al ventear, si detecta presion atmosferica, lanze un timer de 4s desde ese momento para que siga venteando un tiempo mas que permite a la camara alcanzar realmente la presion atmosferica ya que el ATM Switch detecta un poco antes. Pasados esos 4s llama a finish_vent_sequence (metodo de maintenace_process.py) para finalizar el venteo. 
-Tambien llama a las funciones que actualizan la medicion en pantalla de los Readouts de los MFCs y la temperatura de camara</li>
+<li><strong>Fase <code>MAIN_MENU</code></strong>: </li>
+<li>Lee las señales analogicas: presion de camara, readouts de flujo de MFCs, temperatura, señal del EOP</li>
+<li>Monitorea el estado del ATM Switch para que al ventear y luego de detectar ATM, le deje 4s mas para lograr un correcto venteo y apertura de puerta</li>
+<li>Llama a funcion de deteccion de fallas de proceso: lamparas, temperatura de magnetron y plasma</li>
+<li>Controla el apagado general desde el pulsador de OFF</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_update_inputs_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Lazo centralizado que corre cada 100ms&quot;&quot;&quot;</span>
-    <span class="c1"># Evalúa según el estado actual de la ventana</span>
+
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">current_state</span> <span class="o">==</span> <span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;POWER_ON_SWITCH&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">preEncendido_startup_sequence</span><span class="p">()</span>
 
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">current_state</span> <span class="o">==</span> <span class="n">systemState</span><span class="o">.</span><span class="n">MAIN_MENU</span><span class="p">:</span>
-        <span class="c1"># 1. Actualización constante de presion de baratron en display y captura del estado ATM </span>
-        <span class="n">is_atm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">update_pressure_display</span><span class="p">()</span>
+        <span class="c1"># 1. Actualización constante de presión y captura del estado ATM</span>
+        <span class="n">is_atm</span> <span class="o">=</span> <span class="n">analog_up</span><span class="o">.</span><span class="n">update_pressure_display</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">)</span>
 
-        <span class="c1"># 2. Actualización en tiempo real de los caudales de los MFCs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">update_mfc_displays</span><span class="p">()</span>
+        <span class="c1"># 2. Actualización en tiempo real de caudales de MFCs</span>
+        <span class="n">analog_up</span><span class="o">.</span><span class="n">update_mfc_displays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">)</span>
 
         <span class="c1"># 3. Lectura y actualización de temperatura</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">update_temp_display</span><span class="p">()</span>
+        <span class="n">analog_up</span><span class="o">.</span><span class="n">update_temp_display</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">)</span>
 
-        <span class="c1"># 4. Monitoreo del venteo para ver si alcanzo presion atmosferica y darle unos segundos mas</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Venteando...&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">is_atm</span><span class="p">:</span>  <span class="c1"># Si el ATM Switch detecto presion atmosferica</span>
+        <span class="c1"># 4. Lectura y actualización del sensor EOP</span>
+        <span class="n">analog_up</span><span class="o">.</span><span class="n">update_eop_displays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">)</span>
+
+        <span class="c1"># 5. Monitoreo del venteo</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Venteando...&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">is_atm</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Presión ATM alcanzada...&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ATM Detectado por lazo central. Iniciando temporización de seguridad...&quot;</span><span class="p">)</span>
-                <span class="c1"># Seguira venteando por 4s luego de detectar ATM para que la camara se ventee completamente</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ATM Detectado. Iniciando temporización extra de seguridad...&quot;</span><span class="p">)</span>
                 <span class="kn">import</span><span class="w"> </span><span class="nn">logic.maintenance_process</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
                 <span class="n">QtCore</span><span class="o">.</span><span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span><span class="mi">4000</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">mp</span><span class="o">.</span><span class="n">finish_vent_sequence</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">))</span>
 
-        <span class="c1"># 5. Control de apagado general existente</span>
+        <span class="c1"># 5.1 Monitoreo de fallas de hardware (Lámparas, Plasma, Magnetrón)</span>
+        <span class="n">faults</span><span class="o">.</span><span class="n">check_process_faults</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="p">)</span>
+
+        <span class="c1"># 6. Control de apagado general</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;SYS_POWER&quot;</span><span class="p">):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;POWER OFF DETECTADO POR LAZO CENTRAL&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;POWER OFF DETECTADO POR PULSADOR DE OFF&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="o">.</span><span class="n">trigger_hardware_off</span><span class="p">()</span>
 </code></pre></div>
 </details>

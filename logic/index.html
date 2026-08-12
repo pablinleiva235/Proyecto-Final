@@ -1094,6 +1094,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="analog_update.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actualizacion de lecturas analogicas (analog_update.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="process_faults.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chequeo de fallas de lampara y plasma (process_faults.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1311,6 +1367,12 @@
 </li>
 <li>
 <p><strong><a href="maintenance_process.html">Proceso en modo mantenimiento (maintenance_process.py)</a>:</strong> Este modulo agrupa metodos para poder ir probando mediante la interfaz, de manera secuencial, los distintos modulos que utiliza el proceso. La idea es que quede en el modo mantenimiento para poder hacer un proceso de forma no automatica y probar que los modulos esten funcionando correctamente</p>
+</li>
+<li>
+<p><strong><a href="analog_update.html">Actualizacion de lecturas analogicas (analog_update.py)</a>:</strong> Este modulo tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz</p>
+</li>
+<li>
+<p><strong><a href="process_faults.html">Chequeo de fallas de lampara y plasma (process_faults.py)</a>:</strong> Este modulo tiene el metodo llamado en el timer general cada 100ms para leer las señales de falla de lamparas, magnetron y plasma, dando aviso al usuario si ocurrio alguna, encendiendo el indicador de alarma y apagando estos modulos de potencia</p>
 </li>
 </ul>
 

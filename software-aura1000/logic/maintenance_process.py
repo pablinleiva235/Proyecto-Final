@@ -118,9 +118,7 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
     win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
-
-    # El botón de plasma nunca se habilita directamente al hacer vacío, solo tras el crackeo
-    win.ui.MenuPrincipal_btn_plasma.setEnabled(False)
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
 
     # -------------------------------------------------------------------------
     # 3. Si se deshabilitan por pérdida de vacío / venteo:
@@ -380,6 +378,8 @@ def toggle_mfc1_valve(win):
     else:
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
+        win.mfc1_target_slm = 0.0
+        win.mfc1_flow_history.clear()
         btn.setText("Abrir Valvula MFC1: O2")
         btn.setStyleSheet("")
 
@@ -393,6 +393,8 @@ def toggle_mfc2_valve(win):
     else:
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
+        win.mfc2_target_slm = 0.0
+        win.mfc2_flow_history.clear()
         btn.setText("Abrir Valvula MFC2: N2")
         btn.setStyleSheet("")
 
@@ -405,6 +407,9 @@ def set_mfc1_flow(win):
         if 0.0 <= slm_target <= MFC1_MAX_SLM:
             voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
             win.hw.analog_write("MFC1_SETPOINT", voltage)
+            # Guardar target y limpiar historial para nuevo promedio
+            win.mfc1_target_slm = slm_target
+            win.mfc1_flow_history.clear()
             print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
         else:
@@ -429,6 +434,9 @@ def set_mfc2_flow(win):
         if 0.0 <= slm_target <= MFC2_MAX_SLM:
             voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
             win.hw.analog_write("MFC2_SETPOINT", voltage)
+            # Guardar target y limpiar historial para nuevo promedio
+            win.mfc2_target_slm = slm_target
+            win.mfc2_flow_history.clear()
             print(f"[MFC2 N2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
         else:
@@ -475,9 +483,6 @@ def trigger_lamps_1_3(win):
     win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
     win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
     print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
-
-    # SACAR ESTA LINEA LUEGO DE PROBAR
-    win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
 
     # 3. Definir la función que se ejecutará AL FINALIZAR el tiempo
     def on_pulse_complete():

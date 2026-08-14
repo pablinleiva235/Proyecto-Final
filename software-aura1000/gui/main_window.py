@@ -8,6 +8,7 @@ import logic.pre_encendido as preEncendido
 import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
+from collections import deque
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
@@ -32,6 +33,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Variable con tiempo desde que se pulsa el boton de plasma 
         self.rf_on_time = 0.0
+
+        # --- Variables para Control de Fallas en MFCs ---
+        self.MFC_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
+        self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
+
+        # Buffers de promediado móvil
+        self.mfc1_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+        self.mfc2_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+
+        # Setpoints de referencia (0.0 significa que no se exige flujo)
+        self.mfc1_target_slm = 0.0
+        self.mfc2_target_slm = 0.0
 
         # =====================================================================
         # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768

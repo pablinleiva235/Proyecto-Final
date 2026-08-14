@@ -140,9 +140,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
         win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
         win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
-
-        # El botón de plasma nunca se habilita directamente al hacer vacío, solo tras el crackeo
-        win.ui.MenuPrincipal_btn_plasma.setEnabled(False)
+        win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
 
         # -------------------------------------------------------------------------
         # 3. Si se deshabilitan por pérdida de vacío / venteo:
@@ -418,7 +416,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 ## <span style="color: #4CAF50;">Control de los MFCs</span>
 
 ??? note "`toggle_mfc1_valve(win)`"
-    Controla la señal digital de corte para la línea de Oxígeno (`MFC1_OPEN`). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea.
+    Controla la señal digital de corte para la línea de Oxígeno (`MFC1_OPEN`). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia
 
     ```python
     def toggle_mfc1_valve(win):
@@ -431,12 +429,14 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         else:
             win.hw.digital_set("MFC1_OPEN", INACTIVE)
             win.hw.analog_write("MFC1_SETPOINT", 0.0)
+            win.mfc1_target_slm = 0.0
+            win.mfc1_flow_history.clear()
             btn.setText("Abrir Valvula MFC1: O2")
             btn.setStyleSheet("")
     ```
 
 ??? note "`toggle_mfc2_valve(win)`"
-    Controla la señal digital de corte para la línea de Nitrógeno (`MFC2_OPEN`). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V.
+    Controla la señal digital de corte para la línea de Nitrógeno (`MFC2_OPEN`). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia
 
     ```python
     def toggle_mfc2_valve(win):
@@ -449,12 +449,14 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         else:
             win.hw.digital_set("MFC2_OPEN", INACTIVE)
             win.hw.analog_write("MFC2_SETPOINT", 0.0)
+            win.mfc2_target_slm = 0.0
+            win.mfc2_flow_history.clear()
             btn.setText("Abrir Valvula MFC2: N2")
             btn.setStyleSheet("")
     ```
 
 ??? note "`set_mfc1_flow(win)`"
-    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`.
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc1_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc1_flow_history`
 
     ```python
     def set_mfc1_flow(win):
@@ -466,6 +468,9 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             if 0.0 <= slm_target <= MFC1_MAX_SLM:
                 voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
                 win.hw.analog_write("MFC1_SETPOINT", voltage)
+                # Guardar target y limpiar historial para nuevo promedio
+                win.mfc1_target_slm = slm_target
+                win.mfc1_flow_history.clear()
                 print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
                 btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
             else:
@@ -483,7 +488,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`set_mfc2_flow(win)`"
-    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC2_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`.
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC2_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc2_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc2_flow_history`
 
     ```python
     def set_mfc2_flow(win):
@@ -495,6 +500,9 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             if 0.0 <= slm_target <= MFC2_MAX_SLM:
                 voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
                 win.hw.analog_write("MFC2_SETPOINT", voltage)
+                # Guardar target y limpiar historial para nuevo promedio
+                win.mfc2_target_slm = slm_target
+                win.mfc2_flow_history.clear()
                 print(f"[MFC2 N2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
                 btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
             else:
@@ -545,9 +553,6 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
         win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
         print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
-
-        # SACAR ESTA LINEA LUEGO DE PROBAR
-        win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
 
         # 3. Definir la función que se ejecutará AL FINALIZAR el tiempo
         def on_pulse_complete():

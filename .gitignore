@@ -5,3 +5,4 @@ site/
 # Cache de Python
 **/__pycache__/
 *.pyc
+software-aura1000/config/__pycache__/digital_signals.cpython-313.pyc

@@ -1,10 +1,8 @@
 import sys
 #from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
-#from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication
 
-#from services.hardware import Hardware
+
 #from services.hardware import Hardware
 from gui.main_window import MainWindow
 from config_gui.theme import APP_STYLE
@@ -59,9 +57,10 @@ def global_exception_handler(exctype, value, traceback):
 '''
 
 if __name__ == "__main__":
-    #app = QtWidgets.QApplication(sys.argv)
-    #hw = Hardware()
-    ##Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
-    #window = MainWindow(hw)
-    #window.show()
-    #sys.exit(app.exec_())
+    # app = QtWidgets.QApplication(sys.argv)
+    # hw = Hardware()
+    # #Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
+    # window = MainWindow(hw)
+    # window.show()
+    # sys.exit(app.exec_()) 
+    main()

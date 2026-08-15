@@ -1,7 +1,10 @@
 import sys
 #from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
+#from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication
 
+#from services.hardware import Hardware
 #from services.hardware import Hardware
 from gui.main_window import MainWindow
 from config_gui.theme import APP_STYLE

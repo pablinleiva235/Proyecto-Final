@@ -27,13 +27,19 @@ from config_gui.constants import (
     MAINTAINER_SCREEN,
     STATISTICS_SCREEN,
 )
+from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_SIGNALS,)
+
 from controllers.navigation_controller import NavigationController
+from controllers.signal_controller import SignalController
+
 from gui.widgets.top_bar_widget import TopBarWidget
 from gui.welcome_screen import WelcomeScreen
 from gui.maintainer_screen import MaintainerScreen
 from gui.statistics_screen import StatisticsScreen
 from gui.login_dialog import LoginDialog
 
+#from services.hardware import Hardware
+from tests.mockScripts.mock_hardware import MockHardware
 
 # gui-developement
 
@@ -78,6 +84,17 @@ class MainWindow(QMainWindow):
             self.statistics_screen,
         )
 
+        # Inicializa la interfaz real con el hardware del Plasma Asher.
+        #self.hardware = Hardware()
+        self.hardware = MockHardware()
+        # Controlador encargado del monitoreo y control de señales digitales.
+        self.signal_controller = SignalController(
+            hardware=self.hardware,
+            monitored_signals=MAINTAINER_SIGNALS,
+            output_signals=MAINTAINER_OUTPUT_SIGNALS,
+            poll_interval_ms=500,
+        )
+
     def setup_layout(self):
         # Organiza la barra superior y el contenido principal
         main_layout = QVBoxLayout()
@@ -113,17 +130,39 @@ class MainWindow(QMainWindow):
             self._confirm_exit
         )
 
+        # ===================================================================================
+        # Conexión con SignalController - (control de señales digitales en mantainer_screen)
+        # ===================================================================================
+        # Solicitudes de cambio desde MaintainerScreen hacia SignalController.
+        self.maintainer_screen.output_toggle_requested.connect(
+            self.signal_controller.request_toggle
+        )
+        # Informa visualmente que una salida está siendo procesada.
+        self.signal_controller.signal_processing.connect(
+            self.maintainer_screen.set_signal_processing
+        )
+        # Actualiza el estado visual confirmado.
+        self.signal_controller.signal_state_changed.connect(
+            self.maintainer_screen.set_signal_active
+        )
+        # Manejo temporal de errores.
+        self.signal_controller.signal_error.connect(
+            self._handle_signal_error
+)
+
     def _show_welcome_screen(self):
         # Muestra la pantalla de bienvenida
+        self.signal_controller.stop_monitoring()
         self.navigation_controller.show_screen(
             WELCOME_SCREEN
         )
 
     def _show_maintainer_screen(self):
-        # Muestra la pantalla de mantenimiento
+        # Muestra la pantalla de mantenimiento e inicia el monitoreo de señales
         self.navigation_controller.show_screen(
             MAINTAINER_SCREEN
         )
+        self.signal_controller.start_monitoring()
 
     def _show_statistics_screen(self):
         # Muestra la pantalla de estadísticas
@@ -139,6 +178,17 @@ class MainWindow(QMainWindow):
 
         if result == QDialog.Accepted:
             self._show_maintainer_screen()
+
+    def _handle_signal_error(
+        self,
+        signal_name: str,
+        message: str,
+    ) -> None:
+        """Muestra temporalmente errores del controlador en consola."""
+
+        print(
+            f"[SignalController] ERROR {signal_name}: {message}"
+        )
 
     def _confirm_exit(self):
     # Confirma con el usuario antes de cerrar la aplicación

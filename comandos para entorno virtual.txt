@@ -1,2 +1,2 @@
 python -m venv virt (crea entorno virtual)
-source virt/Scripts/activate (lo activa)
+.\.venv32\Scripts\Activate.ps1 (lo activa)

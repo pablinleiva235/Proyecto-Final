@@ -1,21 +1,22 @@
 """
-Secuencia de pre-encendido del Plasma Asher.
+Secuencia física de pre-encendido del Plasma Asher.
 
-Este módulo contiene únicamente la lógica asociada a la secuencia física
-de encendido del equipo.
+Este módulo contiene únicamente la lógica asociada al arranque físico
+del equipo.
 
 Responsabilidades:
 - Activar las señales necesarias para iniciar el equipo.
 - Inicializar el hardware analógico.
 - Controlar el tiempo mínimo de precalentamiento.
 - Informar el progreso de la secuencia.
-- Informar cuándo la secuencia finaliza.
+- Informar cuándo la secuencia finaliza correctamente.
+- Informar errores ocurridos durante el proceso.
 
 Este módulo no:
 - Modifica widgets.
 - Cambia pantallas.
 - Conoce MainWindow.
-- Muestra textos al usuario.
+- Decide qué texto mostrar al usuario.
 """
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
@@ -26,27 +27,51 @@ from config.digital_signals import ACTIVE, INACTIVE
 class StartupSequence(QObject):
     """Gestiona la secuencia física de pre-encendido."""
 
+    # Informa que la secuencia física comenzó.
     startup_started = pyqtSignal()
+
+    # Informa el porcentaje de avance de la secuencia.
     progress_changed = pyqtSignal(int)
+
+    # Informa que el pre-encendido terminó correctamente.
     startup_completed = pyqtSignal()
+
+    # Informa un error ocurrido durante la secuencia.
     startup_error = pyqtSignal(str)
 
-    STARTUP_DURATION_MS = 30_000
+    # Tiempo requerido para completar el precalentamiento.
+    STARTUP_DURATION_MS =  3_000     #30_000
+
+    # Intervalo utilizado para actualizar el progreso.
     TIMER_INTERVAL_MS = 100
 
-    def __init__(self, hardware, parent=None):
+    def __init__(
+        self,
+        hardware,
+        parent=None,
+    ):
         super().__init__(parent)
 
         self._hardware = hardware
+
         self._elapsed_ms = 0
         self._running = False
 
         self._timer = QTimer(self)
-        self._timer.setInterval(self.TIMER_INTERVAL_MS)
-        self._timer.timeout.connect(self._update_progress)
+        self._timer.setInterval(
+            self.TIMER_INTERVAL_MS
+        )
+
+        self._timer.timeout.connect(
+            self._update_progress
+        )
+
+    # =========================================================================
+    # Interfaz pública
+    # =========================================================================
 
     def start(self):
-        """Inicia la secuencia de pre-encendido."""
+        """Inicia la secuencia física de pre-encendido."""
 
         if self._running:
             return
@@ -58,40 +83,46 @@ class StartupSequence(QObject):
             self.startup_started.emit()
             self.progress_changed.emit(0)
 
-            # Activa la retención de encendido.
+            # Activa la retención de encendido del equipo.
             self._hardware.digital_set(
                 "POWER_ON",
                 ACTIVE,
             )
 
-            # Activa el filamento del magnetrón para iniciar el precalentamiento.
+            # Activa el filamento del magnetrón para iniciar
+            # el período de precalentamiento.
             self._hardware.digital_set(
                 "FILAMENT_ENABLE",
                 ACTIVE,
             )
 
             # Inicializa la placa analógica USB-2527.
-            self._hardware.initialize_AD()
+#            self._hardware.initialize_AD()             #DESCOMENTAR
 
+            # Comienza la temporización del precalentamiento.
             self._timer.start()
 
         except Exception as error:
             self._handle_error(error)
 
     def stop(self):
-        """Detiene el temporizador de la secuencia."""
+        """Detiene la secuencia de pre-encendido."""
 
         self._timer.stop()
         self._running = False
 
     @property
     def is_running(self):
-        """Indica si la secuencia está actualmente en ejecución."""
+        """Indica si la secuencia se encuentra actualmente en ejecución."""
 
         return self._running
 
+    # =========================================================================
+    # Temporización
+    # =========================================================================
+
     def _update_progress(self):
-        """Actualiza el progreso según el tiempo transcurrido."""
+        """Actualiza el porcentaje según el tiempo transcurrido."""
 
         self._elapsed_ms += self.TIMER_INTERVAL_MS
 
@@ -106,10 +137,16 @@ class StartupSequence(QObject):
             )
         )
 
-        self.progress_changed.emit(progress)
+        self.progress_changed.emit(
+            progress
+        )
 
         if self._elapsed_ms >= self.STARTUP_DURATION_MS:
             self._complete_startup()
+
+    # =========================================================================
+    # Finalización
+    # =========================================================================
 
     def _complete_startup(self):
         """Finaliza correctamente la secuencia de pre-encendido."""
@@ -117,8 +154,8 @@ class StartupSequence(QObject):
         try:
             self._timer.stop()
 
-            # El contactor ya queda autoretenido, por lo que se libera
-            # la salida POWER_ON.
+            # El contactor ya se encuentra autoretenido.
+            # Se libera la salida POWER_ON.
             self._hardware.digital_set(
                 "POWER_ON",
                 INACTIVE,
@@ -132,8 +169,15 @@ class StartupSequence(QObject):
         except Exception as error:
             self._handle_error(error)
 
-    def _handle_error(self, error):
-        """Detiene la secuencia e informa un error."""
+    # =========================================================================
+    # Manejo de errores
+    # =========================================================================
+
+    def _handle_error(
+        self,
+        error,
+    ):
+        """Detiene la secuencia e informa el error al controlador."""
 
         self._timer.stop()
         self._running = False

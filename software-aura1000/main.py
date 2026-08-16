@@ -1,3 +1,17 @@
+"""
+Punto de entrada principal de la aplicación.
+
+Este módulo es responsable únicamente de:
+- Crear QApplication.
+- Aplicar el tema global.
+- Crear las dependencias principales.
+- Ensamblar los controladores y pantallas.
+- Iniciar el ciclo de vida de la aplicación.
+
+La lógica de hardware, navegación y secuencia de inicio pertenece a sus
+respectivos controladores y servicios.
+"""
+
 import sys
 
 from PyQt5.QtWidgets import QApplication
@@ -16,51 +30,68 @@ from gui.main_window import MainWindow
 
 
 def main():
+    """Inicializa y ejecuta la aplicación."""
+
+    # =========================================================================
+    # Aplicación Qt
+    # =========================================================================
+
     app = QApplication(sys.argv)
+
     app.setStyleSheet(APP_STYLE)
 
-    # =====================================================================
+    # =========================================================================
     # Hardware
-    # =====================================================================
+    # =========================================================================
 
+    # Se crea una única instancia de Hardware para toda la aplicación.
+    #
+    # Esta misma instancia será utilizada durante:
+    # - La secuencia de pre-encendido.
+    # - La supervisión del arranque.
+    # - El monitoreo y control desde MaintainerScreen.
     hardware = Hardware()
 
-    # =====================================================================
-    # Secuencia de pre-encendido
-    # =====================================================================
+    # =========================================================================
+    # Secuencia física de pre-encendido
+    # =========================================================================
 
     startup_sequence = StartupSequence(
-        hardware=hardware
+        hardware=hardware,
     )
 
-    # =====================================================================
+    # =========================================================================
     # Controlador de arranque
-    # =====================================================================
+    # =========================================================================
 
     startup_controller = StartupController(
         hardware=hardware,
         startup_sequence=startup_sequence,
     )
 
-    # =====================================================================
-    # Interfaces
-    # =====================================================================
+    # =========================================================================
+    # Interfaces gráficas
+    # =========================================================================
 
     startup_screen = StartupScreen()
 
     main_window = MainWindow(
-        hardware=hardware
+        hardware=hardware,
     )
 
-    # =====================================================================
-    # Controlador general
-    # =====================================================================
+    # =========================================================================
+    # Controlador general de la aplicación
+    # =========================================================================
 
     application_controller = ApplicationController(
         startup_controller=startup_controller,
         startup_screen=startup_screen,
         main_window=main_window,
     )
+
+    # =========================================================================
+    # Inicio de la aplicación
+    # =========================================================================
 
     application_controller.start()
 
@@ -70,6 +101,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+    
 #main branch
 '''
 # Handler que lleva las señales a estado seguro ante alguna falla inesperada de la interfaz grafica

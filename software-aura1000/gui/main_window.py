@@ -8,13 +8,13 @@ from PyQt5.QtWidgets import (
     QDialog,
 )
 from PyQt5.QtCore import Qt
-from gui.pyqt_gui import Ui_MainWindow
-from services.system_state import systemState
-from logic.timers_io import timersIOManager
+#from gui.pyqt_gui import Ui_MainWindow
+#from services.system_state import systemState
+#from logic.timers_io import timersIOManager
 
-import logic.pre_encendido as preEncendido
-import logic.maintenance_process as maintenanceProcess
-from logic.throttle_test import ThrottleController
+#import logic.pre_encendido as preEncendido
+#import logic.maintenance_process as maintenanceProcess
+#from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
 
 from config_gui.strings import (
@@ -38,15 +38,13 @@ from gui.maintainer_screen import MaintainerScreen
 from gui.statistics_screen import StatisticsScreen
 from gui.login_dialog import LoginDialog
 
-from services.hardware import Hardware
+#from services.hardware import Hardware
 #from tests.mockScripts.mock_hardware import MockHardware
 
 # gui-developement
 class MainWindow(QMainWindow):
-    def __init__(
-        self,
-        hardware,
-    ):
+
+    def __init__(self, hardware):
         super().__init__()
 
         self.hardware = hardware
@@ -150,7 +148,7 @@ class MainWindow(QMainWindow):
         # Manejo temporal de errores.
         self.signal_controller.signal_error.connect(
             self._handle_signal_error
-)
+        )
 
     def _show_welcome_screen(self):
         # Muestra la pantalla de bienvenida

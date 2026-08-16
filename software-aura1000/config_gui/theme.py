@@ -109,6 +109,44 @@ QLabel#TopBarTitle {{
 }}
 
 /* -------------------------------------------------------------------------- */
+/* Startup Screen                                                             */
+/* -------------------------------------------------------------------------- */
+
+QLabel#StartupTitleLabel {{
+    background-color: transparent;
+    color: {TEXT_COLOR};
+    font-size: 42px;
+    font-weight: bold;
+}}
+
+QLabel#StartupMessageLabel {{
+    background-color: transparent;
+    color: {TEXT_COLOR};
+    font-size: 26px;
+}}
+
+QLabel#StartupErrorLabel {{
+    background-color: transparent;
+    color: {DANGER_COLOR};
+    font-size: 20px;
+    font-weight: bold;
+}}
+
+QProgressBar#StartupProgressBar {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+    border: 2px solid {PRIMARY_COLOR};
+    border-radius: 8px;
+    text-align: center;
+    min-height: 28px;
+}}
+
+QProgressBar#StartupProgressBar::chunk {{
+    background-color: {PRIMARY_COLOR};
+    border-radius: 6px;
+}}
+
+/* -------------------------------------------------------------------------- */
 /* Botones                                                                    */
 /* -------------------------------------------------------------------------- */
 

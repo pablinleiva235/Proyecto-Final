@@ -38,14 +38,18 @@ from gui.maintainer_screen import MaintainerScreen
 from gui.statistics_screen import StatisticsScreen
 from gui.login_dialog import LoginDialog
 
-#from services.hardware import Hardware
-from tests.mockScripts.mock_hardware import MockHardware
+from services.hardware import Hardware
+#from tests.mockScripts.mock_hardware import MockHardware
 
 # gui-developement
-
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(
+        self,
+        hardware,
+    ):
         super().__init__()
+
+        self.hardware = hardware
 
         self.create_widgets()
         self.setup_layout()
@@ -85,8 +89,6 @@ class MainWindow(QMainWindow):
         )
 
         # Inicializa la interfaz real con el hardware del Plasma Asher.
-        #self.hardware = Hardware()
-        self.hardware = MockHardware()
         # Controlador encargado del monitoreo y control de señales digitales.
         self.signal_controller = SignalController(
             hardware=self.hardware,

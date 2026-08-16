@@ -15,7 +15,26 @@ APP_SUBTITLE = "Software de control"
 
 
 # =============================================================================
-# Pantalla de bienvenida
+# Pantalla de inicio
+# =============================================================================
+
+STARTUP_TITLE = "PLASMA ASHER AURA 1000"
+
+STARTUP_WAITING_MESSAGE = (
+    "Presione el botón de encendido para iniciar el equipo."
+)
+
+STARTUP_RUNNING_MESSAGE = (
+    "Iniciando equipo. Espere..."
+)
+
+STARTUP_ERROR_MESSAGE = (
+    "Ocurrió un error durante el inicio del equipo."
+)
+
+
+# =============================================================================
+# Pantalla Principal
 # =============================================================================
 
 WELCOME_TITLE = "PLASMA ASHER AURA 1000"
@@ -103,3 +122,5 @@ SIGNAL_STATE_ACTIVE = "ACTIVA"
 SIGNAL_STATE_INACTIVE = "INACTIVA"
 SIGNAL_STATE_PROCESSING = "PROCESANDO..."
 SIGNAL_STATE_UNAVAILABLE = "SIN DATOS"
+
+

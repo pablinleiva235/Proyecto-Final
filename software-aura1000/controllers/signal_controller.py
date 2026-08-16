@@ -269,6 +269,15 @@ class SignalController(QObject):
                     error,
                 )
 
+            active = self._hardware.digital_read(
+                signal_name
+            )
+
+            print(
+                f"[SignalController] READ "
+                f"{signal_name}: {active}"
+            )
+
     # =========================================================================
     # Gestión de estados
     # =========================================================================

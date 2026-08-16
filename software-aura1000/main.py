@@ -1,21 +1,74 @@
 import sys
-#from PyQt5 import QtWidgets
+
 from PyQt5.QtWidgets import QApplication
 
-
-#from services.hardware import Hardware
-from gui.main_window import MainWindow
 from config_gui.theme import APP_STYLE
 
-#gui-development
+from services.hardware import Hardware
+
+from logic.pre_encendido import StartupSequence
+
+from controllers.startup_controller import StartupController
+from controllers.application_controller import ApplicationController
+
+from gui.startup_screen import StartupScreen
+from gui.main_window import MainWindow
+
+
 def main():
     app = QApplication(sys.argv)
     app.setStyleSheet(APP_STYLE)
 
-    window = MainWindow()
-    window.showFullScreen()
+    # =====================================================================
+    # Hardware
+    # =====================================================================
+
+    hardware = Hardware()
+
+    # =====================================================================
+    # Secuencia de pre-encendido
+    # =====================================================================
+
+    startup_sequence = StartupSequence(
+        hardware=hardware
+    )
+
+    # =====================================================================
+    # Controlador de arranque
+    # =====================================================================
+
+    startup_controller = StartupController(
+        hardware=hardware,
+        startup_sequence=startup_sequence,
+    )
+
+    # =====================================================================
+    # Interfaces
+    # =====================================================================
+
+    startup_screen = StartupScreen()
+
+    main_window = MainWindow(
+        hardware=hardware
+    )
+
+    # =====================================================================
+    # Controlador general
+    # =====================================================================
+
+    application_controller = ApplicationController(
+        startup_controller=startup_controller,
+        startup_screen=startup_screen,
+        main_window=main_window,
+    )
+
+    application_controller.start()
 
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
 
 #main branch
 '''
@@ -54,8 +107,6 @@ def global_exception_handler(exctype, value, traceback):
     # Forzamos la salida inmediata del script para evitar bucles zombis en la GUI
     sys.exit(1)
 
-'''
-
 if __name__ == "__main__":
     # app = QtWidgets.QApplication(sys.argv)
     # hw = Hardware()
@@ -64,3 +115,5 @@ if __name__ == "__main__":
     # window.show()
     # sys.exit(app.exec_()) 
     main()
+
+'''

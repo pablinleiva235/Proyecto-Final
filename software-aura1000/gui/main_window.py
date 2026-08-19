@@ -35,7 +35,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rf_on_time = 0.0
 
         # --- Variables para Control de Fallas en MFCs ---
-        self.MFC_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
+        self.MFC1_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
+        self.MFC2_FLOW_TOLERANCE_PCT = 0.25
         self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
 
         # Buffers de promediado móvil

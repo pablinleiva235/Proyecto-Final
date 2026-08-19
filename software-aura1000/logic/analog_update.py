@@ -1,4 +1,6 @@
 # logic/analog_update.py
+from PyQt5 import QtWidgets
+from config.digital_signals import ACTIVE, INACTIVE
 
 BARATRON_FULL_SCALE = 10
 
@@ -92,37 +94,45 @@ def update_mfc_displays(win):
 
 def _check_mfc_faults(win):
     """Verifica si el promedio de lecturas de los últimos 3s difiere en más del 5% del target."""
-    fault_detected = False
+    has_target_mfc1 = getattr(win, "mfc1_target_slm", 0.0) > 0
+    has_target_mfc2 = getattr(win, "mfc2_target_slm", 0.0) > 0
 
-    # 1. Evaluar MFC1 (Solo si hay un target configurado > 0 y el buffer acumuló 3s completos)
-    if (win.mfc1_target_slm > 0 and len(win.mfc1_flow_history) == win.MFC_WINDOW_SAMPLES):
+    fault_detected = False
+    failed_gases = []
+
+    # 1. Evaluar MFC1 (Solo si hay target activo y el buffer acumuló los 3s)
+    if (has_target_mfc1 and len(win.mfc1_flow_history) == win.MFC_WINDOW_SAMPLES):
         avg_mfc1 = sum(win.mfc1_flow_history) / len(win.mfc1_flow_history)
         deviation1 = (abs(avg_mfc1 - win.mfc1_target_slm) / win.mfc1_target_slm)
-        if deviation1 > win.MFC_FLOW_TOLERANCE_PCT:
+        if deviation1 > win.MFC1_FLOW_TOLERANCE_PCT:
             print(f"[WARN] MFC1 fuera de tolerancia! Target: {win.mfc1_target_slm}, Avg: {avg_mfc1:.2f}")
             fault_detected = True
+            failed_gases.append("O2 (MFC1)")
 
-    # 2. Evaluar MFC2 (Solo si hay un target configurado > 0 y el buffer acumuló 3s completos)
-    if (win.mfc2_target_slm > 0 and len(win.mfc2_flow_history) == win.MFC_WINDOW_SAMPLES):
+    # 2. Evaluar MFC2 (Solo si hay target activo y el buffer acumuló los 3s)
+    if (has_target_mfc2 and len(win.mfc2_flow_history) == win.MFC_WINDOW_SAMPLES):
         avg_mfc2 = sum(win.mfc2_flow_history) / len(win.mfc2_flow_history)
         deviation2 = (abs(avg_mfc2 - win.mfc2_target_slm) / win.mfc2_target_slm)
-        if deviation2 > win.MFC_FLOW_TOLERANCE_PCT:
+        if deviation2 > win.MFC2_FLOW_TOLERANCE_PCT:
             print(f"[WARN] MFC2 fuera de tolerancia! Target: {win.mfc2_target_slm}, Avg: {avg_mfc2:.2f}")
             fault_detected = True
+            failed_gases.append("N2 (MFC2)")
 
-    # 3. Disparar corte si alguna línea falló
+    # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
     if fault_detected:
-        _trigger_mfc_safety_shutdown(win)
+        _trigger_mfc_safety_shutdown(win, failed_gases)
     else:
-        # Si el flujo está correcto y el sistema no está en alarma crítica, habilitar el botón
         if not getattr(win, "alarm_active", False):
             win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
+            win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
+            win.ui.MenuPrincipal_btn_centralLamp.setEnabled(True)
 
-
-def _trigger_mfc_safety_shutdown(win):
+def _trigger_mfc_safety_shutdown(win, failed_gases):
     """Ejecuta las acciones de seguridad al detectar desvío de caudal."""
-    # A. Deshabilitar botón de Plasma
+    # A. Deshabilitar botón de Plasma y lamparas
     win.ui.MenuPrincipal_btn_plasma.setEnabled(False)
+    win.ui.MenuPrincipal_btn_outerLamps.setEnabled(False)
+    win.ui.MenuPrincipal_btn_centralLamp.setEnabled(False)
 
     # B. Si el Plasma está encendido, apagarlo
     if getattr(win, "rf_on", False):
@@ -148,6 +158,40 @@ def _trigger_mfc_safety_shutdown(win):
         win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
         win.ui.MenuPrincipal_btn_centralLamp.setStyleSheet("")
         print("[CORTE DE SEGURIDAD] Lámpara 2 apagada por desviación en MFC.")
+
+    # E. Cierre de seguridad y reseteo de MFC1 (O2)
+    win.hw.digital_set("MFC1_OPEN", INACTIVE)
+    win.hw.analog_write("MFC1_SETPOINT", 0.0)
+    win.mfc1_target_slm = 0.0
+    win.mfc1_flow_history.clear()
+    win.ui.MenuPrincipal_btn_mfc1_open.setText("Abrir Valvula MFC1: O2")
+    win.ui.MenuPrincipal_btn_mfc1_open.setStyleSheet("")
+    win.ui.MenuPrincipal_btn_mfc1_set.setStyleSheet("")
+
+    # F. Cierre de seguridad y reseteo de MFC2 (N2)
+    win.hw.digital_set("MFC2_OPEN", INACTIVE)
+    win.hw.analog_write("MFC2_SETPOINT", 0.0)
+    win.mfc2_target_slm = 0.0
+    win.mfc2_flow_history.clear()
+    win.ui.MenuPrincipal_btn_mfc2_open.setText("Abrir Valvula MFC2: N2")
+    win.ui.MenuPrincipal_btn_mfc2_open.setStyleSheet("")
+    win.ui.MenuPrincipal_btn_mfc2_set.setStyleSheet("")
+
+    # G. Mostrar Pop-up modal de advertencia al usuario
+    gas_list_str = " y ".join(failed_gases)
+    msg_box = QtWidgets.QMessageBox(win)
+    msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+    msg_box.setWindowTitle("Alerta de Caudal - MFC")
+    msg_box.setText(
+        f"<b>Desviación de caudal detectada en: {gas_list_str}</b>"
+    )
+    msg_box.setInformativeText(
+        "El flujo de gas se encuentra fuera del rango de tolerancia permitido.\n\n"
+        "Se han cerrado las válvulas de gas, y se han apagado y deshabilitado por seguridad las lámparas y el sistema de plasma."
+    )
+    msg_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    msg_box.button(QtWidgets.QMessageBox.Ok).setText("Aceptar")
+    msg_box.exec_()
 
 # ===================================================================
 # LECTURA DEL SENSOR DE END OF PROCESS (EOP)

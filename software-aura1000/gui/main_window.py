@@ -23,12 +23,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_manager.start_all_core_timers()
 
         # Instanciamos el controlador de pruebas del motor
+<<<<<<< Updated upstream
         self.throttle = ThrottleController(self)
+=======
+        self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
+
+        # Configurar botones de navegación entre menús
+        self._setup_navigation()
+>>>>>>> Stashed changes
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO
         self.change_state(systemState.PRE_ENCENDIDO)
 
+<<<<<<< Updated upstream
+=======
+    def _setup_navigation(self):
+        """Conecta los botones de cambio de pantalla en el stackedWidget."""
+        # Ir a la vista de Throttle desde el Menú Principal
+        self.ui.MenuPrincipal_btn_go_to_throttle.clicked.connect(
+            lambda: self.ui.stackedWidget.setCurrentWidget(
+                self.ui.ThrottleMenu
+            )
+        )
+
+        # Volver al Menú Principal desde la pantalla de Throttle
+        self.ui.ThrottleMenu_btn_back.clicked.connect(
+            lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
+        )
+
+>>>>>>> Stashed changes
     # =========================================================
     # MAQUINA DE ESTADOS PRINCIPAL
     # =========================================================

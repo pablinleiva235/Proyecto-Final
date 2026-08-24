@@ -1,5 +1,3 @@
-from config.digital_signals import ACTIVE, INACTIVE
-
 # logic/throttle_controller.py
 
 from config.digital_signals import ACTIVE, INACTIVE

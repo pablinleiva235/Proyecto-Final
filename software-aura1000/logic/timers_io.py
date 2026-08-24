@@ -1,6 +1,8 @@
 # logic/timers_io.py
 from PyQt5 import QtCore
 from services.system_state import systemState
+import logic.analog_update as analog_up
+import logic.process_faults as faults
 
 class timersIOManager:
     def __init__(self, main_window):
@@ -32,17 +34,12 @@ class timersIOManager:
 
     def _update_inputs_loop(self):
         """Lazo centralizado que corre cada 100ms"""
-        # Evalúa según el estado actual de la ventana
+
         if self.win.current_state == systemState.PRE_ENCENDIDO:
             if self.hw.digital_read("POWER_ON_SWITCH"):
                 self.win.preEncendido_startup_sequence()
-                
+
         elif self.win.current_state == systemState.MAIN_MENU:
-<<<<<<< Updated upstream
-            if self.hw.digital_read("SYS_POWER"):
-                print("POWER OFF DETECTADO POR LAZO CENTRAL")
-                self.win.trigger_hardware_off()
-=======
             # 1. Actualización constante de presión y captura del estado ATM
             #is_atm = analog_up.update_pressure_display(self.win)
 
@@ -71,7 +68,6 @@ class timersIOManager:
                 print("POWER OFF DETECTADO POR PULSADOR DE OFF")
                 self.win.trigger_hardware_off()'''
 
-             # 7. Chequeo de switches de límite de cierre y apertura de la throttle
+            # 7. Chequeo de switches de límite de cierre y apertura de la throttle
             if hasattr(self.win, "throttle"):
                 self.win.throttle.update_limit_switch_status()
->>>>>>> Stashed changes

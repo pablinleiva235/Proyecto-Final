@@ -7,7 +7,7 @@ El módulo `main_window.py` constituye el componente de interfaz gráfica de usu
 ## <span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span>
 
 ??? note "Inicialización del Constructor: `__init__(self, hardware)`"
-    Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. En lugar de contener timers locales, instancia el administrador externo de tiempos (`timersIOManager`) pasándose a sí mismo como referencia (`self`) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.
+    Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas, tambien para falla en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (`timersIOManager`) pasándose a sí mismo como referencia (`self`) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.
 
     ```python
     def __init__(self, hardware):
@@ -20,10 +20,37 @@ El módulo `main_window.py` constituye el componente de interfaz gráfica de usu
         # Crear interfaz autogenerada
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
+        self.state_lamps13_pulsing = False
+        self.lamp2_on = False
+        self.rf_on = False
+
+        # Control de ventanas emergentes de alarma/advertencia
+        self.alarm_active = False
+        self.warning_mag_shown = False
+
+        # Variable con tiempo desde que se pulsa el boton de plasma 
+        self.rf_on_time = 0.0
+
+        # --- Variables para Control de Fallas en MFCs ---
+        self.MFC_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
+        self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
+
+        # Buffers de promediado móvil
+        self.mfc1_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+        self.mfc2_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+
+        # Setpoints de referencia (0.0 significa que no se exige flujo)
+        self.mfc1_target_slm = 0.0
+        self.mfc2_target_slm = 0.0
         
         # Instanciar el manager de timers pasándole 'self' (esta ventana)
         self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
+
+        # Instanciamos el controlador de pruebas del motor
+        # self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO

@@ -1,10 +1,14 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from gui.pyqt_gui import Ui_MainWindow
 from services.system_state import systemState
 from logic.timers_io import timersIOManager
+
 import logic.pre_encendido as preEncendido
+import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
+from collections import deque
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, hardware):
@@ -17,27 +21,70 @@ class MainWindow(QtWidgets.QMainWindow):
         # Crear interfaz autogenerada
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
+        self.state_lamps13_pulsing = False
+        self.lamp2_on = False
+        self.rf_on = False
+
+        # Control de ventanas emergentes de alarma/advertencia
+        self.alarm_active = False
+        self.warning_mag_shown = False
+
+        # Variable con tiempo desde que se pulsa el boton de plasma 
+        self.rf_on_time = 0.0
+
+        # --- Variables para Control de Fallas en MFCs ---
+        self.MFC1_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
+        self.MFC2_FLOW_TOLERANCE_PCT = 0.25
+        self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
+
+        # Buffers de promediado móvil
+        self.mfc1_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+        self.mfc2_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+
+        # Setpoints de referencia (0.0 significa que no se exige flujo)
+        self.mfc1_target_slm = 0.0
+        self.mfc2_target_slm = 0.0
+
+        # =====================================================================
+        # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
+        # =====================================================================
+        old_central = self.centralWidget()
+
+        if old_central:
+            # A. Le fijamos un alto mínimo real a la UI original para que NO se comprima.
+            # 950px asegura que entre todo el contenido de Lámparas y Temperatura holgadamente.
+            old_central.setMinimumSize(980, 950)
+
+            # B. Creamos el QScrollArea y configuramos sus políticas
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidget(old_central)
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+            # C. Forzamos la barra de scroll vertical para que aparezca siempre
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Por si el ancho también se queda corto
+
+            # D. Reemplazamos el widget central
+            self.setCentralWidget(scroll)
+        # =====================================================================
         
         # Instanciar el manager de timers pasándole 'self' (esta ventana)
         self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
 
         # Instanciamos el controlador de pruebas del motor
-<<<<<<< Updated upstream
-        self.throttle = ThrottleController(self)
-=======
         self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
 
         # Configurar botones de navegación entre menús
         self._setup_navigation()
->>>>>>> Stashed changes
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO
         self.change_state(systemState.PRE_ENCENDIDO)
 
-<<<<<<< Updated upstream
-=======
     def _setup_navigation(self):
         """Conecta los botones de cambio de pantalla en el stackedWidget."""
         # Ir a la vista de Throttle desde el Menú Principal
@@ -52,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
         )
 
->>>>>>> Stashed changes
+
     # =========================================================
     # MAQUINA DE ESTADOS PRINCIPAL
     # =========================================================
@@ -75,65 +122,19 @@ class MainWindow(QtWidgets.QMainWindow):
         preEncendido.startup(self)
 
     # ==================== DEL MAIN MENU ====================
-    
-    # ------------ Inicializa visualmente el menú principal ----------------
-    def MainMenu_init(self):
-        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
-        
-        # Prueba de motor paso a paso
-        #1. Habilitar / Deshabilitar Driver
-        self.ui.MenuPrincipal_btn_toggle_enable.clicked.connect(self._on_enable_toggled)
-        # 2. Configuración de Pasos (Full / Half)
-        self.ui.MenuPrincipal_btn_toggle_step.clicked.connect(self._on_step_toggled)
-        # 3. Sentido de Giro (Cierre / Apertura)
-        self.ui.MenuPrincipal_btn_toggle_dir.clicked.connect(self._on_dir_toggled)
-        # 4. Marcha / Parada del Tren de Pulsos
-        self.ui.MenuPrincipal_btn_toggle_run.clicked.connect(self._on_run_toggled) 
-
-    # ------------- Funciones del pulsado de los botones para prueba motor paso a paso --------------
-    def _on_enable_toggled(self):
-        # Leemos el texto actual para saber qué acción tomar
-        if self.ui.MenuPrincipal_btn_toggle_enable.text() == "Habilitar Driver":
-            self.throttle.set_enable(ACTIVE)
-            self.ui.MenuPrincipal_btn_toggle_enable.setText("Deshabilitar Driver")
-            # Podés sumarle color con StyleSheet si querés (Rojo para indicar peligro/potencia)
-            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("background-color: #f44336; color: white;")
-        else:
-            self.throttle.set_enable(INACTIVE)
-            self.ui.MenuPrincipal_btn_toggle_enable.setText("Habilitar Driver")
-            self.ui.MenuPrincipal_btn_toggle_enable.setStyleSheet("")
-
-    def _on_step_toggled(self):
-        if "Full Step" in self.ui.MenuPrincipal_btn_toggle_step.text():
-            self.throttle.set_half_step(ACTIVE) # Pasamos a Half
-            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Half Step")
-        else:
-            self.throttle.set_half_step(INACTIVE) # Volvemos a Full
-            self.ui.MenuPrincipal_btn_toggle_step.setText("Modo: Full Step")
-
-    def _on_dir_toggled(self):
-        if "Apertura" in self.ui.MenuPrincipal_btn_toggle_dir.text():
-            self.throttle.set_direction(ACTIVE) # DIR = 1 (Cierre)
-            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Cierre")
-        else:
-            self.throttle.set_direction(INACTIVE) # DIR = 0 (Apertura)
-            self.ui.MenuPrincipal_btn_toggle_dir.setText("Dirección: Apertura")
-
-    def _on_run_toggled(self):
-        if self.ui.MenuPrincipal_btn_toggle_run.text() == "Girar Motor":
-            # Iniciamos el movimiento lento (ej: 6ms por semiciclo)
-            self.throttle.start_movement(speed_ms=6)
-            self.ui.MenuPrincipal_btn_toggle_run.setText("Detener Motor")
-            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("background-color: #ff9800; color: black;")
-        else:
-            self.throttle.stop_movement()
-            self.ui.MenuPrincipal_btn_toggle_run.setText("Girar Motor")
-            self.ui.MenuPrincipal_btn_toggle_run.setStyleSheet("")   
-    
     # ------- Fuerza el cierre seguro por pulsador físico OFF -----------
     def trigger_hardware_off(self):
         self.offClose = 1
         self.close() # Esto llama a closeEvent
+
+    # =========================================================
+    # METODOS DE INICIALIZACION DE LOS ESTADOS
+    # =========================================================
+    # ------------ Inicializa visualmente el menú principal ----------------
+    def MainMenu_init(self):
+        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
+        #Inicia modo de prueba modular
+        maintenanceProcess.init(self)
 
     # =========================================================
     # CONTROL DE CIERRE SEGURO DE VENTANA

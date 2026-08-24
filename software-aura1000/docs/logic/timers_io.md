@@ -51,23 +51,52 @@ El módulo `timers_io.py` implementa la clase `timersIOManager`, para adminsitra
 
 ---
 
-## <span style="color: #4CAF50;">Lectura periódica de entradas digitales</span>
+## <span style="color: #4CAF50;">Lectura periódica de entradas digitales, presion, MFCs y temperatura</span>
 
-??? note "Escaneo de Entradas Digitales: `_update_inputs_loop(self)`"
-    Manejador privado encargado de leer cada 100ms entradas digitales del sistema:
+??? note "Escaneo de Entradas Digitales, presion atmosferica, baratron, MFCs y temperatura: `_update_inputs_loop(self)`"
+    Manejador privado encargado de leer cada 100ms entradas digitales y analogicas
 
     * **Fase `PRE_ENCENDIDO`**: Sondea de forma continua la línea digital del switch físico de marcha. Al registrar un flanco ascendente (`1`), corta el ciclo de sondeo y ordena a la ventana despachar la secuencia de enclavamiento de potencia.
-    * **Fase `MAIN_MENU`**: Monitorea de forma prioritaria la línea de presencia de tensión en el lazo de seguridad principal (`SYS_POWER`). Si la línea cae a cero (apertura o parada por hardware), detecta el corte, escribe la alarma en el registro de la consola e invoca el método de apagado inmediato y cierre preventivo de la aplicación.
+    * **Fase `MAIN_MENU`**: 
+    * Lee las señales analogicas: presion de camara, readouts de flujo de MFCs, temperatura, señal del EOP
+    * Monitorea el estado del ATM Switch para que al ventear y luego de detectar ATM, le deje 4s mas para lograr un correcto venteo y apertura de puerta
+    * Llama a funcion de deteccion de fallas de proceso: lamparas, temperatura de magnetron y plasma
+    * Controla el apagado general desde el pulsador de OFF
 
     ```python
     def _update_inputs_loop(self):
         """Lazo centralizado que corre cada 100ms"""
+
         if self.win.current_state == systemState.PRE_ENCENDIDO:
             if self.hw.digital_read("POWER_ON_SWITCH"):
                 self.win.preEncendido_startup_sequence()
-                
+
         elif self.win.current_state == systemState.MAIN_MENU:
+            # 1. Actualización constante de presión y captura del estado ATM
+            is_atm = analog_up.update_pressure_display(self.win)
+
+            # 2. Actualización en tiempo real de caudales de MFCs
+            analog_up.update_mfc_displays(self.win)
+
+            # 3. Lectura y actualización de temperatura
+            analog_up.update_temp_display(self.win)
+
+            # 4. Lectura y actualización del sensor EOP
+            analog_up.update_eop_displays(self.win)
+
+            # 5. Monitoreo del venteo
+            if (self.win.ui.MenuPrincipal_btn_vent_chamber.text() == "Venteando..."):
+                if is_atm:
+                    self.win.ui.MenuPrincipal_btn_vent_chamber.setText("Presión ATM alcanzada...")
+                    print("ATM Detectado. Iniciando temporización extra de seguridad...")
+                    import logic.maintenance_process as mp
+                    QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
+
+            # 5.1 Monitoreo de fallas de hardware (Lámparas, Plasma, Magnetrón)
+            faults.check_process_faults(self.win, self.hw)
+
+            # 6. Control de apagado general
             if self.hw.digital_read("SYS_POWER"):
-                print("POWER OFF DETECTADO POR LAZO CENTRAL")
+                print("POWER OFF DETECTADO POR PULSADOR DE OFF")
                 self.win.trigger_hardware_off()
     ```

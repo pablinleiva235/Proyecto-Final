@@ -37,7 +37,9 @@ def check_process_faults(win, hw):
     mag_warning = hw.digital_read("MAGNETRON_WARNING")
     mag_overheat = hw.digital_read("MAGNETRON_OVERHEAT")
 
-    critical_fault = (lamp1_fail or lamp2_fail or lamp3_fail or plasma_fail or mag_overheat)
+    critical_fault = (
+        lamp1_fail or lamp2_fail or lamp3_fail or plasma_fail or mag_overheat
+    )
 
     if critical_fault:
         win.alarm_active = True

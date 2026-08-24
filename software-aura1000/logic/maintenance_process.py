@@ -370,34 +370,38 @@ def finish_vent_sequence(win):
 
 def toggle_mfc1_valve(win):
     """ Habilita / Deshabilita la válvula de corte de O2 (MFC1) """
-    btn = win.ui.MenuPrincipal_btn_mfc1_open
-    if btn.text() == "Abrir Valvula MFC1: O2":
+    btn_shutoff = win.ui.MenuPrincipal_btn_mfc1_open
+    btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    if btn_shutoff.text() == "Abrir Valvula MFC1: O2":
         win.hw.digital_set("MFC1_OPEN", ACTIVE)
-        btn.setText("Cerrar Valvula MFC1: O2")
-        btn.setStyleSheet("background-color: #f44336; color: white;")
+        btn_shutoff.setText("Cerrar Valvula MFC1: O2")
+        btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
     else:
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
         win.mfc1_target_slm = 0.0
         win.mfc1_flow_history.clear()
-        btn.setText("Abrir Valvula MFC1: O2")
-        btn.setStyleSheet("")
+        btn_shutoff.setText("Abrir Valvula MFC1: O2")
+        btn_shutoff.setStyleSheet("")
+        btn_set.setStyleSheet("")
 
 def toggle_mfc2_valve(win):
     """ Habilita / Deshabilita la válvula de corte de N2 (MFC2) """
-    btn = win.ui.MenuPrincipal_btn_mfc2_open
-    if btn.text() == "Abrir Valvula MFC2: N2":
+    btn_shutoff = win.ui.MenuPrincipal_btn_mfc2_open
+    btn_set = win.ui.MenuPrincipal_btn_mfc2_set
+    if btn_shutoff.text() == "Abrir Valvula MFC2: N2":
         win.hw.digital_set("MFC2_OPEN", ACTIVE)
-        btn.setText("Cerrar Valvula MFC2: N2")
-        btn.setStyleSheet("background-color: #f44336; color: white;")
+        btn_shutoff.setText("Cerrar Valvula MFC2: N2")
+        btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
     else:
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
         win.mfc2_target_slm = 0.0
         win.mfc2_flow_history.clear()
-        btn.setText("Abrir Valvula MFC2: N2")
-        btn.setStyleSheet("")
-
+        btn_shutoff.setText("Abrir Valvula MFC2: N2")
+        btn_shutoff.setStyleSheet("")
+        btn_set.setStyleSheet("")
+        
 def set_mfc1_flow(win):
     """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
     text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')

@@ -16,7 +16,7 @@ DIGITALSIGNALS = {
     "MFC1_OPEN":                  {"port": dio.SECONDPORTA, "bit": 0, "dir": "OUT", "active_state": 0, "initial_state": 1},
 
     # --------- SEÑALES SECONDPORTB: P1-9 a P1-16 / SALIDAS ------------
-    "MAIN_PNEUMATIC_ENABLE":      {"port": dio.SECONDPORTB, "bit": 7, "dir": "OUT", "active_state": 1, "initial_state": 0},
+    "MAIN_PNEUMATIC_ENABLE":      {"port": dio.SECONDPORTB, "bit": 7, "dir": "OUT", "active_state": 1, "initial_state": 1},
     "SOFT_START_CONTROL":         {"port": dio.SECONDPORTB, "bit": 6, "dir": "OUT", "active_state": 1, "initial_state": 0},
     "FILAMENT_ENABLE":            {"port": dio.SECONDPORTB, "bit": 5, "dir": "OUT", "active_state": 1, "initial_state": 0},
     "LOAD_VACUUM_CONTROL":        {"port": dio.SECONDPORTB, "bit": 4, "dir": "OUT", "active_state": 1, "initial_state": 0},
@@ -52,13 +52,13 @@ DIGITALSIGNALS = {
     "LAMP1_FAIL":                 {"port": dio.FIRSTPORTB, "bit": 4, "dir": "IN", "active_state": 1, "initial_state": 1},
     "PLASMA_FAIL":                {"port": dio.FIRSTPORTB, "bit": 3, "dir": "IN", "active_state": 1, "initial_state": 1},
     "P1_38":                      {"port": dio.FIRSTPORTB, "bit": 2, "dir": "IN", "active_state": 0, "initial_state": 1}, # Señal no relevada
-    "SYS_POWER":                  {"port": dio.FIRSTPORTB, "bit": 1, "dir": "IN", "active_state": 0, "initial_state": 1}, # Señal no conectada
+    "P1_39":                      {"port": dio.FIRSTPORTB, "bit": 1, "dir": "IN", "active_state": 0, "initial_state": 1}, # Señal no conectada
     "POWER_ON_SWITCH":            {"port": dio.FIRSTPORTB, "bit": 0, "dir": "IN", "active_state": 0, "initial_state": 1},
 
     # --------- SEÑALES FIRSTPORTC: P1-41 a P1-47 NO CONECTADAS -------
     "P1_41":                      {"port": dio.FIRSTPORTCH, "bit": 3, "dir": "IN", "active_state": 0, "initial_state": 1},
     "P1_42":                      {"port": dio.FIRSTPORTCH, "bit": 2, "dir": "IN", "active_state": 0, "initial_state": 1},
-    "P1_43":                      {"port": dio.FIRSTPORTCH, "bit": 1, "dir": "IN", "active_state": 0, "initial_state": 1},
+    "SYS_POWER":                  {"port": dio.FIRSTPORTCH, "bit": 1, "dir": "IN", "active_state": 1, "initial_state": 1},
     "P1_44":                      {"port": dio.FIRSTPORTCH, "bit": 0, "dir": "IN", "active_state": 0, "initial_state": 1},
     "P1_45":                      {"port": dio.FIRSTPORTCL, "bit": 3, "dir": "OUT", "active_state": 1, "initial_state": 0},
     "P1_46":                      {"port": dio.FIRSTPORTCL, "bit": 2, "dir": "OUT", "active_state": 1, "initial_state": 0},

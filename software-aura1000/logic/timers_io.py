@@ -41,16 +41,16 @@ class timersIOManager:
 
         elif self.win.current_state == systemState.MAIN_MENU:
             # 1. Actualización constante de presión y captura del estado ATM
-            is_atm = analog_up.update_pressure_display(self.win)
+            #is_atm = analog_up.update_pressure_display(self.win)
 
             # 2. Actualización en tiempo real de caudales de MFCs
-            analog_up.update_mfc_displays(self.win)
+            #analog_up.update_mfc_displays(self.win)
 
             # 3. Lectura y actualización de temperatura
-            analog_up.update_temp_display(self.win)
+            #analog_up.update_temp_display(self.win)
 
             # 4. Lectura y actualización del sensor EOP
-            analog_up.update_eop_displays(self.win)
+            #analog_up.update_eop_displays(self.win)
 
             # 5. Monitoreo del venteo
             if (self.win.ui.MenuPrincipal_btn_vent_chamber.text() == "Venteando..."):
@@ -61,9 +61,13 @@ class timersIOManager:
                     QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
 
             # 5.1 Monitoreo de fallas de hardware (Lámparas, Plasma, Magnetrón)
-            faults.check_process_faults(self.win, self.hw)
+            #faults.check_process_faults(self.win, self.hw)
 
             # 6. Control de apagado general
-            if self.hw.digital_read("SYS_POWER"):
+            '''if self.hw.digital_read("SYS_POWER"):
                 print("POWER OFF DETECTADO POR PULSADOR DE OFF")
-                self.win.trigger_hardware_off()
+                self.win.trigger_hardware_off()'''
+
+            # 7. Chequeo de switches de límite de cierre y apertura de la throttle
+            if hasattr(self.win, "throttle"):
+                self.win.throttle.update_limit_switch_status()

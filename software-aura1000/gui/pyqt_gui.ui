@@ -26,7 +26,7 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
        <widget class="QLabel" name="MenuPrincipal_label">
@@ -851,6 +851,232 @@
         </property>
         <property name="scaledContents">
          <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="Line" name="line_4">
+        <property name="geometry">
+         <rect>
+          <x>720</x>
+          <y>0</y>
+          <width>20</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_go_to_throttle">
+        <property name="geometry">
+         <rect>
+          <x>740</x>
+          <y>0</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>18</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3498db;
+    color: white;
+}</string>
+        </property>
+        <property name="text">
+         <string>Throttle Menu</string>
+        </property>
+       </widget>
+       <widget class="Line" name="line_5">
+        <property name="geometry">
+         <rect>
+          <x>730</x>
+          <y>70</y>
+          <width>201</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="ThrottleMenu">
+       <widget class="QLabel" name="ThrottleMenu_label">
+        <property name="geometry">
+         <rect>
+          <x>220</x>
+          <y>0</y>
+          <width>501</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>48</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Throttle Menu</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="ThrottleMenu_btn_back">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>18</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #3498db;
+    color: white;
+}</string>
+        </property>
+        <property name="text">
+         <string>Menu Principal</string>
+        </property>
+       </widget>
+       <widget class="Line" name="line_6">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>70</y>
+          <width>201</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="Line" name="line_7">
+        <property name="geometry">
+         <rect>
+          <x>190</x>
+          <y>0</y>
+          <width>20</width>
+          <height>81</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="ThrottleMenu_btn_toggle_enable">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>120</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Habilitar Driver</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="ThrottleMenu_btn_toggle_step">
+        <property name="geometry">
+         <rect>
+          <x>260</x>
+          <y>120</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Modo: Full Step</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="ThrottleMenu_btn_toggle_dir">
+        <property name="geometry">
+         <rect>
+          <x>470</x>
+          <y>120</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Dirección: Apertura</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="ThrottleMenu_btn_toggle_run">
+        <property name="geometry">
+         <rect>
+          <x>680</x>
+          <y>120</y>
+          <width>191</width>
+          <height>71</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>16</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Girar Motor</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="lbl_throttle_closed">
+        <property name="geometry">
+         <rect>
+          <x>120</x>
+          <y>220</y>
+          <width>281</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Cerrada: -</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="lbl_throttle_open">
+        <property name="geometry">
+         <rect>
+          <x>540</x>
+          <y>220</y>
+          <width>281</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Abierta: -</string>
         </property>
        </widget>
       </widget>

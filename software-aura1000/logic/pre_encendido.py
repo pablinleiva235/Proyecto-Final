@@ -18,7 +18,7 @@ def startup(win):
     win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
     
     # 3. Inicializa USB-2527
-    win.hw.initialize_AD()  
+    #win.hw.initialize_AD()  
     
     # 4. Modificar la interfaz gráfica directamente
     win.ui.PreEncendido_label2.setText("Iniciando, espere ...")
@@ -38,7 +38,7 @@ def startup(win):
 def update_progressBar(win):
     """Callback del timer de startup (cada 100ms)"""
     # 100% total / 300 ciclos = 1/3% por cada ciclo de 100ms
-    win.startup_progress += 100.0 / 300.0  # incremento exacto (~0.333333)
+    win.startup_progress += 100.0 / 100.0  # incremento exacto (~0.333333)
 
     # setValue solo acepta int, casteamos la variable float
     win.ui.PreEncendido_progressBar.setValue(int(win.startup_progress))

@@ -1113,6 +1113,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#metodos-auxiliares-para-deteccion-de-fallas-en-caso-de-mfcs-fuera-de-rango" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metodos auxiliares para deteccion de fallas en caso de MFCs fuera de rango
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1337,6 +1348,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#metodos-auxiliares-para-deteccion-de-fallas-en-caso-de-mfcs-fuera-de-rango" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metodos auxiliares para deteccion de fallas en caso de MFCs fuera de rango
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1362,7 +1384,6 @@
 <summary>Helper de Indicadores Visuales: <code>update_led_indicator(...)</code></summary>
 <p>Función auxiliar que aplica de forma dinámica hojas de estilo CSS (<code>setStyleSheet</code>) sobre un widget <code>QLabel</code>. Modifica el color de fondo, bordes y texto para emular visualmente el comportamiento de un indicador LED según el estado lógico (Activo/Inactivo) de un subsistema.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_led_indicator</span><span class="p">(</span><span class="n">label_widget</span><span class="p">,</span> <span class="n">state_active</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">text_active</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text_inactive</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Actualiza dinámicamente el estilo de un QLabel para simular un indicador LED.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">state_active</span><span class="p">:</span>
         <span class="n">label_widget</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">text_active</span><span class="p">)</span>
         <span class="n">label_widget</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
@@ -1381,7 +1402,6 @@
 <summary>Lectura de Presión de Cámara y Estado ATM: <code>update_pressure_display(win)</code></summary>
 <p>Realiza la adquisición de tensión analógica del manómetro Baratron, escala linealmente la lectura a Torr (basado en <code>BARATRON_FULL_SCALE</code>) y la proyecta en el visor LCD de la cámara. Adicionalmente, evalúa el interruptor digital de presión atmosférica (<code>ATM_SWITCH</code>), actualiza la etiqueta LED visual correspondiente y retorna el estado booleano de la cámara.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_pressure_display</span><span class="p">(</span><span class="n">win</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee el Baratron y el ATM_SWITCH, actualiza la GUI y retorna el estado de ATM.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">voltage</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;BARATRON&quot;</span><span class="p">)</span>
         <span class="n">pressure_torr</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span> <span class="o">*</span> <span class="p">(</span><span class="n">BARATRON_FULL_SCALE</span> <span class="o">/</span> <span class="mf">10.0</span><span class="p">))</span>
@@ -1406,7 +1426,6 @@
 <summary>Monitoreo de Temperatura de Cámara: <code>update_temp_display(win)</code></summary>
 <p>Adquiere el valor analógico escalado de la termocupla ubicada en la cámara de proceso (<code>CHAMBER_TEMP</code>) y actualiza el visor térmico en grados Celsius. Contempla excepciones y lecturas nulas para prevenir colapsos en la interfaz, mostrando indicadores de error visuales (<code>---</code> o <code>ERR</code>).</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_temp_display</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee la termocupla de temperatura de la cámara y actualiza el QLCDNumber.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">temp_c</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read_temperature</span><span class="p">(</span><span class="s2">&quot;CHAMBER_TEMP&quot;</span><span class="p">)</span>
 
@@ -1421,19 +1440,23 @@
 </details>
 <details class="note">
 <summary>Lectura de readouts de flujo de MFCs: <code>update_mfc_displays(win)</code></summary>
-<p>Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal <code>MFC1_FLOW</code> (Oxígeno) y <code>MFC2_FLOW</code> (Nitrógeno). Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla.</p>
+<p>Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal <code>MFC1_FLOW</code> (Oxígeno) y <code>MFC2_FLOW</code> (Nitrógeno). Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla. Agrega cada medicion al buffer circular de 30 muestras (<code>MFC_WINDOW_SAMPLES</code>) y chequea que el promedio de estas lecturas del buffer no se salga de la tolerancia dada por <code>MFC_FLOW_TOLERANCE_PCT</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_mfc_displays</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW y actualiza los LCDs de la GUI.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># --- 1. Lectura de MFC1 (O2) ---</span>
         <span class="n">v_mfc1</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC1_FLOW&quot;</span><span class="p">)</span>
         <span class="n">slm_mfc1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc1</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc1</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_mfc1</span><span class="p">)</span>  <span class="c1"># Se agrega al buffer de 3s</span>
 
         <span class="c1"># --- 2. Lectura de MFC2 (N2) ---</span>
         <span class="n">v_mfc2</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC2_FLOW&quot;</span><span class="p">)</span>
         <span class="n">slm_mfc2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc2</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_mfc2</span><span class="p">)</span>  <span class="c1"># Se agrega al buffer de 3s</span>
+
+        <span class="c1"># --- 3. Evaluación de seguridad de caudal ---</span>
+        <span class="n">_check_mfc_faults</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error al leer flujo de MFCs: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1449,6 +1472,117 @@
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_eop_voltage</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eop_volts</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] No se pudo leer el canal EOP: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="metodos-auxiliares-para-deteccion-de-fallas-en-caso-de-mfcs-fuera-de-rango"><span style="color: #4CAF50;">Metodos auxiliares para deteccion de fallas en caso de MFCs fuera de rango</span></h2>
+<details class="note">
+<summary>Chequeo de readout de MFCs fuera de rango": <code>_check_mfc_faults(win)</code></summary>
+<p>Verifica si el promedio de lecturas de los últimos 3s difiere en más del 5% del target.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_check_mfc_faults</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verifica si el promedio de lecturas de los últimos 3s difiere en más del 5% del target.&quot;&quot;&quot;</span>
+    <span class="n">has_target_mfc1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;mfc1_target_slm&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">has_target_mfc2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;mfc2_target_slm&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="n">fault_detected</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">failed_gases</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># 1. Evaluar MFC1 (Solo si hay target activo y el buffer acumuló los 3s)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">has_target_mfc1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="p">)</span> <span class="o">==</span> <span class="n">win</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">):</span>
+        <span class="n">avg_mfc1</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="p">)</span>
+        <span class="n">deviation1</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">avg_mfc1</span> <span class="o">-</span> <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span><span class="p">)</span> <span class="o">/</span> <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">deviation1</span> <span class="o">&gt;</span> <span class="n">win</span><span class="o">.</span><span class="n">MFC1_FLOW_TOLERANCE_PCT</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[WARN] MFC1 fuera de tolerancia! Target: </span><span class="si">{</span><span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span><span class="si">}</span><span class="s2">, Avg: </span><span class="si">{</span><span class="n">avg_mfc1</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">fault_detected</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">failed_gases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;O2 (MFC1)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 2. Evaluar MFC2 (Solo si hay target activo y el buffer acumuló los 3s)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">has_target_mfc2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="p">)</span> <span class="o">==</span> <span class="n">win</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">):</span>
+        <span class="n">avg_mfc2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="p">)</span>
+        <span class="n">deviation2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">avg_mfc2</span> <span class="o">-</span> <span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span><span class="p">)</span> <span class="o">/</span> <span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">deviation2</span> <span class="o">&gt;</span> <span class="n">win</span><span class="o">.</span><span class="n">MFC2_FLOW_TOLERANCE_PCT</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[WARN] MFC2 fuera de tolerancia! Target: </span><span class="si">{</span><span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span><span class="si">}</span><span class="s2">, Avg: </span><span class="si">{</span><span class="n">avg_mfc2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">fault_detected</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">failed_gases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;N2 (MFC2)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 3. Disparar corte si falló o rehabilitar si el caudal es correcto</span>
+    <span class="k">if</span> <span class="n">fault_detected</span><span class="p">:</span>
+        <span class="n">_trigger_mfc_safety_shutdown</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">failed_gases</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;alarm_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary> Apagado de plasma y lamparas en caso de falla de MFCs: <code>_trigger_mfc_safety_shutdown(win)</code></summary>
+<p>Ejecuta las acciones de seguridad al detectar desvío de caudal de los MFCs y da aviso en una ventana de Warning al usuario</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_trigger_mfc_safety_shutdown</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">failed_gases</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ejecuta las acciones de seguridad al detectar desvío de caudal.&quot;&quot;&quot;</span>
+    <span class="c1"># A. Deshabilitar botón de Plasma y lamparas</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># B. Si el Plasma está encendido, apagarlo</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;rf_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;RF_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Plasma On&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[CORTE DE SEGURIDAD] Plasma apaga por desviación en MFC.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># C. Apagar Lámparas 1 y 3 si están en pulso</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;state_lamps13_pulsing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[CORTE DE SEGURIDAD] Lámparas 1 y 3 apagadas por desviación en MFC.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># D. Apagar Lámpara 2 si está encendida</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;lamp2_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP2_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Lamp 2 On&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[CORTE DE SEGURIDAD] Lámpara 2 apagada por desviación en MFC.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># E. Cierre de seguridad y reseteo de MFC1 (O2)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># F. Cierre de seguridad y reseteo de MFC2 (N2)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC2_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_open</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC2: N2&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_open</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># G. Mostrar Pop-up modal de advertencia al usuario</span>
+    <span class="n">gas_list_str</span> <span class="o">=</span> <span class="s2">&quot; y &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">failed_gases</span><span class="p">)</span>
+    <span class="n">msg_box</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Warning</span><span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Alerta de Caudal - MFC&quot;</span><span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&lt;b&gt;Desviación de caudal detectada en: </span><span class="si">{</span><span class="n">gas_list_str</span><span class="si">}</span><span class="s2">&lt;/b&gt;&quot;</span>
+    <span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">setInformativeText</span><span class="p">(</span>
+        <span class="s2">&quot;El flujo de gas se encuentra fuera del rango de tolerancia permitido.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;Se han cerrado las válvulas de gas, y se han apagado y deshabilitado por seguridad las lámparas y el sistema de plasma.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">setStandardButtons</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Aceptar&quot;</span><span class="p">)</span>
+    <span class="n">msg_box</span><span class="o">.</span><span class="n">exec_</span><span class="p">()</span>
 </code></pre></div>
 </details>
 

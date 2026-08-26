@@ -1681,9 +1681,7 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span> 
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_outerLamps_pulseTime</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
-
-    <span class="c1"># El botón de plasma nunca se habilita directamente al hacer vacío, solo tras el crackeo</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
 
     <span class="c1"># -------------------------------------------------------------------------</span>
     <span class="c1"># 3. Si se deshabilitan por pérdida de vacío / venteo:</span>
@@ -1946,7 +1944,7 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 <h2 id="control-de-los-mfcs"><span style="color: #4CAF50;">Control de los MFCs</span></h2>
 <details class="note">
 <summary><code>toggle_mfc1_valve(win)</code></summary>
-<p>Controla la señal digital de corte para la línea de Oxígeno (<code>MFC1_OPEN</code>). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea.</p>
+<p>Controla la señal digital de corte para la línea de Oxígeno (<code>MFC1_OPEN</code>). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_mfc1_valve</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Habilita / Deshabilita la válvula de corte de O2 (MFC1) &quot;&quot;&quot;</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span>
@@ -1957,13 +1955,15 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
     <span class="k">else</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">
 <summary><code>toggle_mfc2_valve(win)</code></summary>
-<p>Controla la señal digital de corte para la línea de Nitrógeno (<code>MFC2_OPEN</code>). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V.</p>
+<p>Controla la señal digital de corte para la línea de Nitrógeno (<code>MFC2_OPEN</code>). Ante una acción de cierre de la válvula, fuerza de manera preventiva el setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_mfc2_valve</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Habilita / Deshabilita la válvula de corte de N2 (MFC2) &quot;&quot;&quot;</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_open</span>
@@ -1974,13 +1974,15 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
     <span class="k">else</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC2_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC2: N2&quot;</span><span class="p">)</span>
         <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">
 <summary><code>set_mfc1_flow(win)</code></summary>
-<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>.</p>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc1_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc1_flow_history</code></p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc1_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 &quot;&quot;&quot;</span>
     <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
@@ -1990,6 +1992,9 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
         <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC1_MAX_SLM</span><span class="p">:</span>
             <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC1_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC1_MAX_VOLT</span>
             <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
+            <span class="c1"># Guardar target y limpiar historial para nuevo promedio</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="n">slm_target</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC1 O2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
             <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2008,7 +2013,7 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 </details>
 <details class="note">
 <summary><code>set_mfc2_flow(win)</code></summary>
-<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC2_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>.</p>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC2_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc2_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc2_flow_history</code></p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc2_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para N2 &quot;&quot;&quot;</span>
     <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
@@ -2018,6 +2023,9 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
         <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC2_MAX_SLM</span><span class="p">:</span>
             <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC2_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC2_MAX_VOLT</span>
             <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC2_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
+            <span class="c1"># Guardar target y limpiar historial para nuevo promedio</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="n">slm_target</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC2 N2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
             <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2065,9 +2073,6 @@ Modifica el flag <code>state_lamps13_pulsing</code> para la funcion de chequeo d
     <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Lámparas 1 y 3 ENCENDIDAS por </span><span class="si">{</span><span class="n">seconds</span><span class="si">}</span><span class="s2"> segundos.&quot;</span><span class="p">)</span>
-
-    <span class="c1"># SACAR ESTA LINEA LUEGO DE PROBAR</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># 3. Definir la función que se ejecutará AL FINALIZAR el tiempo</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_pulse_complete</span><span class="p">():</span>

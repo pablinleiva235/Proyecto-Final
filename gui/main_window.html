@@ -1404,7 +1404,7 @@
 <h2 id="metodos-de-inicializacion-y-maquina-de-estados"><span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span></h2>
 <details class="note">
 <summary>Inicialización del Constructor: <code>__init__(self, hardware)</code></summary>
-<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
+<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas, tambien para falla en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hardware</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -1427,6 +1427,18 @@
 
     <span class="c1"># Variable con tiempo desde que se pulsa el boton de plasma </span>
     <span class="bp">self</span><span class="o">.</span><span class="n">rf_on_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># --- Variables para Control de Fallas en MFCs ---</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MFC_FLOW_TOLERANCE_PCT</span> <span class="o">=</span> <span class="mf">0.05</span>  <span class="c1"># 5% de tolerancia (modificable)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># 30 muestras x 100ms = 3.0 segundos</span>
+
+    <span class="c1"># Buffers de promediado móvil</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
+
+    <span class="c1"># Setpoints de referencia (0.0 significa que no se exige flujo)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="c1"># Instanciar el manager de timers pasándole &#39;self&#39; (esta ventana)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span> <span class="o">=</span> <span class="n">timersIOManager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>

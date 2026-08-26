@@ -18,14 +18,17 @@ class ThrottleController:
         # Conectar señales de la UI a los métodos de esta clase
         self._connect_ui_signals()
 
+        # Variables para antirrebote en switchs de limites
+        self._closed_count = 0  # contador de lecturas consistentes
+        self._open_count   = 0
+        self._DEBOUNCE_N   = 3  # N lecturas iguales para confirmar
+
+        self.SPEED_MS = 1
+
     def _connect_ui_signals(self):
         """Conecta los botones del menú de la Throttle a sus manejadores internos."""
-        self.ui.ThrottleMenu_btn_toggle_enable.clicked.connect(
-            self.on_enable_toggled
-        )
-        self.ui.ThrottleMenu_btn_toggle_step.clicked.connect(
-            self.on_step_toggled
-        )
+        self.ui.ThrottleMenu_btn_toggle_enable.clicked.connect(self.on_enable_toggled)
+        self.ui.ThrottleMenu_btn_toggle_step.clicked.connect(self.on_step_toggled)
         self.ui.ThrottleMenu_btn_toggle_dir.clicked.connect(self.on_dir_toggled)
         self.ui.ThrottleMenu_btn_toggle_run.clicked.connect(self.on_run_toggled)
 
@@ -41,7 +44,7 @@ class ThrottleController:
         self._closing = close_direction
         self.hw.digital_set("STEPPER_DIR", close_direction)
 
-    def start_movement(self, speed_ms=6):
+    def start_movement(self, speed_ms):
         if not self.step_timer.isActive():
             self.step_state = INACTIVE
             self.hw.digital_set("STEPPER_STEP", self.step_state)
@@ -53,12 +56,16 @@ class ThrottleController:
 
             self.step_timer.timeout.connect(self._toggle_step)
             self.step_timer.start(speed_ms)
+            print(f"[THROTTLE] Movimiento INICIADO -> Timer activo cada {speed_ms} ms.")
+        else:
+            print("[THROTTLE] Intento de arranque ignorado: El timer ya está activo.")
 
     def stop_movement(self):
         self.step_timer.stop()
         self.step_state = INACTIVE
         self.hw.digital_set("STEPPER_STEP", INACTIVE)
         self.reset_run_button()
+        print("[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.")
 
     def _toggle_step(self):
         if self._check_limits():
@@ -100,11 +107,9 @@ class ThrottleController:
     def on_run_toggled(self):
         btn = self.ui.ThrottleMenu_btn_toggle_run
         if btn.text() == "Girar Motor":
-            self.start_movement(speed_ms=6)
+            self.start_movement(self.SPEED_MS)
             btn.setText("Detener Motor")
-            btn.setStyleSheet(
-                "background-color: #ff9800; color: black; font-weight: bold;"
-            )
+            btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
         else:
             self.stop_movement()
 
@@ -122,12 +127,12 @@ class ThrottleController:
         return self.hw.digital_read("THROTTLE_OPEN")
 
     def _check_limits(self) -> bool:
-        if self._closing and self.is_fully_closed():
+        if self._closing and (self._closed_count >= self._DEBOUNCE_N):
             print("[LÍMITE] Válvula Throttle completamente CERRADA.")
             self.stop_movement()
             return True
 
-        if not self._closing and self.is_fully_open():
+        if not self._closing and (self._open_count >= self._DEBOUNCE_N):
             print("[LÍMITE] Válvula Throttle completamente ABIERTA.")
             self.stop_movement()
             return True
@@ -135,20 +140,38 @@ class ThrottleController:
         return False
 
     def update_limit_switch_status(self):
-        """Llamado en el lazo principal (io_loop) cada 100ms."""
-        lbl_closed = self.ui.lbl_throttle_closed
-        lbl_open = self.ui.lbl_throttle_open
+        closed_raw = self.is_fully_closed()
+        open_raw   = self.is_fully_open()
 
-        if self.is_fully_closed():
+        # Debounce CLOSED
+        if closed_raw:
+            self._closed_count = min(self._closed_count + 1, self._DEBOUNCE_N)
+        else:
+            self._closed_count = max(self._closed_count - 1, 0)
+
+        # Debounce OPEN
+        if open_raw:
+            self._open_count = min(self._open_count + 1, self._DEBOUNCE_N)
+        else:
+            self._open_count = max(self._open_count - 1, 0)
+
+        # Solo actualizás UI cuando hay N lecturas consistentes
+        closed_confirmed = (self._closed_count >= self._DEBOUNCE_N)
+        open_confirmed   = (self._open_count   >= self._DEBOUNCE_N)
+
+        lbl_closed = self.ui.lbl_throttle_closed
+        lbl_open   = self.ui.lbl_throttle_open
+
+        if closed_confirmed:
             lbl_closed.setText("CERRADA ✓")
-            lbl_closed.setStyleSheet("color: red; font-weight: bold;")
+            lbl_closed.setStyleSheet("color: red; font-weight: bold; font-size: 48px;")
         else:
             lbl_closed.setText("Cerrada: —")
             lbl_closed.setStyleSheet("")
 
-        if self.is_fully_open():
+        if open_confirmed:
             lbl_open.setText("ABIERTA ✓")
-            lbl_open.setStyleSheet("color: green; font-weight: bold;")
+            lbl_open.setStyleSheet("color: green; font-weight: bold; font-size: 48px;")
         else:
             lbl_open.setText("Abierta: —")
             lbl_open.setStyleSheet("")

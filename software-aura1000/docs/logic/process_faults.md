@@ -74,3 +74,4 @@ El módulo `process_faults.py` tiene el metodo llamado en el timer general cada 
             # Reset visual de botones en UI
             win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
             win.ui.MenuPrincipal_btn_centralLamp
+    ```

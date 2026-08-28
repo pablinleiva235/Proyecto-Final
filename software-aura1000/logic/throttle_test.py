@@ -23,7 +23,8 @@ class ThrottleController:
         self._open_count   = 0
         self._DEBOUNCE_N   = 3  # N lecturas iguales para confirmar
 
-        self.SPEED_MS = 1
+        self.THROTTLE_STEP_FREQUENCY = 500 # Pulsos por segundo
+        self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
 
     def _connect_ui_signals(self):
         """Conecta los botones del menú de la Throttle a sus manejadores internos."""

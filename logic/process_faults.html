@@ -1367,63 +1367,64 @@
 <li><strong>Protección Térmica del Magnetrón:</strong> Monitorea de forma continua los sensores de sobretemperatura (<code>MAGNETRON_WARNING</code> a 85 °C y <code>MAGNETRON_OVERHEAT</code> a 93 °C).</li>
 </ul>
 <p>Ante la presencia de una <strong>falla crítica</strong> (falla en cualquier lámpara, caída de plasma fuera del ventana de gracia o sobrecalentamiento del magnetrón), apaga de forma inmediata las órdenes de encendido en el hardware, enciende el indicador físico de alarma (<code>ALARM_INDICATION</code>), resetea los estados visuales en la interfaz gráfica y despliega una ventana modal notificando al operario las causas específicas de la interrupción.</p>
-<p>```python</p>
-<h1 id="tiempo-de-gracia-para-dar-margen-a-la-ionizacion-del-plasma-antes-de-evaluar-la-falla">Tiempo de gracia para dar margen a la ionización del plasma antes de evaluar la falla</h1>
-<p>PLASMA_IGNITION_DELAY = 2.0  # en segundos</p>
-<p>def check_process_faults(win, hw):
-    if getattr(win, "alarm_active", False):
-        return</p>
-<div class="highlight"><pre><span></span><code>now = time.time()
+<div class="highlight"><pre><span></span><code><span class="c1"># Tiempo de gracia para dar margen a la ionización del plasma antes de evaluar la falla</span>
+<span class="n">PLASMA_IGNITION_DELAY</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># en segundos</span>
 
-# 1. Leer estado de los comandos
-cmd_lamps13 = getattr(win, &quot;state_lamps13_pulsing&quot;, False)
-cmd_lamp2 = getattr(win, &quot;lamp2_on&quot;, False)
-cmd_rf = getattr(win, &quot;rf_on&quot;, False)
+<span class="k">def</span><span class="w"> </span><span class="nf">check_process_faults</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">hw</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;alarm_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span>
 
-if cmd_rf:
-    elapsed = now - getattr(win, &quot;rf_on_time&quot;, 0.0)
-    signal = hw.digital_read(&quot;PLASMA_FAIL&quot;)
-    print(
-        f&quot;[DIAGNOSTICO PLASMA] T: {elapsed:.1f}s | PLASMA_FAIL pin: {signal}&quot;
-    )
+    <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
-# 2. Lámparas: evaluación inmediata (responden rápido)
-lamp1_fail = cmd_lamps13 and hw.digital_read(&quot;LAMP1_FAIL&quot;)
-lamp2_fail = cmd_lamp2 and hw.digital_read(&quot;LAMP2_FAIL&quot;)
-lamp3_fail = cmd_lamps13 and hw.digital_read(&quot;LAMP3_FAIL&quot;)
+    <span class="c1"># 1. Leer estado de los comandos</span>
+    <span class="n">cmd_lamps13</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;state_lamps13_pulsing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">cmd_lamp2</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;lamp2_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">cmd_rf</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;rf_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
-# 3. Plasma: se evalúa SOLO si pasaron más de 2 segundos desde el comando de encendido
-rf_grace_period_passed = (now - getattr(win, &quot;rf_on_time&quot;, 0.0)) &gt; PLASMA_IGNITION_DELAY
-plasma_fail = (cmd_rf and rf_grace_period_passed and hw.digital_read(&quot;PLASMA_FAIL&quot;))
+    <span class="k">if</span> <span class="n">cmd_rf</span><span class="p">:</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;rf_on_time&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;PLASMA_FAIL&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;[DIAGNOSTICO PLASMA] T: </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s | PLASMA_FAIL pin: </span><span class="si">{</span><span class="n">signal</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
 
-# 4. Magnetrón (monitoreo continuo)
-mag_warning = hw.digital_read(&quot;MAGNETRON_WARNING&quot;)
-mag_overheat = hw.digital_read(&quot;MAGNETRON_OVERHEAT&quot;)
+    <span class="c1"># 2. Lámparas: evaluación inmediata (responden rápido)</span>
+    <span class="n">lamp1_fail</span> <span class="o">=</span> <span class="n">cmd_lamps13</span> <span class="ow">and</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;LAMP1_FAIL&quot;</span><span class="p">)</span>
+    <span class="n">lamp2_fail</span> <span class="o">=</span> <span class="n">cmd_lamp2</span> <span class="ow">and</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;LAMP2_FAIL&quot;</span><span class="p">)</span>
+    <span class="n">lamp3_fail</span> <span class="o">=</span> <span class="n">cmd_lamps13</span> <span class="ow">and</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;LAMP3_FAIL&quot;</span><span class="p">)</span>
 
-critical_fault = (
-    lamp1_fail or lamp2_fail or lamp3_fail or plasma_fail or mag_overheat
-)
+    <span class="c1"># 3. Plasma: se evalúa SOLO si pasaron más de 2 segundos desde el comando de encendido</span>
+    <span class="n">rf_grace_period_passed</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;rf_on_time&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">PLASMA_IGNITION_DELAY</span>
+    <span class="n">plasma_fail</span> <span class="o">=</span> <span class="p">(</span><span class="n">cmd_rf</span> <span class="ow">and</span> <span class="n">rf_grace_period_passed</span> <span class="ow">and</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;PLASMA_FAIL&quot;</span><span class="p">))</span>
 
-if critical_fault:
-    win.alarm_active = True
+    <span class="c1"># 4. Magnetrón (monitoreo continuo)</span>
+    <span class="n">mag_warning</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;MAGNETRON_WARNING&quot;</span><span class="p">)</span>
+    <span class="n">mag_overheat</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;MAGNETRON_OVERHEAT&quot;</span><span class="p">)</span>
 
-    # Apagado inmediato en hardware
-    hw.digital_set(&quot;LAMP1_ON_CMD&quot;, INACTIVE)
-    hw.digital_set(&quot;LAMP2_ON_CMD&quot;, INACTIVE)
-    hw.digital_set(&quot;LAMP3_ON_CMD&quot;, INACTIVE)
-    hw.digital_set(&quot;RF_ON_CMD&quot;, INACTIVE)
+    <span class="n">critical_fault</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">lamp1_fail</span> <span class="ow">or</span> <span class="n">lamp2_fail</span> <span class="ow">or</span> <span class="n">lamp3_fail</span> <span class="ow">or</span> <span class="n">plasma_fail</span> <span class="ow">or</span> <span class="n">mag_overheat</span>
+    <span class="p">)</span>
 
-    # Reset de banderas de software
-    win.state_lamps13_pulsing = False
-    win.lamp2_on = False
-    win.rf_on = False
+    <span class="k">if</span> <span class="n">critical_fault</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">True</span>
 
-    # Activar indicador de alarma físico
-    hw.digital_set(&quot;ALARM_INDICATION&quot;, ACTIVE)
+        <span class="c1"># Apagado inmediato en hardware</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP2_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;RF_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
 
-    # Reset visual de botones en UI
-    win.ui.MenuPrincipal_btn_centralLamp.setText(&quot;Lamp 2 On&quot;)
-    win.ui.MenuPrincipal_btn_centralLamp
+        <span class="c1"># Reset de banderas de software</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Activar indicador de alarma físico</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;ALARM_INDICATION&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+
+        <span class="c1"># Reset visual de botones en UI</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Lamp 2 On&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span>
 </code></pre></div>
 </details>
 

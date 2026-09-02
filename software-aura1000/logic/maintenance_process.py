@@ -128,8 +128,8 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
         # A. Cierre físico de válvulas de inyección y setpoints de MFCs
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
-        #win.hw.analog_write("MFC1_SETPOINT", 0.0)
-        #win.hw.analog_write("MFC2_SETPOINT", 0.0)
+        win.hw.analog_write("MFC1_SETPOINT", 0.0)
+        win.hw.analog_write("MFC2_SETPOINT", 0.0)
 
         # Reseteo del texto de los QLineEdit a "0"
         win.ui.MenuPrincipal_mfc1_setpoint.setText("0")

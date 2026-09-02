@@ -31,7 +31,12 @@ def update_pressure_display(win) -> bool:
     try:
         voltage = win.hw.analog_read("BARATRON")
         pressure_torr = max(0.0, voltage * (BARATRON_FULL_SCALE / 10.0))
+        # Indicacion de presion en menu Mantenimiento
         win.ui.MenuPrincipal_chamber_pressure.display(f"{pressure_torr:.3f}")
+        # Indicacion de presion en menu Throttle
+        win.ui.ThrottleMenu_chamber_pressure.display(f"{pressure_torr:.3f}")
+        # Llamada para ajuste de setpoint de throttle
+        win.throttle.update_pressure_loop(pressure_torr)
 
         # Lectura del switch de presión atmosférica
         atm_active = win.hw.digital_read("ATM_SWITCH")

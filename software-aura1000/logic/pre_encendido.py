@@ -18,7 +18,7 @@ def startup(win):
     win.hw.digital_set("FILAMENT_ENABLE", ACTIVE)
     
     # 3. Inicializa USB-2527
-    #win.hw.initialize_AD()  
+    win.hw.initialize_AD()  
     
     # 4. Modificar la interfaz gráfica directamente
     win.ui.PreEncendido_label2.setText("Iniciando, espere ...")

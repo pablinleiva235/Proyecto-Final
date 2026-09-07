@@ -56,6 +56,11 @@ class ThrottleController:
         self.ui.ThrottleMenu_step_set.clicked.connect(self.on_step_set_clicked)
         self.ui.ThrottleMenu_pressure_set.clicked.connect(self.on_start_auto_control)
         self.ui.ThrottleMenu_pressure_stop.clicked.connect(self.stop_auto_control)
+        # Deshabilita al inicio los botones de ajuste de presion hasta no hacer vacio
+        # Bloqueo de seguridad inicial al arrancar
+        self.ui.ThrottleMenu_pressure_set.setEnabled(False)
+        self.ui.ThrottleMenu_pressure_stop.setEnabled(False)
+        self.ui.ThrottleMenu_pressure_entry.setEnabled(False)
 
     # =============================================================================
     #     METODOS PARA CARGAR Y GUARDAR EL ULTIMO PASO DE LA THROTTLE (JSON)

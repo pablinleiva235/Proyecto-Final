@@ -40,6 +40,13 @@ def update_vent_button_state(win):
     else:
         win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
 
+def set_throttle_pressure_controls_enabled(win, enabled: bool):
+    """Habilita o deshabilita las entradas y botones de control de presión de la Throttle."""
+    if hasattr(win.ui, "ThrottleMenu_pressure_set"):
+        win.ui.ThrottleMenu_pressure_set.setEnabled(enabled)
+        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled)
+        win.ui.ThrottleMenu_pressure_entry.setEnabled(enabled)
+
 # =============================================================================
 # INICIALIZACION
 # =============================================================================
@@ -119,6 +126,11 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
     win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
     win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
+
+    # -------------------------------------------------------------------------
+    # 3. Deshabilitar control de Presión (Menú Throttle)
+    # -------------------------------------------------------------------------
+    set_throttle_pressure_controls_enabled(win, enabled)
 
     # -------------------------------------------------------------------------
     # 3. Si se deshabilitan por pérdida de vacío / venteo:
@@ -357,7 +369,6 @@ def finish_vent_sequence(win):
     win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
-    win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
     set_mfc_lamps_controls_enabled(win, False)

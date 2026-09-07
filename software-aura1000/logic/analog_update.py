@@ -123,14 +123,23 @@ def _check_mfc_faults(win):
             fault_detected = True
             failed_gases.append("N2 (MFC2)")
 
-    # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
+# 3. Disparar corte si falló o rehabilitar si el caudal es correcto
     if fault_detected:
         _trigger_mfc_safety_shutdown(win, failed_gases)
     else:
-        if not getattr(win, "alarm_active", False):
-            win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
-            win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
-            win.ui.MenuPrincipal_btn_centralLamp.setEnabled(True)
+        main_vacuum_on = (win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off")
+        alarm_active = getattr(win, "alarm_active", False)
+
+        is_safe = main_vacuum_on and not alarm_active
+
+        win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe)
+        win.ui.MenuPrincipal_btn_outerLamps.setEnabled(is_safe)
+        win.ui.MenuPrincipal_btn_centralLamp.setEnabled(is_safe)
+
+        if hasattr(win.ui, "ThrottleMenu_pressure_set"):
+            win.ui.ThrottleMenu_pressure_set.setEnabled(is_safe)
+            win.ui.ThrottleMenu_pressure_stop.setEnabled(is_safe)
+            win.ui.ThrottleMenu_pressure_entry.setEnabled(is_safe)
 
 def _trigger_mfc_safety_shutdown(win, failed_gases):
     """Ejecuta las acciones de seguridad al detectar desvío de caudal."""

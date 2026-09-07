@@ -31,7 +31,12 @@ def update_pressure_display(win) -> bool:
     try:
         voltage = win.hw.analog_read("BARATRON")
         pressure_torr = max(0.0, voltage * (BARATRON_FULL_SCALE / 10.0))
+        # Indicacion de presion en menu Mantenimiento
         win.ui.MenuPrincipal_chamber_pressure.display(f"{pressure_torr:.3f}")
+        # Indicacion de presion en menu Throttle
+        win.ui.ThrottleMenu_chamber_pressure.display(f"{pressure_torr:.3f}")
+        # Llamada para ajuste de setpoint de throttle
+        win.throttle.update_pressure_loop(pressure_torr)
 
         # Lectura del switch de presión atmosférica
         atm_active = win.hw.digital_read("ATM_SWITCH")
@@ -118,14 +123,23 @@ def _check_mfc_faults(win):
             fault_detected = True
             failed_gases.append("N2 (MFC2)")
 
-    # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
+# 3. Disparar corte si falló o rehabilitar si el caudal es correcto
     if fault_detected:
         _trigger_mfc_safety_shutdown(win, failed_gases)
     else:
-        if not getattr(win, "alarm_active", False):
-            win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
-            win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
-            win.ui.MenuPrincipal_btn_centralLamp.setEnabled(True)
+        main_vacuum_on = (win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off")
+        alarm_active = getattr(win, "alarm_active", False)
+
+        is_safe = main_vacuum_on and not alarm_active
+
+        win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe)
+        win.ui.MenuPrincipal_btn_outerLamps.setEnabled(is_safe)
+        win.ui.MenuPrincipal_btn_centralLamp.setEnabled(is_safe)
+
+        if hasattr(win.ui, "ThrottleMenu_pressure_set"):
+            win.ui.ThrottleMenu_pressure_set.setEnabled(is_safe)
+            win.ui.ThrottleMenu_pressure_stop.setEnabled(is_safe)
+            win.ui.ThrottleMenu_pressure_entry.setEnabled(is_safe)
 
 def _trigger_mfc_safety_shutdown(win, failed_gases):
     """Ejecuta las acciones de seguridad al detectar desvío de caudal."""

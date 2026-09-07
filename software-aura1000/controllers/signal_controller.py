@@ -27,7 +27,7 @@ from functools import partial
 from typing import Dict, Iterable, Optional, Set
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
-
+import time
 
 class SignalController(QObject):
     """Gestiona el monitoreo y control lógico de señales digitales."""
@@ -187,13 +187,13 @@ class SignalController(QObject):
         requested_state: bool,
     ) -> None:
         """Ejecuta y confirma el cambio solicitado sobre una salida."""
-
+        
         try:
             self._hardware.digital_set(
                 signal_name,
                 requested_state,
             )
-
+            
             # La escritura no se considera confirmada únicamente porque
             # digital_set() terminó. Se realiza una lectura posterior.
             confirmed_state = self._hardware.digital_read(
@@ -238,7 +238,6 @@ class SignalController(QObject):
 
     def _poll_signals(self) -> None:
         """Lee todas las señales configuradas para monitoreo."""
-
         for signal_name in self._monitored_signals:
 
             # Una salida en procesamiento se actualiza mediante
@@ -273,11 +272,11 @@ class SignalController(QObject):
                 signal_name
             )
 
-            print(
+            """ print(
                 f"[SignalController] READ "
                 f"{signal_name}: {active}"
-            )
-
+            ) """
+        
     # =========================================================================
     # Gestión de estados
     # =========================================================================

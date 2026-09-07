@@ -6,5 +6,8 @@ del desarrollo. En el futuro deberán reemplazarse por un mecanismo de
 autenticación más seguro.
 """
 
-MAINTAINER_USERNAME = "admin"
-MAINTAINER_PASSWORD = "admin"
+#MAINTAINER_USERNAME = "admin"
+#MAINTAINER_PASSWORD = "admin"
+
+MAINTAINER_USERNAME = ""
+MAINTAINER_PASSWORD = ""

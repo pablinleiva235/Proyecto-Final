@@ -1,49 +1,31 @@
 """
-Implementación simulada de Hardware para pruebas.
+Simulación del hardware utilizada para desarrollo de la GUI.
 
-MockHardware permite probar SignalController sin utilizar la placa
-USB-DIO96H-50 ni cargar las DLL del fabricante.
-
-Implementa únicamente las funciones necesarias para este hito:
-
-- digital_read()
-- digital_set()
-
-La escritura posee una demora artificial para simular el tiempo de
-comunicación con el hardware.
+MockHardware implementa la misma interfaz pública utilizada por los
+controladores, pero no accede a drivers ni placas físicas.
 """
 
 
 class MockHardware:
-    """Simula el estado lógico de un conjunto de señales digitales."""
-
-    WRITE_DELAY_SECONDS = 1
 
     def __init__(self):
-        self._states = {
-            "POWER_ON": False,
-            "POWER_ON_SWITCH": False,
-            "SYS_POWER": True,
-            "DRIVER_ENABLE": False,
-        }
-
-        self._outputs = {
-            "POWER_ON",
-            "DRIVER_ENABLE",
-        }
-
-    def digital_read(self, signal_name):
-        """Devuelve el estado lógico actual de una señal."""
-
-        if signal_name not in self._states:
-            raise KeyError(
-                f"La señal '{signal_name}' no existe en MockHardware."
-            )
-
-        state = self._states[signal_name]
+        self._digital_states = {}
 
         print(
-            f"[MockHardware] READ  {signal_name}: {state}"
+            "[MockHardware] Hardware simulado inicializado."
+        )
+
+    def digital_read(self, signal_name):
+        """Simula la lectura de una señal digital."""
+
+        state = self._digital_states.get(
+            signal_name,
+            False,
+        )
+
+        print(
+            f"[MockHardware] READ "
+            f"{signal_name} -> {state}"
         )
 
         return state
@@ -53,37 +35,32 @@ class MockHardware:
         signal_name,
         active,
     ):
-        """Modifica el estado lógico de una salida simulada.
+        """Simula la escritura de una salida digital."""
 
-        Se introduce una demora artificial de un segundo antes de realizar
-        el cambio para simular una operación de hardware.
-        """
-
-        if signal_name not in self._states:
-            raise KeyError(
-                f"La señal '{signal_name}' no existe en MockHardware."
-            )
-
-        if signal_name not in self._outputs:
-            raise ValueError(
-                f"La señal '{signal_name}' no es una salida."
-            )
-
-        if not isinstance(active, bool):
-            raise TypeError(
-                "'active' debe ser un valor booleano."
-            )
+        self._digital_states[
+            signal_name
+        ] = bool(active)
 
         print(
-            f"[MockHardware] WRITE START "
-            f"{signal_name}: {active}"
+            f"[MockHardware] WRITE "
+            f"{signal_name} -> {bool(active)}"
         )
 
-    
+    def set_input_state(self, signal_name, active):
+        """
+        Simula un cambio físico en una señal de entrada digital.
 
-        self._states[signal_name] = active
+        Utilizado únicamente durante pruebas con MockHardware.
+        """
+        self._digital_states[signal_name] = bool(active)
+        print(
+            f"[MockHardware] INPUT "
+            f"{signal_name} -> {bool(active)}"
+        )
+
+    def initialize_AD(self):
+        """Simula la inicialización de la placa analógica."""
 
         print(
-            f"[MockHardware] WRITE END   "
-            f"{signal_name}: {active}"
+            "[MockHardware] initialize_AD()"
         )

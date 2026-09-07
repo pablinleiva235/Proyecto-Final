@@ -18,7 +18,14 @@ from PyQt5.QtWidgets import QApplication
 
 from config_gui.theme import APP_STYLE
 
-from services.hardware import Hardware
+from config_gui.app_config import USE_MOCK_HARDWARE
+
+if USE_MOCK_HARDWARE:
+    from tests.mockScripts.mock_hardware import MockHardware
+    from tests.mockScripts.controllers.simulation_controller import SimulationController
+else:
+    from services.hardware import Hardware
+
 
 from logic.pre_encendido import StartupSequence
 
@@ -50,7 +57,19 @@ def main():
     # - La secuencia de pre-encendido.
     # - La supervisión del arranque.
     # - El monitoreo y control desde MaintainerScreen.
-    hardware = Hardware()
+    if USE_MOCK_HARDWARE:
+        hardware = MockHardware()
+    else:
+        hardware = Hardware()
+
+    if USE_MOCK_HARDWARE:
+        simulation_controller = SimulationController(
+            hardware=hardware,
+        )
+
+        app.installEventFilter(
+            simulation_controller
+        )
 
     # =========================================================================
     # Secuencia física de pre-encendido

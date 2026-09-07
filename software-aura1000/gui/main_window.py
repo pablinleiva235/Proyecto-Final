@@ -1,3 +1,4 @@
+
 #from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -40,6 +41,8 @@ from gui.login_dialog import LoginDialog
 
 #from services.hardware import Hardware
 #from tests.mockScripts.mock_hardware import MockHardware
+
+from logic.door_sequence import DoorSequence
 
 # gui-developement
 class MainWindow(QMainWindow):
@@ -92,7 +95,11 @@ class MainWindow(QMainWindow):
             hardware=self.hardware,
             monitored_signals=MAINTAINER_SIGNALS,
             output_signals=MAINTAINER_OUTPUT_SIGNALS,
-            poll_interval_ms=500,
+            poll_interval_ms=100,
+        )
+
+        self.door_sequence = DoorSequence(
+            hardware=self.hardware
         )
 
     def setup_layout(self):
@@ -150,6 +157,33 @@ class MainWindow(QMainWindow):
             self._handle_signal_error
         )
 
+
+        # ====================
+        # Sequencias definidas
+        # ====================
+        # Control y cierre de puerta
+        self.maintainer_screen.door_sequence_requested.connect(
+           self.door_sequence.toggle
+        )
+
+        # ====================
+        # TEST sequencias borrar
+        # ====================
+        self.maintainer_screen.soft_vacuum_sequence_requested.connect(
+            lambda: print("[Maintainer] Soft Vacuum solicitado")
+        )
+
+        self.maintainer_screen.main_vacuum_sequence_requested.connect(
+            lambda: print("[Maintainer] Main Vacuum solicitado")
+        )
+
+        self.maintainer_screen.vent_chamber_sequence_requested.connect(
+            lambda: print("[Maintainer] Vanteo de Cámara solicitado")
+        )
+        # ====================
+        # Fin TEST sequencias
+        # ====================
+
     def _show_welcome_screen(self):
         # Muestra la pantalla de bienvenida
         self.signal_controller.stop_monitoring()
@@ -202,7 +236,6 @@ class MainWindow(QMainWindow):
 
         if response == QMessageBox.Yes:
             self.close()
-
 
 
 # main 

@@ -108,6 +108,38 @@ QLabel#TopBarTitle {{
     font-weight: bold;
 }}
 
+QLabel#TopBarDate {{
+    background-color: transparent;
+    color: {TEXT_MUTED_COLOR};
+    font-size: {TEXT_FONT_SIZE}px;
+    font-weight: 500;
+}}
+
+QLabel#TopBarTime {{
+    background-color: transparent;
+    color: {TEXT_COLOR};
+    font-size: {TEXT_FONT_SIZE}px;
+    font-weight: bold;
+    min-width: 80px;
+}}
+
+/* -------------------------------------------------------------------------- */
+/* Botón de configuración                                                     */
+/* -------------------------------------------------------------------------- */
+
+QPushButton#SettingsButton {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+    border: 2px solid {PRIMARY_COLOR};
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: {BUTTON_FONT_SIZE}px;
+}}
+
+QPushButton#SettingsButton:hover {{
+    background-color: {SURFACE_HOVER_COLOR};
+}}
+
 /* -------------------------------------------------------------------------- */
 /* Startup Screen                                                             */
 /* -------------------------------------------------------------------------- */
@@ -235,6 +267,49 @@ QPushButton#CancelButton {{
 
 QPushButton#CancelButton:hover {{
     background-color: {SURFACE_HOVER_COLOR};
+}}
+
+/* ========================================================================== */
+/* MaintainerScreen - Tabs                                                    */
+/* ========================================================================== */
+
+QTabWidget#MaintainerTabs::pane {{
+    background-color: {BACKGROUND_COLOR};
+    border: 2px solid {SURFACE_HOVER_COLOR};
+    border-radius: 8px;
+    top: -1px;
+}}
+
+QTabWidget#MaintainerTabs QTabBar::tab {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
+
+    border: 2px solid {SURFACE_HOVER_COLOR};
+    border-bottom: none;
+
+    padding: 12px 28px;
+    margin-right: 4px;
+
+    min-width: 180px;
+
+    font-size: 18px;
+    font-weight: bold;
+}}
+
+QTabWidget#MaintainerTabs QTabBar::tab:selected {{
+    background-color: {PRIMARY_COLOR};
+    color: {TEXT_COLOR};
+
+    border-color: {PRIMARY_COLOR};
+}}
+
+QTabWidget#MaintainerTabs QTabBar::tab:!selected {{
+    margin-top: 4px;
+}}
+
+QTabWidget#MaintainerTabs QTabBar::tab:hover {{
+    background-color: {SURFACE_HOVER_COLOR};
+    color: {TEXT_COLOR};
 }}
 
 /* -------------------------------------------------------------------------- */

@@ -110,6 +110,18 @@ STATISTICS_PLACEHOLDER = "Pantalla temporal de estadísticas"
 BACK_BUTTON_TEXT = "Volver"
 
 
+# =============================================================================
+# Pantalla de mantenimiento
+# =============================================================================
+
+MAINTAINER_SECUENCES_TAB = "Modulos"
+MAINTAINER_SIGNALS_TAB = "DIO - Digital Input Output"
+
+DOOR_SEQUENCE_BUTTON = "Control de Puerta"
+SOFT_VACUUM_SEQUENCE_BUTTON = "Soft Vacuum"
+MAIN_VACUUM_SEQUENCE_BUTTON = "Main Vacuum"
+VENT_CHAMBER_SEQUENCE_BUTTON = "Vanteo de Cámara"
+
 
 # =============================================================================
 # SEÑALES

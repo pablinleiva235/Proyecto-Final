@@ -12,7 +12,7 @@
         <link rel="prev" href="pre_encendido.html">
       
       
-        <link rel="next" href="timers_io.html">
+        <link rel="next" href="throttle_test.html">
       
       
         
@@ -1058,10 +1058,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#chequeo-de-modulos-de-potencia-encendidos-y-estado-del-boton-de-venteo" class="md-nav__link">
+  <a href="#metodos-auxiliares" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Chequeo de modulos de potencia encendidos y estado del boton de venteo
+        Metodos auxiliares
       
     </span>
   </a>
@@ -1160,6 +1160,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="throttle_test.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos para control de valvula throttle (throttle_test.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1437,10 +1465,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#chequeo-de-modulos-de-potencia-encendidos-y-estado-del-boton-de-venteo" class="md-nav__link">
+  <a href="#metodos-auxiliares" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Chequeo de modulos de potencia encendidos y estado del boton de venteo
+        Metodos auxiliares
       
     </span>
   </a>
@@ -1570,7 +1598,7 @@
 </code></pre></div>
 </details>
 <hr />
-<h2 id="chequeo-de-modulos-de-potencia-encendidos-y-estado-del-boton-de-venteo"><span style="color: #4CAF50;">Chequeo de modulos de potencia encendidos y estado del boton de venteo</span></h2>
+<h2 id="metodos-auxiliares"><span style="color: #4CAF50;">Metodos auxiliares</span></h2>
 <details class="note">
 <summary><code>check_active_power(win)</code></summary>
 <p>Comprueba si hay alguna lámpara o el plasma activados</p>
@@ -1597,6 +1625,16 @@ Se llama en las funciones que habilitan valvulas de vacio y las de control de la
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary><code>set_throttle_pressure_controls_enabled(win)</code></summary>
+<p>Habilita o deshabilita las entradas y botones de control de presión de la Throttle, para habilitar solo en vacio o sin fallas, es llamado desde <code>set_mfc_lamps_controls_enabled</code> y desde <code>toggle_main_vacuum</code></p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_throttle_pressure_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_set&quot;</span><span class="p">):</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <hr />
@@ -1682,6 +1720,11 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_outerLamps_pulseTime</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># 3. Deshabilitar control de Presión (Menú Throttle)</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">set_throttle_pressure_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">enabled</span><span class="p">)</span>
 
     <span class="c1"># -------------------------------------------------------------------------</span>
     <span class="c1"># 3. Si se deshabilitan por pérdida de vacío / venteo:</span>

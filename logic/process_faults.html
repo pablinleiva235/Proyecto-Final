@@ -1015,6 +1015,34 @@
   
   
     <li class="md-nav__item">
+      <a href="throttle_test.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos para control de valvula throttle (throttle_test.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="timers_io.html" class="md-nav__link">
         
   
@@ -1366,7 +1394,7 @@
 <li><strong>Generador de Plasma / RF:</strong> Aplica un tiempo de gracia de <strong>2.0 segundos</strong> (<code>PLASMA_IGNITION_DELAY</code>) desde la habilitación del comando para contemplar la ventana de ionización del gas antes de evaluar el pin de falla (<code>PLASMA_FAIL</code>), evitando así disparos en falso por retardo en el encendido.</li>
 <li><strong>Protección Térmica del Magnetrón:</strong> Monitorea de forma continua los sensores de sobretemperatura (<code>MAGNETRON_WARNING</code> a 85 °C y <code>MAGNETRON_OVERHEAT</code> a 93 °C).</li>
 </ul>
-<p>Ante la presencia de una <strong>falla crítica</strong> (falla en cualquier lámpara, caída de plasma fuera del ventana de gracia o sobrecalentamiento del magnetrón), apaga de forma inmediata las órdenes de encendido en el hardware, enciende el indicador físico de alarma (<code>ALARM_INDICATION</code>), resetea los estados visuales en la interfaz gráfica y despliega una ventana modal notificando al operario las causas específicas de la interrupción.</p>
+<p>Ante la presencia de una <strong>falla crítica</strong> (falla en cualquier lámpara, caída de plasma fuera del ventana de gracia o sobrecalentamiento del magnetrón), detiene la throttle si estaba ajustando, apaga de forma inmediata las órdenes de encendido en el hardware, enciende el indicador físico de alarma (<code>ALARM_INDICATION</code>), resetea los estados visuales en la interfaz gráfica y despliega una ventana modal notificando al operario las causas específicas de la interrupción.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Tiempo de gracia para dar margen a la ionización del plasma antes de evaluar la falla</span>
 <span class="n">PLASMA_IGNITION_DELAY</span> <span class="o">=</span> <span class="mf">2.0</span>  <span class="c1"># en segundos</span>
 
@@ -1401,30 +1429,79 @@
     <span class="n">mag_warning</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;MAGNETRON_WARNING&quot;</span><span class="p">)</span>
     <span class="n">mag_overheat</span> <span class="o">=</span> <span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;MAGNETRON_OVERHEAT&quot;</span><span class="p">)</span>
 
-    <span class="n">critical_fault</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">lamp1_fail</span> <span class="ow">or</span> <span class="n">lamp2_fail</span> <span class="ow">or</span> <span class="n">lamp3_fail</span> <span class="ow">or</span> <span class="n">plasma_fail</span> <span class="ow">or</span> <span class="n">mag_overheat</span>
-    <span class="p">)</span>
+    <span class="n">critical_fault</span> <span class="o">=</span> <span class="p">(</span><span class="n">lamp1_fail</span> <span class="ow">or</span> <span class="n">lamp2_fail</span> <span class="ow">or</span> <span class="n">lamp3_fail</span> <span class="ow">or</span> <span class="n">plasma_fail</span> <span class="ow">or</span> <span class="n">mag_overheat</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">critical_fault</span><span class="p">:</span>
         <span class="n">win</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="c1"># Apagado inmediato en hardware</span>
+        <span class="c1"># 1 - Detener el motor y el control de la Throttle Valve ──────</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_auto_control</span><span class="p">()</span>  <span class="c1"># Detiene la regulación y congela el moto</span>
+
+        <span class="c1"># 2 - Apagado inmediato en hardware</span>
         <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP1_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP2_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;LAMP3_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
         <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;RF_ON_CMD&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
 
-        <span class="c1"># Reset de banderas de software</span>
+        <span class="c1"># 3 - Reset de banderas de software</span>
         <span class="n">win</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">win</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">win</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="c1"># Activar indicador de alarma físico</span>
+        <span class="c1"># 4 - Activar indicador de alarma físico</span>
         <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;ALARM_INDICATION&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
 
-        <span class="c1"># Reset visual de botones en UI</span>
+        <span class="c1"># 5 - Reset visual de botones en UI</span>
         <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Lamp 2 On&quot;</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Plasma On&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># 6 - Mensaje de alarma</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">lamp1_fail</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;• Falla en Lámpara 1 (Pérdida de corriente)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lamp2_fail</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;• Falla en Lámpara 2 (Pérdida de corriente)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lamp3_fail</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;• Falla en Lámpara 3 (Pérdida de corriente)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plasma_fail</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;• Falla en Plasma (No logró encender o se cortó la RF)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mag_overheat</span><span class="p">:</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;• Sobrecalentamiento de Magnetrón (93°C)&quot;</span><span class="p">)</span>
+
+        <span class="n">msg_text</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Se ha interrumpido la operación por seguridad debido a:</span><span class="se">\n\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="kn">import</span><span class="w"> </span><span class="nn">logic.maintenance_process</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+
+        <span class="n">mp</span><span class="o">.</span><span class="n">update_vent_button_state</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+
+        <span class="c1"># Ventana de diálogo modal</span>
+        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;¡ALERTA DE SEGURIDAD!&quot;</span><span class="p">,</span> <span class="n">msg_text</span><span class="p">,</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span>
+
+        <span class="n">win</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">elif</span> <span class="n">mag_warning</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;warning_mag_shown&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">warning_mag_shown</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;ALARM_INDICATION&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+
+            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Advertencia de Temperatura&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;El Magnetrón ha alcanzado los 85°C (MAGNETRON_WARNING).</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;El proceso continúa, pero vigile la temperatura.&quot;</span><span class="p">,</span>
+                <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;ALARM_INDICATION&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">warning_mag_shown</span> <span class="o">=</span> <span class="kc">False</span>
 </code></pre></div>
 </details>
 

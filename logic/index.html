@@ -1073,6 +1073,34 @@
   
   
     <li class="md-nav__item">
+      <a href="throttle_test.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos para control de valvula throttle (throttle_test.py)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="timers_io.html" class="md-nav__link">
         
   
@@ -1360,13 +1388,16 @@
 <h2 id="modulos-disponibles">Módulos Disponibles</h2>
 <ul>
 <li>
-<p><strong><a href="timers_io.html">Administrador central de Timers y lazo de lectura de entradas (timers_io.py)</a>:</strong> Funciona como el "corazón" síncrono del software. Centraliza la declaración de todos los temporizadores del sistema y ejecuta de manera continua el lazo periódico de 100 ms para la lectura de entradas digitales críticas. Filtra las acciones de hardware dependiendo del estado activo del equipo y notifica a la ventana las solicitudes de cambio de estado.</p>
-</li>
-<li>
 <p><strong><a href="pre_encendido.html">Secuencia de Encendido (pre_encendido.py)</a>:</strong> Implementa el algoritmo de control para el encendido del plasma asher. Gobierna de forma directa el enclavamiento eléctrico por software, inicializa la USB-2527, comuta el estado de las etiquetas en pantalla y manipula linealmente la barra de progreso de 10 segundos para garantizar la estabilización térmica y eléctrica del equipo antes de habilitar la operación.</p>
 </li>
 <li>
 <p><strong><a href="maintenance_process.html">Proceso en modo mantenimiento (maintenance_process.py)</a>:</strong> Este modulo agrupa metodos para poder ir probando mediante la interfaz, de manera secuencial, los distintos modulos que utiliza el proceso. La idea es que quede en el modo mantenimiento para poder hacer un proceso de forma no automatica y probar que los modulos esten funcionando correctamente</p>
+</li>
+<li>
+<p><strong><a href="throttle_test.html">Control de valvula throttle (throttle_test.py)</a>:</strong> Este modulo tiene la clase ThrottleController con metodos integrados en el Menu Throttle de la UI para poder controlar la misma de forma manual, girando el motor paso a paso continuamente, en full o half step, en ambas direcciones, moverlo de a cantidad de pasos deseados y ajustar el setpoint de presion mediante el sistema de control</p>
+</li>
+<li>
+<p><strong><a href="timers_io.html">Administrador central de Timers y lazo de lectura de entradas (timers_io.py)</a>:</strong> Funciona como el "corazón" síncrono del software. Centraliza la declaración de todos los temporizadores del sistema y ejecuta de manera continua el lazo periódico de 100 ms para la lectura de entradas digitales críticas. Filtra las acciones de hardware dependiendo del estado activo del equipo y notifica a la ventana las solicitudes de cambio de estado.</p>
 </li>
 <li>
 <p><strong><a href="analog_update.html">Actualizacion de lecturas analogicas (analog_update.py)</a>:</strong> Este modulo tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz</p>

@@ -110,7 +110,7 @@ El módulo `analog_update.py` tiene los metodos llamados en el timer general cad
 ## <span style="color: #4CAF50;">Metodos auxiliares para deteccion de fallas en caso de MFCs fuera de rango</span>
 
 ??? note "Chequeo de readout de MFCs fuera de rango": `_check_mfc_faults(win)`"
-    Verifica si el promedio de lecturas de los últimos 3s difiere en más del 5% del target.
+    Verifica si el promedio de lecturas de los últimos 3s difiere en más del 5% del target, si es asi llama a `_trigger_mfc_safety_shutdown`
 
     ```python
     def _check_mfc_faults(win):
@@ -139,14 +139,23 @@ El módulo `analog_update.py` tiene los metodos llamados en el timer general cad
                 fault_detected = True
                 failed_gases.append("N2 (MFC2)")
 
-        # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
+    # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
         if fault_detected:
             _trigger_mfc_safety_shutdown(win, failed_gases)
         else:
-            if not getattr(win, "alarm_active", False):
-                win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
-                win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
-                win.ui.MenuPrincipal_btn_centralLamp.setEnabled(True)
+            main_vacuum_on = (win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off")
+            alarm_active = getattr(win, "alarm_active", False)
+
+            is_safe = main_vacuum_on and not alarm_active
+
+            win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe)
+            win.ui.MenuPrincipal_btn_outerLamps.setEnabled(is_safe)
+            win.ui.MenuPrincipal_btn_centralLamp.setEnabled(is_safe)
+
+            if hasattr(win.ui, "ThrottleMenu_pressure_set"):
+                win.ui.ThrottleMenu_pressure_set.setEnabled(is_safe)
+                win.ui.ThrottleMenu_pressure_stop.setEnabled(is_safe)
+                win.ui.ThrottleMenu_pressure_entry.setEnabled(is_safe)
     ```
 
 ??? note " Apagado de plasma y lamparas en caso de falla de MFCs: `_trigger_mfc_safety_shutdown(win)`"

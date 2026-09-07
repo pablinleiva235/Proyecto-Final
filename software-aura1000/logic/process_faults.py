@@ -37,28 +37,30 @@ def check_process_faults(win, hw):
     mag_warning = hw.digital_read("MAGNETRON_WARNING")
     mag_overheat = hw.digital_read("MAGNETRON_OVERHEAT")
 
-    critical_fault = (
-        lamp1_fail or lamp2_fail or lamp3_fail or plasma_fail or mag_overheat
-    )
+    critical_fault = (lamp1_fail or lamp2_fail or lamp3_fail or plasma_fail or mag_overheat)
 
     if critical_fault:
         win.alarm_active = True
 
-        # Apagado inmediato en hardware
+        # 1 - Detener el motor y el control de la Throttle Valve ──────
+        if hasattr(win, "throttle"):
+            win.throttle.stop_auto_control()  # Detiene la regulación y congela el moto
+
+        # 2 - Apagado inmediato en hardware
         hw.digital_set("LAMP1_ON_CMD", INACTIVE)
         hw.digital_set("LAMP2_ON_CMD", INACTIVE)
         hw.digital_set("LAMP3_ON_CMD", INACTIVE)
         hw.digital_set("RF_ON_CMD", INACTIVE)
 
-        # Reset de banderas de software
+        # 3 - Reset de banderas de software
         win.state_lamps13_pulsing = False
         win.lamp2_on = False
         win.rf_on = False
 
-        # Activar indicador de alarma físico
+        # 4 - Activar indicador de alarma físico
         hw.digital_set("ALARM_INDICATION", ACTIVE)
 
-        # Reset visual de botones en UI
+        # 5 - Reset visual de botones en UI
         win.ui.MenuPrincipal_btn_centralLamp.setText("Lamp 2 On")
         win.ui.MenuPrincipal_btn_centralLamp.setStyleSheet("")
 
@@ -68,7 +70,7 @@ def check_process_faults(win, hw):
         win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
         win.ui.MenuPrincipal_btn_outerLamps.setStyleSheet("")
 
-        # Mensaje de alarma
+        # 6 - Mensaje de alarma
         messages = []
         if lamp1_fail:
             messages.append("• Falla en Lámpara 1 (Pérdida de corriente)")
@@ -77,15 +79,11 @@ def check_process_faults(win, hw):
         if lamp3_fail:
             messages.append("• Falla en Lámpara 3 (Pérdida de corriente)")
         if plasma_fail:
-            messages.append(
-                "• Falla en Plasma (No logró encender o se cortó la RF)"
-            )
+            messages.append("• Falla en Plasma (No logró encender o se cortó la RF)")
         if mag_overheat:
             messages.append("• Sobrecalentamiento de Magnetrón (93°C)")
 
-        msg_text = (
-            "Se ha interrumpido la operación por seguridad debido a:\n\n"
-            + "\n".join(messages)
+        msg_text = ("Se ha interrumpido la operación por seguridad debido a:\n\n" + "\n".join(messages)
         )
 
         import logic.maintenance_process as mp
@@ -93,9 +91,7 @@ def check_process_faults(win, hw):
         mp.update_vent_button_state(win)
 
         # Ventana de diálogo modal
-        QtWidgets.QMessageBox.warning(
-            win, "¡ALERTA DE SEGURIDAD!", msg_text, QtWidgets.QMessageBox.Ok
-        )
+        QtWidgets.QMessageBox.warning(win, "¡ALERTA DE SEGURIDAD!", msg_text, QtWidgets.QMessageBox.Ok)
 
         win.alarm_active = False
 

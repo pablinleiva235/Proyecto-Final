@@ -47,7 +47,10 @@ Para facilitar el análisis del código y el mantenimiento en el laboratorio, po
 6. **[Logica <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic)</span>](logic/index.md)**
     * **[Pre Encendido <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/pre_encendido.py)</span>](logic/pre_encendido.md)**
     * **[Proceso en modo mantenimiento <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/maintenance_process.py)</span>](logic/maintenance_process.md)**
+    * **[Control de valvula throttle <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/throttle_test.py)</span>](logic/throttle_test.md)**
     * **[Gestion de timers y entradas digitales<span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/timers_io.py)</span>](logic/timers_io.md)**    
+    * **[Actualizacion de lecturas analogicas <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/analog_update.py)</span>](logic/analog_update.md)**
+    * **[Chequeo de fallas de proceso <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/logic/process_faults.py)</span>](logic/process_faults.md)**
 7. **[Intermediario entre GUI y Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services)</span>](services/index.md)**
     * **[Abstracción de Hardware <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services/hardware.py)</span>](services/hardware.md)**
     * **[Estados de máquina de estados <span style="color: #9e9e9e; font-weight: normal; font-size: 0.9em;">(/services/system_state.py)</span>](services/system_state.md)**

@@ -21,7 +21,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 ---
 
-## <span style="color: #4CAF50;">Chequeo de modulos de potencia encendidos y estado del boton de venteo</span>
+## <span style="color: #4CAF50;">Metodos auxiliares</span>
 
 ??? note "`check_active_power(win)`"
     Comprueba si hay alguna lámpara o el plasma activados
@@ -51,6 +51,17 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(True)
         else:
             win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
+    ```
+
+??? note "`set_throttle_pressure_controls_enabled(win)`"
+    Habilita o deshabilita las entradas y botones de control de presión de la Throttle, para habilitar solo en vacio o sin fallas, es llamado desde `set_mfc_lamps_controls_enabled` y desde `toggle_main_vacuum`
+
+    ```python
+    def set_throttle_pressure_controls_enabled(win, enabled: bool):
+    if hasattr(win.ui, "ThrottleMenu_pressure_set"):
+        win.ui.ThrottleMenu_pressure_set.setEnabled(enabled)
+        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled)
+        win.ui.ThrottleMenu_pressure_entry.setEnabled(enabled)
     ```
 ---
 
@@ -141,6 +152,11 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
         win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
         win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
+
+        # -------------------------------------------------------------------------
+        # 3. Deshabilitar control de Presión (Menú Throttle)
+        # -------------------------------------------------------------------------
+        set_throttle_pressure_controls_enabled(win, enabled)
 
         # -------------------------------------------------------------------------
         # 3. Si se deshabilitan por pérdida de vacío / venteo:

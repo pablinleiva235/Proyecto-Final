@@ -1103,7 +1103,7 @@
          </font>
         </property>
         <property name="text">
-         <string>0 - 200</string>
+         <string>0 - 1400</string>
         </property>
        </widget>
        <widget class="QLCDNumber" name="ThrottleMenu_step_counter">
@@ -1207,7 +1207,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/Pablo Leiva/Downloads/arrow2.jpg</pixmap>
+         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -1364,7 +1364,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>C:/Users/Pablo Leiva/Downloads/arrow2.jpg</pixmap>
+         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>

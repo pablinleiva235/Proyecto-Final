@@ -36,7 +36,7 @@ class ThrottleController:
 
         # Parámetros de Control de Presión 
         self.target_pressure = 0.0  # Setpoint en Torr
-        self.deadband = 0.015  # Tolerancia (+/- Torr)
+        self.deadband = 0.035  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
 
         # Listas para graficar ajuste de presion en funcion del tiempo
@@ -140,12 +140,14 @@ class ThrottleController:
 
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
 
+        '''
         # Abrir automáticamente
         if sys.platform == "win32":
             os.startfile(filename)
         else:
             subprocess.Popen(["xdg-open", filename])
-
+        '''
+        
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
     # =============================================================================  
@@ -453,16 +455,16 @@ class ThrottleController:
             val_text = self.ui.ThrottleMenu_step_entry.text().strip()
             steps = int(val_text)
 
-            if 0 < steps <= 200:
+            if 0 < steps <= 1400:
                 self.start_movement(self.SPEED_MS, steps=steps)
             else:
                 QMessageBox.warning(
                     self.win,
                     "Rango Inválido",
-                    "Ingrese un número de pasos entre 1 y 200.",
+                    "Ingrese un número de pasos entre 1 y 1400.",
                     QMessageBox.Ok,
                 )
-                print("[THROTTLE] Valor fuera de rango (debe ser entre 1 y 200).")
+                print("[THROTTLE] Valor fuera de rango (debe ser entre 1 y 1400).")
 
         except ValueError:
             QMessageBox.warning(

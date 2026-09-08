@@ -45,20 +45,6 @@ def update_vent_button_state(win):
     else:
         win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
 
-def set_throttle_pressure_controls_enabled(win, enabled: bool):
-    """Habilita o deshabilita las entradas y botones de control de presión de la Throttle."""
-    if hasattr(win.ui, "ThrottleMenu_pressure_set"):
-        win.ui.ThrottleMenu_pressure_set.setEnabled(enabled)
-        win.ui.ThrottleMenu_pressure_entry.setEnabled(enabled)
-
-        # Averiguar si el lazo automático de presión de la Throttle está activo
-        is_throttle_running = False
-        if hasattr(win, "throttle"):
-            is_throttle_running = getattr(win.throttle, "auto_control_enabled", False)
-
-        # El botón STOP solo se habilita si hay vacío y el control automático de presion esta activo
-        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled and is_throttle_running)
-
 # =============================================================================
 # INICIALIZACION
 # =============================================================================
@@ -151,12 +137,7 @@ def set_process_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_temp_stop.setEnabled(enabled and is_temp_running)
 
     # -------------------------------------------------------------------------
-    # 4. Deshabilitar control de Presión (Menú Throttle)
-    # -------------------------------------------------------------------------
-    set_throttle_pressure_controls_enabled(win, enabled)
-
-    # -------------------------------------------------------------------------
-    # 5. Si se deshabilitan por pérdida de vacío / venteo:
+    # 4. Si se deshabilitan por pérdida de vacío / venteo:
     # -------------------------------------------------------------------------
     if not enabled:
         win.state_lamps13_pulsing = False

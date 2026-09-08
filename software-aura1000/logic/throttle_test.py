@@ -215,7 +215,7 @@ class ThrottleController:
                 use_half = False
             elif error > 0.15:
                 speed_ms = self.SPEED_MS * 2   # 125 Hz - Full Step
-                use_half = True
+                use_half = False
             elif error > 0.05:
                 speed_ms = self.SPEED_MS * 3   # 83 Hz - Half Step
                 use_half = True

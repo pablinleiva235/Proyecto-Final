@@ -151,14 +151,23 @@ def _check_mfc_faults(win):
 
         is_safe = main_vacuum_on and not alarm_active
 
+        # Habilitamos o deshabilitamos widgets de plasma y lamparas
         win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe)
         win.ui.MenuPrincipal_btn_outerLamps.setEnabled(is_safe)
         win.ui.MenuPrincipal_btn_centralLamp.setEnabled(is_safe)
 
+        # Habilitamos o deshabilitamos widgets de control de presion
         if hasattr(win.ui, "ThrottleMenu_pressure_set"):
             win.ui.ThrottleMenu_pressure_set.setEnabled(is_safe)
-            win.ui.ThrottleMenu_pressure_stop.setEnabled(is_safe)
             win.ui.ThrottleMenu_pressure_entry.setEnabled(is_safe)
+            # Averiguar si la Throttle está ejecutando el lazo automático de presión
+            is_throttle_running = (
+                getattr(win.throttle, "auto_control_enabled", False)
+                if hasattr(win, "throttle")
+                else False
+            )
+            # STOP solo se habilita si el sistema es seguro Y está ajustando presión
+            win.ui.ThrottleMenu_pressure_stop.setEnabled(is_safe and is_throttle_running)
 
 def _trigger_mfc_safety_shutdown(win, failed_gases):
     """Ejecuta las acciones de seguridad al detectar desvío de caudal."""

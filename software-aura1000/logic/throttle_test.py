@@ -1,4 +1,5 @@
 # logic/throttle_controller.py
+import time
 import json
 import os
 from PyQt5.QtWidgets import QMessageBox
@@ -37,6 +38,12 @@ class ThrottleController:
         self.target_pressure = 0.0  # Setpoint en Torr
         self.deadband = 0.015  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
+
+        # Listas para graficar ajuste de presion en funcion del tiempo
+        self._log_time     = []   # timestamps en segundos
+        self._log_pressure = []   # presión medida en Torr
+        self._log_setpoint = []   # setpoint para graficarlo como línea de referencia
+        self._log_start_time = None
 
         self.THROTTLE_STEP_FREQUENCY = 186 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
@@ -86,6 +93,60 @@ class ThrottleController:
             print(f"[THROTTLE] Error al guardar estado del motor: {e}")
 
     # =============================================================================
+    #        METODOS PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
+    # =============================================================================  
+    def _generate_pressure_plot(self):
+        if len(self._log_time) < 2:
+            print("[THROTTLE] Sin datos suficientes para graficar.")
+            return
+
+        import matplotlib.pyplot as plt
+        from datetime import datetime
+        import subprocess
+        import sys
+
+        # Carpeta logs/ siempre al lado de throttle_controller.py
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        logs_dir = os.path.join(base_dir, "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename  = os.path.join(logs_dir, f"throttle_log_{timestamp}.png")
+
+        fig, ax = plt.subplots(figsize=(12, 5))
+
+        ax.plot(self._log_time, self._log_pressure,
+                label="Presión medida", color="royalblue", linewidth=1.5)
+        ax.plot(self._log_time, self._log_setpoint,
+                label="Setpoint", color="red",
+                linewidth=1.2, linestyle="--")
+
+        # Banda muerta
+        ax.axhline(self.target_pressure + self.deadband,
+                color="orange", linewidth=0.8,
+                linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
+        ax.axhline(self.target_pressure - self.deadband,
+                color="orange", linewidth=0.8, linestyle=":")
+
+        ax.set_xlabel("Tiempo (s)")
+        ax.set_ylabel("Presión (Torr)")
+        ax.set_title(f"Control de Presión Throttle — Setpoint: {self.target_pressure:.3f} Torr")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig(filename, dpi=150)
+        plt.close(fig)
+
+        print(f"[THROTTLE] Gráfico guardado en: {filename}")
+
+        # Abrir automáticamente
+        if sys.platform == "win32":
+            os.startfile(filename)
+        else:
+            subprocess.Popen(["xdg-open", filename])
+
+    # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
     # =============================================================================  
     def start_auto_control(self, target_torr: float):
@@ -94,18 +155,33 @@ class ThrottleController:
         self.auto_control_enabled = True
         self.set_enable(ACTIVE)  # Aseguramos driver habilitado
         self._update_ui_interlocks(running=True)
+
+        # Inicializar log
+        self._log_time     = []
+        self._log_pressure = []
+        self._log_setpoint = []
+        self._log_start_time = time.time()
+
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
 
     def stop_auto_control(self):
         """Desactiva la regulación automática y detiene el motor."""
         print("[THROTTLE] Control de presión DESACTIVADO manualmente.")
         self.stop_movement()
+        self._generate_pressure_plot()
 
     def update_pressure_loop(self, current_pressure: float):
         if not self.auto_control_enabled:
             return
 
         error = self.target_pressure - current_pressure
+
+        # Registrar lectura para generar grafico
+        if self._log_start_time is not None:
+            elapsed = time.time() - self._log_start_time
+            self._log_time.append(elapsed)
+            self._log_pressure.append(current_pressure)
+            self._log_setpoint.append(self.target_pressure)
 
         # 1. Zona muerta
         if abs(error) <= self.deadband:
@@ -269,65 +345,65 @@ class ThrottleController:
     #                         MANEJO DE INTERLOCKS DE UI
     # =============================================================================  
     def _update_ui_interlocks(self, running: bool):
-            """Maneja la exclusión mutua de controles en la interfaz."""
-            btn_run = getattr(self.ui, "ThrottleMenu_btn_toggle_run", None)
-            btn_step_set = getattr(self.ui, "ThrottleMenu_step_set", None)
-            entry_step = getattr(self.ui, "ThrottleMenu_step_entry", None)
+        """Maneja la exclusión mutua de controles en la interfaz."""
+        btn_run = getattr(self.ui, "ThrottleMenu_btn_toggle_run", None)
+        btn_step_set = getattr(self.ui, "ThrottleMenu_step_set", None)
+        entry_step = getattr(self.ui, "ThrottleMenu_step_entry", None)
 
-            p_entry = getattr(self.ui, "ThrottleMenu_pressure_entry", None)
-            p_set = getattr(self.ui, "ThrottleMenu_pressure_set", None)
-            p_stop = getattr(self.ui, "ThrottleMenu_pressure_stop", None)
+        p_entry = getattr(self.ui, "ThrottleMenu_pressure_entry", None)
+        p_set = getattr(self.ui, "ThrottleMenu_pressure_set", None)
+        p_stop = getattr(self.ui, "ThrottleMenu_pressure_stop", None)
 
-            if running:
-                if self.auto_control_enabled:
-                    # Si está corriendo control automático de presión:
+        if running:
+            if self.auto_control_enabled:
+                # Si está corriendo control automático de presión:
+                if btn_run:
+                    btn_run.setEnabled(False)
+                if btn_step_set:
+                    btn_step_set.setEnabled(False)
+                if entry_step:
+                    entry_step.setEnabled(False)
+                if p_entry:
+                    p_entry.setEnabled(False)
+                if p_set:
+                    p_set.setEnabled(False)
+                if p_stop:
+                    p_stop.setEnabled(True)
+            else:
+                # Si está en movimiento manual o ráfaga (BURST/CONTINUOUS):
+                if p_entry:
+                    p_entry.setEnabled(False)
+                if p_set:
+                    p_set.setEnabled(False)
+                if p_stop:
+                    p_stop.setEnabled(False)
+
+                if self._step_mode == "CONTINUOUS":
+                    if btn_step_set:
+                        btn_step_set.setEnabled(False)
+                    if entry_step:
+                        entry_step.setEnabled(False)
+                elif self._step_mode == "BURST":
                     if btn_run:
                         btn_run.setEnabled(False)
                     if btn_step_set:
                         btn_step_set.setEnabled(False)
                     if entry_step:
                         entry_step.setEnabled(False)
-                    if p_entry:
-                        p_entry.setEnabled(False)
-                    if p_set:
-                        p_set.setEnabled(False)
-                    if p_stop:
-                        p_stop.setEnabled(True)
-                else:
-                    # Si está en movimiento manual o ráfaga (BURST/CONTINUOUS):
-                    if p_entry:
-                        p_entry.setEnabled(False)
-                    if p_set:
-                        p_set.setEnabled(False)
-                    if p_stop:
-                        p_stop.setEnabled(False)
-
-                    if self._step_mode == "CONTINUOUS":
-                        if btn_step_set:
-                            btn_step_set.setEnabled(False)
-                        if entry_step:
-                            entry_step.setEnabled(False)
-                    elif self._step_mode == "BURST":
-                        if btn_run:
-                            btn_run.setEnabled(False)
-                        if btn_step_set:
-                            btn_step_set.setEnabled(False)
-                        if entry_step:
-                            entry_step.setEnabled(False)
-            else:
-                # Motor detenido: rehabilitar todos los controles
-                if btn_run:
-                    btn_run.setEnabled(True)
-                if btn_step_set:
-                    btn_step_set.setEnabled(True)
-                if entry_step:
-                    entry_step.setEnabled(True)
-                if p_entry:
-                    p_entry.setEnabled(True)
-                if p_set:
-                    p_set.setEnabled(True)
-                if p_stop:
-                    p_stop.setEnabled(True)
+        else:
+            # Motor detenido: rehabilitar todos los controles
+            if btn_run:
+                btn_run.setEnabled(True)
+            if btn_step_set:
+                btn_step_set.setEnabled(True)
+            if entry_step:
+                entry_step.setEnabled(True)
+            if p_entry:
+                p_entry.setEnabled(True)
+            if p_set:
+                p_set.setEnabled(True)
+            if p_stop:
+                p_stop.setEnabled(True)
 
     # =============================================================================
     #            HANDLERS DE EVENTOS DE BOTONES DE MANEJO MANUAL (UI)

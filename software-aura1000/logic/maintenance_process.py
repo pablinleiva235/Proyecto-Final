@@ -324,8 +324,6 @@ def toggle_main_vacuum(win):
         if hasattr(win, "throttle"):
             win.throttle.update_vacuum_interlocks()
 
-        win.throttle.go_to_rest_position()
-
     else:
         win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
         btn_main.setText("Main Vacuum On")

@@ -647,7 +647,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_btn_toggle_run.setText(_translate("MainWindow", "Girar Motor"))
         self.lbl_throttle_closed.setText(_translate("MainWindow", "Cerrada: -"))
         self.lbl_throttle_open.setText(_translate("MainWindow", "Abierta: -"))
-        self.ThrottleMenu_step_entry.setText(_translate("MainWindow", "0 - 200"))
+        self.ThrottleMenu_step_entry.setText(_translate("MainWindow", "0 - 1400"))
         self.ThrottleMenu_pasos_set_label.setText(_translate("MainWindow", "Pasos a mover:"))
         self.ThrottleMenu_pasos_label.setText(_translate("MainWindow", "pasos"))
         self.ThrottleMenu_step_set.setText(_translate("MainWindow", "Ajustar posicion"))

@@ -1103,7 +1103,7 @@
          </font>
         </property>
         <property name="text">
-         <string>0 - 200</string>
+         <string>0 - 1400</string>
         </property>
        </widget>
        <widget class="QLCDNumber" name="ThrottleMenu_step_counter">

@@ -76,7 +76,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_manager.start_all_core_timers()
 
         # Instanciamos el controlador de pruebas del motor
-        self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
+        self.throttle = ThrottleController(self) 
 
         # Configurar botones de navegación entre menús
         self._setup_navigation()

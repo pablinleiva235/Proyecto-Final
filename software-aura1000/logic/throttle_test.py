@@ -54,6 +54,9 @@ class ThrottleController:
         # Actualizar la pantalla con el valor cargado del ultimo paso
         self._update_step_display()
 
+        # Lanzamos el Homing al iniciar
+        self.home_on_startup()
+
     def _connect_ui_signals(self):
         """Conecta los botones del menú de la Throttle a sus manejadores internos."""
         self.ui.ThrottleMenu_btn_toggle_enable.clicked.connect(self.on_enable_toggled)
@@ -68,6 +71,27 @@ class ThrottleController:
         self.ui.ThrottleMenu_pressure_set.setEnabled(False)
         self.ui.ThrottleMenu_pressure_stop.setEnabled(False)
         self.ui.ThrottleMenu_pressure_entry.setEnabled(False)
+
+    # =============================================================================
+    #           HOMING DE LA THROTTLE AL INICIAR A POSICION ABIERTA
+    # =============================================================================  
+    def home_on_startup(self):
+        """Busca el límite físico de apertura al arrancar el software para calibrar el paso 0."""
+        print("[THROTTLE] Iniciando secuencia de Homing...")
+        
+        # 1. Aseguramos estado de hardware
+        self.set_direction(INACTIVE)  # Dirección: Apertura
+        self.set_enable(ACTIVE)       # Mantiene corriente en las bobinas
+        self.set_half_step(INACTIVE)  # Full step para homing
+        
+        # 2. Sincronizamos el botón de la UI para que muestre que está habilitado
+        btn_enable = getattr(self.ui, "ThrottleMenu_btn_toggle_enable", None)
+        if btn_enable:
+            btn_enable.setText("Deshabilitar Driver")
+            btn_enable.setStyleSheet("background-color: #f44336; color: white;")
+
+        # 3. Arrancamos el movimiento hacia el Limit Switch
+        self.start_movement(self.SPEED_MS)
 
     # =============================================================================
     #     METODOS PARA CARGAR Y GUARDAR EL ULTIMO PASO DE LA THROTTLE (JSON)
@@ -453,16 +477,16 @@ class ThrottleController:
             val_text = self.ui.ThrottleMenu_step_entry.text().strip()
             steps = int(val_text)
 
-            if 0 < steps <= 200:
+            if 0 < steps <= 1400:
                 self.start_movement(self.SPEED_MS, steps=steps)
             else:
                 QMessageBox.warning(
                     self.win,
                     "Rango Inválido",
-                    "Ingrese un número de pasos entre 1 y 200.",
+                    "Ingrese un número de pasos entre 1 y 1400.",
                     QMessageBox.Ok,
                 )
-                print("[THROTTLE] Valor fuera de rango (debe ser entre 1 y 200).")
+                print("[THROTTLE] Valor fuera de rango (debe ser entre 1 y 1400).")
 
         except ValueError:
             QMessageBox.warning(

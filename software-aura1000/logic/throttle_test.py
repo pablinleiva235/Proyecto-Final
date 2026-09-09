@@ -44,6 +44,8 @@ class ThrottleController:
         self._log_pressure = []   # presión medida en Torr
         self._log_setpoint = []   # setpoint para graficarlo como línea de referencia
         self._log_start_time = None
+        self._is_logging = False  # Flag para habilitar la captura de muestras (segun sea Modo Manual o Automatico)
+        self._log_title = ""      # Título dinámico del gráfico (segun sea Modo Manual o Automatico)
 
         self.THROTTLE_STEP_FREQUENCY = 186 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
@@ -120,8 +122,9 @@ class ThrottleController:
     #        METODOS PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
     # =============================================================================  
     def _generate_pressure_plot(self):
-        if len(self._log_time) < 2:
+        if not self._is_logging or len(self._log_time) < 2:
             print("[THROTTLE] Sin datos suficientes para graficar.")
+            self._is_logging = False
             return
 
         import matplotlib.pyplot as plt
@@ -129,7 +132,6 @@ class ThrottleController:
         import subprocess
         import sys
 
-        # Carpeta logs/ siempre al lado de throttle_controller.py
         base_dir = os.path.dirname(os.path.abspath(__file__))
         logs_dir = os.path.join(base_dir, "logs")
         os.makedirs(logs_dir, exist_ok=True)
@@ -141,20 +143,21 @@ class ThrottleController:
 
         ax.plot(self._log_time, self._log_pressure,
                 label="Presión medida", color="royalblue", linewidth=1.5)
-        ax.plot(self._log_time, self._log_setpoint,
-                label="Setpoint", color="red",
-                linewidth=1.2, linestyle="--")
 
-        # Banda muerta
-        ax.axhline(self.target_pressure + self.deadband,
-                color="orange", linewidth=0.8,
-                linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
-        ax.axhline(self.target_pressure - self.deadband,
-                color="orange", linewidth=0.8, linestyle=":")
+        # Solo si proviene de control automático, graficamos Setpoint y Deadband
+        if self._log_setpoint:
+            ax.plot(self._log_time, self._log_setpoint,
+                    label="Setpoint", color="red",
+                    linewidth=1.2, linestyle="--")
+            ax.axhline(self.target_pressure + self.deadband,
+                       color="orange", linewidth=0.8,
+                       linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
+            ax.axhline(self.target_pressure - self.deadband,
+                       color="orange", linewidth=0.8, linestyle=":")
 
         ax.set_xlabel("Tiempo (s)")
         ax.set_ylabel("Presión (Torr)")
-        ax.set_title(f"Control de Presión Throttle — Setpoint: {self.target_pressure:.3f} Torr")
+        ax.set_title(self._log_title)
         ax.legend()
         ax.grid(True, alpha=0.3)
 
@@ -163,14 +166,12 @@ class ThrottleController:
         plt.close(fig)
 
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
+        self._is_logging = False  # Reset del flag de muestreo
 
-        '''
-        # Abrir automáticamente
-        if sys.platform == "win32":
+        '''if sys.platform == "win32":
             os.startfile(filename)
         else:
-            subprocess.Popen(["xdg-open", filename])
-        '''
+            subprocess.Popen(["xdg-open", filename])'''
         
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
@@ -187,6 +188,8 @@ class ThrottleController:
         self._log_pressure = []
         self._log_setpoint = []
         self._log_start_time = time.time()
+        self._is_logging = True
+        self._log_title = f"Control Automático Throttle — Setpoint: {self.target_pressure:.3f} Torr"
 
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
 
@@ -194,20 +197,20 @@ class ThrottleController:
         """Desactiva la regulación automática y detiene el motor."""
         print("[THROTTLE] Control de presión DESACTIVADO manualmente.")
         self.stop_movement()
-        self._generate_pressure_plot()
 
     def update_pressure_loop(self, current_pressure: float):
+        # Registrar lectura para generar gráfico (Automático o Manual)
+        if self._is_logging and self._log_start_time is not None:
+            elapsed = time.time() - self._log_start_time
+            self._log_time.append(elapsed)
+            self._log_pressure.append(current_pressure)
+            if self.auto_control_enabled:
+                self._log_setpoint.append(self.target_pressure)
+
         if not self.auto_control_enabled:
             return
 
         error = self.target_pressure - current_pressure
-
-        # Registrar lectura para generar grafico
-        if self._log_start_time is not None:
-            elapsed = time.time() - self._log_start_time
-            self._log_time.append(elapsed)
-            self._log_pressure.append(current_pressure)
-            self._log_setpoint.append(self.target_pressure)
 
         # 1. Zona muerta
         if abs(error) <= self.deadband:
@@ -337,6 +340,11 @@ class ThrottleController:
             self._save_current_step()
             self._update_ui_interlocks(running=False)
             self.reset_run_button()
+
+            # Si había una sesión de captura de datos activa, generamos el gráfico
+            if self._is_logging:
+                self._generate_pressure_plot()
+
             print("[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.")
 
     def _toggle_step(self):
@@ -467,6 +475,15 @@ class ThrottleController:
     def on_run_toggled(self):
         btn = self.ui.ThrottleMenu_btn_toggle_run
         if btn.text() == "Girar Motor":
+            # Inicializar log manual (sin setpoint)
+            self._log_time     = []
+            self._log_pressure = []
+            self._log_setpoint = []
+            self._log_start_time = time.time()
+            self._is_logging = True
+            dir_str = "Cierre" if self._closing else "Apertura"
+            self._log_title = f"Movimiento Manual Throttle — Dirección: {dir_str}"
+
             self.start_movement(self.SPEED_MS)
             btn.setText("Detener Motor")
             btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")

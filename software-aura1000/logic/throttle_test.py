@@ -44,8 +44,12 @@ class ThrottleController:
         self._log_pressure = []   # presión medida en Torr
         self._log_setpoint = []   # setpoint para graficarlo como línea de referencia
         self._log_start_time = None
+        # Flags para detectar si se graficara o no la presion(t)
         self._is_logging = False  # Flag para habilitar la captura de muestras (segun sea Modo Manual o Automatico)
         self._log_title = ""      # Título dinámico del gráfico (segun sea Modo Manual o Automatico)
+        # Variables para post-muestreo en gráficos
+        self._POST_LOG_SECONDS = 5.0  # Segundos extra a registrar tras frenar
+        self._stop_log_time = None  # Timestamp en que se solicitó frenar
 
         self.THROTTLE_STEP_FREQUENCY = 186 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
@@ -196,16 +200,26 @@ class ThrottleController:
         self.stop_movement()
 
     def update_pressure_loop(self, current_pressure: float):
-        # Registrar lectura para generar gráfico (Automático o Manual)
+        # Registro de Muestras (Incluye Post-Muestreo tras frenar) 
         if self._is_logging and self._log_start_time is not None:
             elapsed = time.time() - self._log_start_time
             self._log_time.append(elapsed)
             self._log_pressure.append(current_pressure)
+            
             if self.auto_control_enabled:
                 self._log_setpoint.append(self.target_pressure)
 
+            # Si se solicitó la detención y ya pasaron los N segundos extra, se genera el gráfico
+            if self._stop_log_time is not None:
+                if (time.time() - self._stop_log_time) >= self._POST_LOG_SECONDS:
+                    self._generate_pressure_plot()
+                    self._stop_log_time = None
+
+        # Lazo de Control de Presión Automático 
         if not self.auto_control_enabled:
             return
+
+        error = self.target_pressure - current_pressure
 
         error = self.target_pressure - current_pressure
 
@@ -338,9 +352,10 @@ class ThrottleController:
             self._update_ui_interlocks(running=False)
             self.reset_run_button()
 
-            # Si había una sesión de captura de datos activa, generamos el gráfico
-            if self._is_logging:
-                self._generate_pressure_plot()
+            # Si había una sesión de captura de datos activa, iniciamos el conteo de post-muestreo
+            if self._is_logging and self._stop_log_time is None:
+                self._stop_log_time = time.time()
+                print(f"[THROTTLE] Motor detenido. Registrando {self._POST_LOG_SECONDS}s adicionales para el gráfico...")
 
             print("[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.")
 

@@ -25,8 +25,12 @@ def startup(win):
     win.ui.PreEncendido_progressBar.show()
     win.ui.PreEncendido_progressBar.setValue(0)
     win.startup_progress = 0
+
+    # 5. Llevar throttle a posicion inicial abierta
+    if hasattr(win, "throttle"):
+        win.throttle.home_on_startup()
     
-    # 5. Vincular y arrancar el timer de progress bar
+    # 6. Vincular y arrancar el timer de progress bar
     try:
         win.timer_manager.timers['startup'].timeout.disconnect()
     except TypeError:

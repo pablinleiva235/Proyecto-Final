@@ -388,8 +388,8 @@ def toggle_mfc1_valve(win):
         btn_shutoff.setText("Cerrar Valvula MFC1: O2")
         btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
     else:
-        win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
+        win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.mfc1_target_slm = 0.0
         win.mfc1_flow_history.clear()
         btn_shutoff.setText("Abrir Valvula MFC1: O2")
@@ -405,8 +405,8 @@ def toggle_mfc2_valve(win):
         btn_shutoff.setText("Cerrar Valvula MFC2: N2")
         btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
     else:
-        win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.hw.analog_write("MFC2_SETPOINT", 0.0)
+        win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.mfc2_target_slm = 0.0
         win.mfc2_flow_history.clear()
         btn_shutoff.setText("Abrir Valvula MFC2: N2")

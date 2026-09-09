@@ -56,9 +56,6 @@ class ThrottleController:
         # Actualizar la pantalla con el valor cargado del ultimo paso
         self._update_step_display()
 
-        # Lanzamos el Homing al iniciar
-        self.home_on_startup()
-
     def _connect_ui_signals(self):
         """Conecta los botones del menú de la Throttle a sus manejadores internos."""
         self.ui.ThrottleMenu_btn_toggle_enable.clicked.connect(self.on_enable_toggled)

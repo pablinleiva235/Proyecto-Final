@@ -174,8 +174,8 @@ def _trigger_mfc_safety_shutdown(win, failed_gases):
         print("[CORTE DE SEGURIDAD] Lámpara 2 apagada por desviación en MFC.")
 
     # E. Cierre de seguridad y reseteo de MFC1 (O2)
-    win.hw.digital_set("MFC1_OPEN", INACTIVE)
     win.hw.analog_write("MFC1_SETPOINT", 0.0)
+    win.hw.digital_set("MFC1_OPEN", INACTIVE)
     win.mfc1_target_slm = 0.0
     win.mfc1_flow_history.clear()
     win.ui.MenuPrincipal_btn_mfc1_open.setText("Abrir Valvula MFC1: O2")
@@ -183,8 +183,8 @@ def _trigger_mfc_safety_shutdown(win, failed_gases):
     win.ui.MenuPrincipal_btn_mfc1_set.setStyleSheet("")
 
     # F. Cierre de seguridad y reseteo de MFC2 (N2)
-    win.hw.digital_set("MFC2_OPEN", INACTIVE)
     win.hw.analog_write("MFC2_SETPOINT", 0.0)
+    win.hw.digital_set("MFC2_OPEN", INACTIVE)
     win.mfc2_target_slm = 0.0
     win.mfc2_flow_history.clear()
     win.ui.MenuPrincipal_btn_mfc2_open.setText("Abrir Valvula MFC2: N2")

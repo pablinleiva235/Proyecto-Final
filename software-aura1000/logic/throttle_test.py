@@ -1,12 +1,8 @@
 # logic/throttle_controller.py
 import time
-import json
 import os
 from PyQt5.QtWidgets import QMessageBox
 from config.digital_signals import ACTIVE, INACTIVE
-
-# Guardar el archivo con numero de paso actual directamente en la carpeta logic
-STATE_FILE = os.path.join("logic", "throttle_state.json")
 
 class ThrottleController:
 
@@ -30,7 +26,7 @@ class ThrottleController:
         self._DEBOUNCE_N   = 3  # N lecturas iguales para confirmar
 
         # Contador de posición absoluta y control de ráfaga de pasos
-        self.current_step = self._load_saved_step() # Cargar último paso guardado al iniciar
+        self.current_step = 0 # Al iniciar arranca abierta
         self._target_steps = 0  # Pasos restantes cuando se mueve por ráfaga
         self._step_mode = "CONTINUOUS"  # "CONTINUOUS" o "BURST"
 
@@ -45,7 +41,7 @@ class ThrottleController:
         self._log_setpoint = []   # setpoint para graficarlo como línea de referencia
         self._log_start_time = None
 
-        self.THROTTLE_STEP_FREQUENCY = 186 # Pulsos por segundo
+        self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
 
         # Conectar señales de la UI a los métodos de esta clase
@@ -53,9 +49,6 @@ class ThrottleController:
 
         # Actualizar la pantalla con el valor cargado del ultimo paso
         self._update_step_display()
-
-        # Lanzamos el Homing al iniciar
-        self.home_on_startup()
 
     def _connect_ui_signals(self):
         """Conecta los botones del menú de la Throttle a sus manejadores internos."""
@@ -92,29 +85,6 @@ class ThrottleController:
 
         # 3. Arrancamos el movimiento hacia el Limit Switch
         self.start_movement(self.SPEED_MS)
-
-    # =============================================================================
-    #     METODOS PARA CARGAR Y GUARDAR EL ULTIMO PASO DE LA THROTTLE (JSON)
-    # =============================================================================  
-    def _load_saved_step(self) -> int:
-        """Lee el último paso guardado en disco al iniciar la aplicación."""
-        if os.path.exists(STATE_FILE):
-            try:
-                with open(STATE_FILE, "r") as f:
-                    data = json.load(f)
-                    return data.get("current_step", 0)
-            except Exception as e:
-                print(f"[THROTTLE] Error al cargar estado previo del motor: {e}")
-        return 0
-
-    def _save_current_step(self):
-        """Guarda la posición actual en disco."""
-        try:
-            os.makedirs("logic", exist_ok=True)
-            with open(STATE_FILE, "w") as f:
-                json.dump({"current_step": self.current_step}, f)
-        except Exception as e:
-            print(f"[THROTTLE] Error al guardar estado del motor: {e}")
 
     # =============================================================================
     #        METODOS PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
@@ -190,6 +160,15 @@ class ThrottleController:
 
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
 
+        # Ráfaga inicial si estamos en la zona de paso neutro (< 200 pasos)
+        if self.current_step < 200:
+            print("[THROTTLE] Ejecutando ráfaga inicial para superar zona neutra...")
+            self.set_direction(ACTIVE)  # Cierre
+            self.start_movement(self.SPEED_MS, steps=250)
+        else:
+            # Si ya está posicionada, arranca directamente el lazo continuo
+            self.start_movement(self.SPEED_MS)
+
     def stop_auto_control(self):
         """Desactiva la regulación automática y detiene el motor."""
         print("[THROTTLE] Control de presión DESACTIVADO manualmente.")
@@ -215,20 +194,26 @@ class ThrottleController:
                 self.step_timer.stop()
                 self.step_state = INACTIVE
                 self.hw.digital_set("STEPPER_STEP", INACTIVE)
-                self._save_current_step()
                 print("[THROTTLE] Presión dentro de tolerancia. Motor pausado.")
             return
 
-        # 2. Velocidad y modo según magnitud del error
-        if abs(error) > 0.3:
-            speed_ms  = self.SPEED_MS
-            use_half  = False           # Full step
-        elif abs(error) > 0.05:
-            speed_ms  = self.SPEED_MS * 2
-            use_half  = False           # Full step
+    # 2. Velocidad y modo según magnitud y signo del error (A 250 Hz)
+        if error > 0:
+            # ── SUBIENDO PRESIÓN (Cerrando válvula) ──
+            if error > 0.3:
+                speed_ms = self.SPEED_MS  # 250 Hz - Full Step (Rampa rápida)
+                use_half = False
+            elif error > 0.2:
+                speed_ms = self.SPEED_MS * 2  # 125 Hz - Full Step
+                use_half = False
+            else:
+                speed_ms = (self.SPEED_MS * 2) # 62.5 Hz - Half Step
+                use_half = True
         else:
-            speed_ms  = self.SPEED_MS * 2
-            use_half  = True            # Half step
+            # ── BAJANDO PRESIÓN (Abriendo válvula tras pasarse) ──
+            # Modo suave para no caer en el valle de 2.91 Torr
+            speed_ms = self.SPEED_MS * 2
+            use_half = True
 
         # 3. Cambiar modo de paso si es necesario (con motor detenido momentáneamente)
         if use_half != self._is_half_step:
@@ -334,7 +319,6 @@ class ThrottleController:
             self._step_mode = "CONTINUOUS"
             self.auto_control_enabled = False  # Apaga lazo automático
 
-            self._save_current_step()
             self._update_ui_interlocks(running=False)
             self.reset_run_button()
             print("[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.")
@@ -359,8 +343,13 @@ class ThrottleController:
             if self._step_mode == "BURST":
                 self._target_steps -= 1
                 if self._target_steps <= 0:
-                    print("[THROTTLE] Ráfaga de pasos completada con éxito.")
-                    self.stop_movement()
+                    print("[THROTTLE] Ráfaga inicial completada con éxito.")
+                    if self.auto_control_enabled:
+                        # Si estamos en control automático, pasamos a modo continuo sin apagar el lazo
+                        self._step_mode = "CONTINUOUS"
+                        print("[THROTTLE] Transicionando de Ráfaga a Lazo Cerrado de Presión.")
+                    else:
+                        self.stop_movement()
 
     def _update_step_display(self):
         """Actualiza el display LCD con la posición actual fijando 1 decimal."""

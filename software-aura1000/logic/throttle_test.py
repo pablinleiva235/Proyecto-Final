@@ -36,7 +36,7 @@ class ThrottleController:
 
         # Parámetros de Control de Presión 
         self.target_pressure = 0.0  # Setpoint en Torr
-        self.deadband = 0.015  # Tolerancia (+/- Torr)
+        self.deadband = 0.035  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
 
         # Listas para graficar ajuste de presion en funcion del tiempo
@@ -164,12 +164,14 @@ class ThrottleController:
 
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
 
+        '''
         # Abrir automáticamente
         if sys.platform == "win32":
             os.startfile(filename)
         else:
             subprocess.Popen(["xdg-open", filename])
-
+        '''
+        
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
     # =============================================================================  

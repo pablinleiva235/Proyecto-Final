@@ -1845,7 +1845,7 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 </details>
 <details class="note">
 <summary><code>toggle_main_vacuum(win)</code></summary>
-<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle</p>
+<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_main_vacuum</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Controla la activación de Main Vacuum.</span>
@@ -1880,43 +1880,48 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
         <span class="k">return</span>
 
     <span class="c1"># 2. Encendido / Apagado de Main Vacuum</span>
-        <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
-            <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
-            <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-            <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
-            <span class="c1"># Apagado automático de Soft Vacuum</span>
-            <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">:</span>
-                <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-                <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
-                <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.&quot;</span><span class="p">)</span>
+        <span class="c1"># Apagado automático de Soft Vacuum</span>
+        <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
+            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.&quot;</span><span class="p">)</span>
 
-            <span class="c1"># Habilitación de MFCs al alcanzar vacío principal</span>
-            <span class="n">set_mfc_lamps_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Habilitación de MFCs al alcanzar vacío principal</span>
+        <span class="n">set_mfc_lamps_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
-            <span class="c1"># ── Habilitación de Throttle por Estado de Vacío ──</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-                <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
+        <span class="c1"># ── Habilitación de Throttle por Estado de Vacío ──</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
 
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-            <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">)</span>
-            <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">go_to_rest_position</span><span class="p">()</span>
 
-            <span class="c1"># Corte de vacío principal: deshabilitamos MFCs</span>
-            <span class="n">set_mfc_lamps_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-            <span class="c1"># ── Bloqueo de Throttle por Corte de Vacío ──</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
-                    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>  <span class="c1"># Detiene el lazo automático si estaba activo</span>
-                <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
+        <span class="c1"># Corte de vacío principal: deshabilitamos MFCs</span>
+        <span class="n">set_mfc_lamps_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">update_vent_button_state</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+        <span class="c1"># Resetea flag de rest position de la throttle</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_rest_position_reached</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># ── Bloqueo de Throttle por Corte de Vacío ──</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+                <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>  <span class="c1"># Detiene el lazo automático si estaba activo</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
+
+    <span class="n">update_vent_button_state</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <hr />

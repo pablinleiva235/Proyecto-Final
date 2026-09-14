@@ -242,7 +242,7 @@ class ThrottleController:
             val_text = self.ui.ThrottleMenu_pressure_entry.text().strip()
             target = float(val_text)
 
-            if 1.0 <= target <= 3.0:
+            if 0.5 <= target <= 3.0:
                 self.start_auto_control(target)
             else:
                 QMessageBox.warning(

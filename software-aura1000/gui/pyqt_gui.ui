@@ -366,7 +366,7 @@
          </font>
         </property>
         <property name="text">
-         <string>0.0 - 10.0 </string>
+         <string>1.0 - 5.0 </string>
         </property>
        </widget>
        <widget class="QLineEdit" name="MenuPrincipal_mfc2_setpoint">
@@ -384,7 +384,7 @@
          </font>
         </property>
         <property name="text">
-         <string>0.0 - 1.0 </string>
+         <string>0.1 - 1.0 </string>
         </property>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_mfc1_setpoint_lbl">
@@ -1262,7 +1262,7 @@
          <rect>
           <x>20</x>
           <y>610</y>
-          <width>111</width>
+          <width>151</width>
           <height>71</height>
          </rect>
         </property>
@@ -1272,7 +1272,7 @@
          </font>
         </property>
         <property name="text">
-         <string>1 - 3</string>
+         <string>1.5 - 8</string>
         </property>
        </widget>
        <widget class="QLabel" name="ThrottleMenu_pressureUnit_lbl_2">
@@ -1312,7 +1312,7 @@
        <widget class="QLabel" name="ThrottleMenu_setpoint_pressure_unit_lbl">
         <property name="geometry">
          <rect>
-          <x>140</x>
+          <x>180</x>
           <y>600</y>
           <width>91</width>
           <height>91</height>

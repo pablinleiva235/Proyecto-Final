@@ -191,7 +191,13 @@ def _trigger_mfc_safety_shutdown(win, failed_gases):
     win.ui.MenuPrincipal_btn_mfc2_open.setStyleSheet("")
     win.ui.MenuPrincipal_btn_mfc2_set.setStyleSheet("")
 
-    # G. Mostrar Pop-up modal de advertencia al usuario
+    # G. Detener lazo de control automático de la Throttle Valve
+    if hasattr(win, "throttle"):
+        if win.throttle.auto_control_enabled:
+            win.throttle.stop_movement()  # Apaga el lazo, frena el motor y cancela el log
+            print("[CORTE DE SEGURIDAD] Lazo de control automático de Throttle detenido.")
+
+    # H. Mostrar Pop-up modal de advertencia al usuario
     gas_list_str = " y ".join(failed_gases)
     msg_box = QtWidgets.QMessageBox(win)
     msg_box.setIcon(QtWidgets.QMessageBox.Warning)

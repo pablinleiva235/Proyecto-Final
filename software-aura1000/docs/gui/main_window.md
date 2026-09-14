@@ -26,6 +26,9 @@ El módulo `main_window.py` constituye el componente de interfaz gráfica de usu
         self.lamp2_on = False
         self.rf_on = False
 
+        # Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera
+        self.is_in_vacuum = False
+
         # Control de ventanas emergentes de alarma/advertencia
         self.alarm_active = False
         self.warning_mag_shown = False

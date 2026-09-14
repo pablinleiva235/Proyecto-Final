@@ -12,11 +12,11 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 
     ```python
     # Constantes para el flujo maximo de los MFC
-    MFC1_MAX_SLM = 10.0   
+    MFC1_MAX_SLM = 5.0   
     MFC2_MAX_SLM = 1.0    
 
     # Constantes para la tension maxima de los MFC
-    MFC1_MAX_VOLT = 10.0  
+    MFC1_MAX_VOLT = 5.0  
     MFC2_MAX_VOLT = 1.0
     ```
 ---
@@ -283,10 +283,14 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`toggle_main_vacuum(win)`"
-    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa
+    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle
 
     ```python
     def toggle_main_vacuum(win):
+        """
+        Controla la activación de Main Vacuum.
+        Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.
+        """
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_door = win.ui.MenuPrincipal_btn_open_door
@@ -316,30 +320,43 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             return
 
         # 2. Encendido / Apagado de Main Vacuum
-        if btn_main.text() == "Main Vacuum On":
-            win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
-            btn_main.setText("Main Vacuum Off")
-            btn_main.setStyleSheet("background-color: #f44336; color: white;")
-            btn_door.setEnabled(False)
-            
-            # Apagado automático de Soft Vacuum
-            if btn_soft.text() == "Soft Vacuum Off":
-                win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
-                btn_soft.setText("Soft Vacuum On")
-                btn_soft.setStyleSheet("")
-                print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
-            
-            # Habilitación de MFCs al alcanzar vacío principal
-            set_mfc_lamps_controls_enabled(win, True)
-        else:
-            win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
-            btn_main.setText("Main Vacuum On")
-            btn_main.setStyleSheet("")
-            
-            # Corte de vacío principal: deshabilitamos MFCs
-            set_mfc_lamps_controls_enabled(win, False)
+            if btn_main.text() == "Main Vacuum On":
+                win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
+                btn_main.setText("Main Vacuum Off")
+                btn_main.setStyleSheet("background-color: #f44336; color: white;")
+                btn_door.setEnabled(False)
 
-        update_vent_button_state(win)
+                # Apagado automático de Soft Vacuum
+                if btn_soft.text() == "Soft Vacuum Off":
+                    win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
+                    btn_soft.setText("Soft Vacuum On")
+                    btn_soft.setStyleSheet("")
+                    print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
+
+                # Habilitación de MFCs al alcanzar vacío principal
+                set_mfc_lamps_controls_enabled(win, True)
+
+                # ── Habilitación de Throttle por Estado de Vacío ──
+                win.is_in_vacuum = True
+                if hasattr(win, "throttle"):
+                    win.throttle.update_vacuum_interlocks()
+
+            else:
+                win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
+                btn_main.setText("Main Vacuum On")
+                btn_main.setStyleSheet("")
+
+                # Corte de vacío principal: deshabilitamos MFCs
+                set_mfc_lamps_controls_enabled(win, False)
+
+                # ── Bloqueo de Throttle por Corte de Vacío ──
+                win.is_in_vacuum = False
+                if hasattr(win, "throttle"):
+                    if win.throttle.auto_control_enabled:
+                        win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
+                    win.throttle.update_vacuum_interlocks()
+
+            update_vent_button_state(win)
     ```
 
 ---
@@ -347,84 +364,95 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 ## <span style="color: #4CAF50;">Venteo de camara</span>
 
 ??? note "`vent_chamber(win)`"
-    Maneja la apertura física de la línea de nitrógeno/aire hacia el interior de la cámara (`VENT_VALVE_CONTROL`). Evalúa rigurosamente que no existan líneas de vacío succionando en simultáneo. Si pasa los filtros, inicia el venteo y congela temporalmente todos los mandos periféricos del panel. Cuenta con una rutina de escape que permite la cancelación manual inmediata por parte del operario.
+    Maneja la apertura física de la línea de nitrógeno/aire hacia el interior de la cámara (`VENT_VALVE_CONTROL`). Evalúa rigurosamente que no existan líneas de vacío succionando en simultáneo. Si pasa los filtros, inicia el venteo y congela temporalmente todos los mandos periféricos del panel. Cuenta con una rutina de escape que permite la cancelación manual inmediata por parte del operario. Si la throttle estaba ajustando y se presiona este boton, la detiene
 
     ```python
     def vent_chamber(win):
-        """ Controla el inicio y la cancelación manual del proceso de venteo. """
-        btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
-        btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
-        btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+    """ Controla el inicio y la cancelación manual del proceso de venteo. """
+    btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
+    btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
+    btn_main = win.ui.MenuPrincipal_btn_main_vacuum
 
-        if check_active_power(win):
+    if check_active_power(win):
+        QtWidgets.QMessageBox.warning(
+            win,
+            "Secuencia Inválida",
+            "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
+            "Apague todos los procesos térmicos y de RF primero.",
+            QtWidgets.QMessageBox.Ok
+        )
+        return
+
+    if btn_vent.text() == "Vent Chamber":
+        # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
+        if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
             QtWidgets.QMessageBox.warning(
                 win,
                 "Secuencia Inválida",
-                "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
-                "Apague todos los procesos térmicos y de RF primero.",
+                "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
+                "Cierre las válvulas de vacío primero.",
                 QtWidgets.QMessageBox.Ok
             )
             return
 
-        if btn_vent.text() == "Vent Chamber":
-            # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
-            if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
-                QtWidgets.QMessageBox.warning(
-                    win,
-                    "Secuencia Inválida",
-                    "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
-                    "Cierre las válvulas de vacío primero.",
-                    QtWidgets.QMessageBox.Ok
-                )
-                return
+        # Inicio de venteo
+        win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
+        btn_vent.setText("Venteando...")
+        btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
 
-            # Inicio de venteo
-            win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
-            btn_vent.setText("Venteando...")
-            btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
-            
-            # Bloqueos de seguridad durante el venteo
-            btn_soft.setEnabled(False)
-            btn_main.setEnabled(False)
-            win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
-            set_mfc_lamps_controls_enabled(win, False)
-            
-        else:
-            # Cancelación manual
-            win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
-            btn_vent.setText("Vent Chamber")
-            btn_vent.setStyleSheet("")
-            
-            btn_soft.setEnabled(True)
-            btn_main.setEnabled(True)
-            print("Venteo cancelado manualmente por el operario.")
-    ```
-
-??? note "`finish_vent_sequence(win)`"
-    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura.
-
-    ```python
-    def finish_vent_sequence(win):
-        """ Se ejecuta automáticamente por timer X segundos después de detectar ATM. """
-        btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
+        # ── Seguridad Throttle al iniciar venteo ──
+        win.is_in_vacuum = False
+        if hasattr(win, "throttle"):
+            if win.throttle.auto_control_enabled:
+                win.throttle.stop_movement()
+            win.throttle.update_vacuum_interlocks()
         
-        if btn_vent.text() != "Presión ATM alcanzada...":
-            return
-
+        # Bloqueos de seguridad durante el venteo
+        btn_soft.setEnabled(False)
+        btn_main.setEnabled(False)
+        win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
+        set_mfc_lamps_controls_enabled(win, False)
+        
+    else:
+        # Cancelación manual
         win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
         btn_vent.setText("Vent Chamber")
         btn_vent.setStyleSheet("")
         
-        # Una vez venteado, vuelve a habilitar botones que habian sido deshabilitados en vacio
-        win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
-        win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
-        win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
-        win.ui.MenuPrincipal_btn_outerLamps.setEnabled(True)
-        
-        # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
-        set_mfc_lamps_controls_enabled(win, False)
-        
-        print("Secuencia de venteo finalizada con éxito. Cámara segura para apertura.")
+        btn_soft.setEnabled(True)
+        btn_main.setEnabled(True)
+        print("Venteo cancelado manualmente por el operario.")
+    ```
+
+??? note "`finish_vent_sequence(win)`"
+    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos 
+
+    ```python
+    def finish_vent_sequence(win):
+    """ Se ejecuta automáticamente por timer X segundos después de detectar ATM. """
+    btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
+    
+    if btn_vent.text() != "Presión ATM alcanzada...":
+        return
+
+    win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
+    btn_vent.setText("Vent Chamber")
+    btn_vent.setStyleSheet("")
+    
+    # Una vez venteado, vuelve a habilitar botones que habian sido deshabilitados en vacio
+    win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
+    win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
+    win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
+    
+    # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
+    set_mfc_lamps_controls_enabled(win, False)
+
+    # ── Confirmación de Atmósfera y estado de Throttle ──
+    win.is_in_vacuum = False
+    if hasattr(win, "throttle"):
+        win.throttle.update_vacuum_interlocks()
+    
+    print("Secuencia de venteo finalizada con éxito. Cámara segura para apertura.")
     ```
 
 ---
@@ -481,7 +509,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         btn_set = win.ui.MenuPrincipal_btn_mfc1_set
         try:
             slm_target = float(text_val)
-            if 0.0 <= slm_target <= MFC1_MAX_SLM:
+            if 1 <= slm_target <= MFC1_MAX_SLM:
                 voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
                 win.hw.analog_write("MFC1_SETPOINT", voltage)
                 # Guardar target y limpiar historial para nuevo promedio
@@ -493,7 +521,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
                 btn_set.setStyleSheet("background-color: #f44336; color: white;")
                 QtWidgets.QMessageBox.warning(
                     win, "Rango Inválido",
-                    f"El caudal de O2 debe estar entre 0.0 y {MFC1_MAX_SLM} SLM."
+                    f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_SLM} SLM."
                 )
         except ValueError:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
@@ -513,7 +541,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         btn_set = win.ui.MenuPrincipal_btn_mfc2_set
         try:
             slm_target = float(text_val)
-            if 0.0 <= slm_target <= MFC2_MAX_SLM:
+            if 0.1 <= slm_target <= MFC2_MAX_SLM:
                 voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
                 win.hw.analog_write("MFC2_SETPOINT", voltage)
                 # Guardar target y limpiar historial para nuevo promedio
@@ -525,7 +553,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
                 btn_set.setStyleSheet("background-color: #f44336; color: white;")
                 QtWidgets.QMessageBox.warning(
                     win, "Rango Inválido",
-                    f"El caudal de N2 debe estar entre 0.0 y {MFC2_MAX_SLM} SLM."
+                    f"El caudal de N2 debe estar entre 0.1 y {MFC2_MAX_SLM} SLM."
                 )
         except ValueError:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")

@@ -168,10 +168,10 @@ class ThrottleController:
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
 
         # Ráfaga inicial si estamos en la zona de paso neutro (< 200 pasos)
-        if self.current_step < 200:
+        if self.current_step < 400:
             print("[THROTTLE] Ejecutando ráfaga inicial para superar zona neutra...")
             self.set_direction(ACTIVE)  # Cierre
-            self.start_movement(self.SPEED_MS, steps=250)
+            self.start_movement(self.SPEED_MS, steps=450)
         else:
             # Si ya está posicionada, arranca directamente el lazo continuo
             self.start_movement(self.SPEED_MS)
@@ -259,18 +259,45 @@ class ThrottleController:
             val_text = self.ui.ThrottleMenu_pressure_entry.text().strip()
             target = float(val_text)
 
-            if 1.0 <= target <= 3.0:
-                self.start_auto_control(target)
-            else:
+            # 1. Lectura analógica en vivo de la presión de la cámara (Baratron)
+            current_p = round(self.hw.analog_read("BARATRON_PRESSURE"), 2)
+
+            # 2. Límite máximo de seguridad del recinto / escala de lectura
+            MAX_PRESSURE_LIMIT = 8.0  # Torr
+
+            # 3. Validaciones dinámicas
+            if target < current_p:
                 QMessageBox.warning(
                     self.win,
-                    "Rango Inválido",
-                    "Ingrese un setpoint de presión entre 1.0 y 3.0 Torr.",
-                    QMessageBox.Ok,
+                    "Setpoint Inalcanzable",
+                    f"El setpoint ingresado ({target:.2f} Torr) es menor a la presión base actual ({current_p:.2f} Torr).\n\n"
+                    "La Throttle Valve solo puede aumentar la presión restringiendo el flujo. "
+                    "Elija un setpoint mayor a la presión actual o reduzca el caudal de los MFC.",
+                    QMessageBox.Ok
                 )
-                print(
-                    "[THROTTLE] Setpoint fuera de rango (debe ser 1.0 a 3.0 Torr)."
+                print(f"[THROTTLE] Setpoint ({target}) rechazado: menor a presión base actual ({current_p}).")
+
+            elif target > MAX_PRESSURE_LIMIT:
+                QMessageBox.warning(
+                    self.win,
+                    "Límite Excedido",
+                    f"El setpoint ingresado ({target:.2f} Torr) supera el límite máximo de seguridad ({MAX_PRESSURE_LIMIT:.1f} Torr).",
+                    QMessageBox.Ok
                 )
+                print(f"[THROTTLE] Setpoint ({target}) excede el límite máximo del sistema.")
+
+            else:
+                # Setpoint válido: Iniciar control automático
+                self.start_auto_control(target)
+
+        except ValueError:
+            QMessageBox.warning(
+                self.win,
+                "Entrada Inválida",
+                "Ingrese un valor numérico válido para el setpoint de presión.",
+                QMessageBox.Ok
+            )
+            print("[THROTTLE] Valor de presión inválido en el campo de texto.")
 
         except ValueError:
             QMessageBox.warning(
@@ -383,65 +410,76 @@ class ThrottleController:
     #                         MANEJO DE INTERLOCKS DE UI
     # =============================================================================  
     def _update_ui_interlocks(self, running: bool):
-        """Maneja la exclusión mutua de controles en la interfaz."""
-        btn_run = getattr(self.ui, "ThrottleMenu_btn_toggle_run", None)
-        btn_step_set = getattr(self.ui, "ThrottleMenu_step_set", None)
-        entry_step = getattr(self.ui, "ThrottleMenu_step_entry", None)
+            """Maneja la exclusión mutua de controles en la interfaz."""
+            btn_run = getattr(self.ui, "ThrottleMenu_btn_toggle_run", None)
+            btn_step_set = getattr(self.ui, "ThrottleMenu_step_set", None)
+            entry_step = getattr(self.ui, "ThrottleMenu_step_entry", None)
+
+            p_entry = getattr(self.ui, "ThrottleMenu_pressure_entry", None)
+            p_set   = getattr(self.ui, "ThrottleMenu_pressure_set", None)
+            p_stop  = getattr(self.ui, "ThrottleMenu_pressure_stop", None)
+
+            is_vacuum = getattr(self.win, "is_in_vacuum", False)
+
+            if running:
+                if self.auto_control_enabled:
+                    # Corriendo control automático de presión:
+                    if btn_run:      btn_run.setEnabled(False)
+                    if btn_step_set: btn_step_set.setEnabled(False)
+                    if entry_step:   entry_step.setEnabled(False)
+                    if p_entry:      p_entry.setEnabled(False)
+                    if p_set:        p_set.setEnabled(False)
+                    if p_stop:       p_stop.setEnabled(True)
+                else:
+                    # Movimiento manual (BURST/CONTINUOUS):
+                    if p_entry: p_entry.setEnabled(False)
+                    if p_set:   p_set.setEnabled(False)
+                    if p_stop:  p_stop.setEnabled(False)
+
+                    if self._step_mode == "CONTINUOUS":
+                        if btn_step_set: btn_step_set.setEnabled(False)
+                        if entry_step:   entry_step.setEnabled(False)
+                    elif self._step_mode == "BURST":
+                        if btn_run:      btn_run.setEnabled(False)
+                        if btn_step_set: btn_step_set.setEnabled(False)
+                        if entry_step:   entry_step.setEnabled(False)
+            else:
+                # Motor detenido:
+                if btn_run:      btn_run.setEnabled(True)
+                if btn_step_set: btn_step_set.setEnabled(True)
+                if entry_step:   entry_step.setEnabled(True)
+
+                # Re-evaluamos la sección de presión según si hay vacío o no
+                if is_vacuum:
+                    if p_entry: p_entry.setEnabled(True)
+                    if p_set:   p_set.setEnabled(True)
+                    if p_stop:  p_stop.setEnabled(False)
+                else:
+                    if p_entry: p_entry.setEnabled(False)
+                    if p_set:   p_set.setEnabled(False)
+                    if p_stop:  p_stop.setEnabled(False)
+
+    def update_vacuum_interlocks(self):
+        """Habilita o deshabilita los controles de presión según si el sistema está en vacío o en atmósfera."""
+        is_vacuum = getattr(self.win, "is_in_vacuum", False)
 
         p_entry = getattr(self.ui, "ThrottleMenu_pressure_entry", None)
-        p_set = getattr(self.ui, "ThrottleMenu_pressure_set", None)
-        p_stop = getattr(self.ui, "ThrottleMenu_pressure_stop", None)
+        p_set   = getattr(self.ui, "ThrottleMenu_pressure_set", None)
+        p_stop  = getattr(self.ui, "ThrottleMenu_pressure_stop", None)
 
-        if running:
-            if self.auto_control_enabled:
-                # Si está corriendo control automático de presión:
-                if btn_run:
-                    btn_run.setEnabled(False)
-                if btn_step_set:
-                    btn_step_set.setEnabled(False)
-                if entry_step:
-                    entry_step.setEnabled(False)
-                if p_entry:
-                    p_entry.setEnabled(False)
-                if p_set:
-                    p_set.setEnabled(False)
-                if p_stop:
-                    p_stop.setEnabled(True)
-            else:
-                # Si está en movimiento manual o ráfaga (BURST/CONTINUOUS):
-                if p_entry:
-                    p_entry.setEnabled(False)
-                if p_set:
-                    p_set.setEnabled(False)
-                if p_stop:
-                    p_stop.setEnabled(False)
-
-                if self._step_mode == "CONTINUOUS":
-                    if btn_step_set:
-                        btn_step_set.setEnabled(False)
-                    if entry_step:
-                        entry_step.setEnabled(False)
-                elif self._step_mode == "BURST":
-                    if btn_run:
-                        btn_run.setEnabled(False)
-                    if btn_step_set:
-                        btn_step_set.setEnabled(False)
-                    if entry_step:
-                        entry_step.setEnabled(False)
+        if is_vacuum:
+            # En Vacío: Habilitamos la entrada de texto y el botón Ajustar si el lazo no está corriendo
+            if not self.auto_control_enabled:
+                if p_entry: p_entry.setEnabled(True)
+                if p_set:   p_set.setEnabled(True)
+                if p_stop:  p_stop.setEnabled(False)
         else:
-            # Motor detenido: rehabilitar todos los controles
-            if btn_run:
-                btn_run.setEnabled(True)
-            if btn_step_set:
-                btn_step_set.setEnabled(True)
-            if entry_step:
-                entry_step.setEnabled(True)
-            if p_entry:
-                p_entry.setEnabled(True)
-            if p_set:
-                p_set.setEnabled(True)
-            if p_stop:
-                p_stop.setEnabled(True)
+            # En Atmósfera: Bloqueamos completamente el menú de control de presión
+            if p_entry: p_entry.setEnabled(False)
+            if p_set:   p_set.setEnabled(False)
+            if p_stop:  p_stop.setEnabled(False)
+
+            print("[THROTTLE] Interlocks actualizados: Controles de presión DESHABILITADOS (Sistema en atmósfera).")
 
     # =============================================================================
     #            HANDLERS DE EVENTOS DE BOTONES DE MANEJO MANUAL (UI)

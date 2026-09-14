@@ -34,6 +34,9 @@ class ThrottleController:
         self.target_pressure = 0.0  # Setpoint en Torr
         self.deadband = 0.035  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
+        self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
+        self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW
+        self.MAX_PRESSURE_LIMIT = 2.5 # Torr
 
         # Listas para graficar ajuste de presion en funcion del tiempo
         self._log_time     = []   # timestamps en segundos
@@ -47,8 +50,9 @@ class ThrottleController:
         self._POST_LOG_SECONDS = 10.0  # Segundos extra a registrar tras frenar
         self._stop_log_time = None  # Timestamp en que se solicitó frenar
 
-        self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
-        self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW 
+        # Parametros para llevar throttle a posicion inicial y evitar zona muerta
+        self._rest_position_reached = False
+        self.THROTTLE_REST_POSITION = 400 # Pasos (Posicion para superar zona muerta)
 
         # Conectar señales de la UI a los métodos de esta clase
         self._connect_ui_signals()
@@ -91,6 +95,29 @@ class ThrottleController:
 
         # 3. Arrancamos el movimiento hacia el Limit Switch
         self.start_movement(self.SPEED_MS)
+
+    def go_to_rest_position(self):
+        """Mueve la válvula a la posición de reposo para superar zona muerta desde la posicion de apertura."""
+        
+        if self.current_step == self.THROTTLE_REST_POSITION:
+            print(f"[THROTTLE] Ya en posición de reposo ({self.THROTTLE_REST_POSITION} pasos). Sin movimiento.")
+            return
+
+        if self.current_step < self.THROTTLE_REST_POSITION:
+            steps_needed = self.THROTTLE_REST_POSITION - self.current_step
+            self.set_direction(ACTIVE)    # cerrar
+            self.set_half_step(INACTIVE)  # full step
+            self.start_movement(self.SPEED_MS, steps=int(steps_needed))
+            print(f"[THROTTLE] Moviendo a posición de reposo: {self.THROTTLE_REST_POSITION} pasos (cerrando {steps_needed} pasos)")
+
+        else:
+            steps_needed = self.current_step - self.THROTTLE_REST_POSITION
+            self.set_direction(INACTIVE)  # abrir
+            self.set_half_step(INACTIVE)  # full step
+            self.start_movement(self.SPEED_MS, steps=int(steps_needed))
+            print(f"[THROTTLE] Moviendo a posición de reposo: {self.THROTTLE_REST_POSITION} pasos (abriendo {steps_needed} pasos)")
+
+
 
     # =============================================================================
     #        METODOS PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
@@ -142,10 +169,6 @@ class ThrottleController:
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
         self._is_logging = False  # Reset del flag de muestreo
 
-        '''if sys.platform == "win32":
-            os.startfile(filename)
-        else:
-            subprocess.Popen(["xdg-open", filename])'''
         
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
@@ -167,14 +190,16 @@ class ThrottleController:
 
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
 
-        # Ráfaga inicial si estamos en la zona de paso neutro (< 200 pasos)
+        '''# Ráfaga inicial si estamos en la zona de paso neutro (< 200 pasos)
         if self.current_step < 400:
             print("[THROTTLE] Ejecutando ráfaga inicial para superar zona neutra...")
             self.set_direction(ACTIVE)  # Cierre
             self.start_movement(self.SPEED_MS, steps=450)
         else:
             # Si ya está posicionada, arranca directamente el lazo continuo
-            self.start_movement(self.SPEED_MS)
+            self.start_movement(self.SPEED_MS)'''
+
+        self.start_movement(self.SPEED_MS)  
 
     def stop_auto_control(self):
         """Desactiva la regulación automática y detiene el motor."""
@@ -262,10 +287,7 @@ class ThrottleController:
             # 1. Lectura analógica en vivo de la presión de la cámara (Baratron)
             current_p = round(self.hw.analog_read("BARATRON_PRESSURE"), 2)
 
-            # 2. Límite máximo de seguridad del recinto / escala de lectura
-            MAX_PRESSURE_LIMIT = 8.0  # Torr
-
-            # 3. Validaciones dinámicas
+            # 2. Validaciones dinámicas
             if target < current_p:
                 QMessageBox.warning(
                     self.win,
@@ -299,14 +321,6 @@ class ThrottleController:
             )
             print("[THROTTLE] Valor de presión inválido en el campo de texto.")
 
-        except ValueError:
-            QMessageBox.warning(
-                self.win,
-                "Entrada Inválida",
-                "Ingrese un número válido para el setpoint de presión.",
-                QMessageBox.Ok,
-            )
-            print("[THROTTLE] Valor de presión inválido en el campo de texto.")
 
     # =============================================================================
     #                    METODOS DE HARDWARE/CONTROL MANUAL

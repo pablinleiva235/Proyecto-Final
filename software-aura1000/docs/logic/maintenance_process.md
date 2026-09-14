@@ -12,12 +12,12 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 
     ```python
     # Constantes para el flujo maximo de los MFC
-    MFC1_MAX_SLM = 5.0   
-    MFC2_MAX_SLM = 1.0    
+    MFC1_MAX_SLM = 4.5   
+    MFC2_MAX_SLM = 0.45    
 
     # Constantes para la tension maxima de los MFC
-    MFC1_MAX_VOLT = 5.0  
-    MFC2_MAX_VOLT = 1.0
+    MFC1_MAX_VOLT = 4.5
+    MFC2_MAX_VOLT = 0.45
     ```
 ---
 
@@ -283,7 +283,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`toggle_main_vacuum(win)`"
-    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle
+    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.
 
     ```python
     def toggle_main_vacuum(win):
@@ -320,43 +320,48 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             return
 
         # 2. Encendido / Apagado de Main Vacuum
-            if btn_main.text() == "Main Vacuum On":
-                win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
-                btn_main.setText("Main Vacuum Off")
-                btn_main.setStyleSheet("background-color: #f44336; color: white;")
-                btn_door.setEnabled(False)
+        if btn_main.text() == "Main Vacuum On":
+            win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
+            btn_main.setText("Main Vacuum Off")
+            btn_main.setStyleSheet("background-color: #f44336; color: white;")
+            btn_door.setEnabled(False)
 
-                # Apagado automático de Soft Vacuum
-                if btn_soft.text() == "Soft Vacuum Off":
-                    win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
-                    btn_soft.setText("Soft Vacuum On")
-                    btn_soft.setStyleSheet("")
-                    print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
+            # Apagado automático de Soft Vacuum
+            if btn_soft.text() == "Soft Vacuum Off":
+                win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
+                btn_soft.setText("Soft Vacuum On")
+                btn_soft.setStyleSheet("")
+                print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
 
-                # Habilitación de MFCs al alcanzar vacío principal
-                set_mfc_lamps_controls_enabled(win, True)
+            # Habilitación de MFCs al alcanzar vacío principal
+            set_mfc_lamps_controls_enabled(win, True)
 
-                # ── Habilitación de Throttle por Estado de Vacío ──
-                win.is_in_vacuum = True
-                if hasattr(win, "throttle"):
-                    win.throttle.update_vacuum_interlocks()
+            # ── Habilitación de Throttle por Estado de Vacío ──
+            win.is_in_vacuum = True
+            if hasattr(win, "throttle"):
+                win.throttle.update_vacuum_interlocks()
 
-            else:
-                win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
-                btn_main.setText("Main Vacuum On")
-                btn_main.setStyleSheet("")
+            win.throttle.go_to_rest_position()
 
-                # Corte de vacío principal: deshabilitamos MFCs
-                set_mfc_lamps_controls_enabled(win, False)
+        else:
+            win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
+            btn_main.setText("Main Vacuum On")
+            btn_main.setStyleSheet("")
 
-                # ── Bloqueo de Throttle por Corte de Vacío ──
-                win.is_in_vacuum = False
-                if hasattr(win, "throttle"):
-                    if win.throttle.auto_control_enabled:
-                        win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
-                    win.throttle.update_vacuum_interlocks()
+            # Corte de vacío principal: deshabilitamos MFCs
+            set_mfc_lamps_controls_enabled(win, False)
 
-            update_vent_button_state(win)
+            # Resetea flag de rest position de la throttle
+            win.throttle._rest_position_reached = False
+
+            # ── Bloqueo de Throttle por Corte de Vacío ──
+            win.is_in_vacuum = False
+            if hasattr(win, "throttle"):
+                if win.throttle.auto_control_enabled:
+                    win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
+                win.throttle.update_vacuum_interlocks()
+
+        update_vent_button_state(win)
     ```
 
 ---

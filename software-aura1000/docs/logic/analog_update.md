@@ -26,14 +26,26 @@ El módulo `analog_update.py` tiene los metodos llamados en el timer general cad
     ```
 
 ??? note "Lectura de Presión de Cámara y Estado ATM: `update_pressure_display(win)`"
-    Realiza la adquisición de tensión analógica del manómetro Baratron, escala linealmente la lectura a Torr (basado en `BARATRON_FULL_SCALE`) y la proyecta en el visor LCD de la cámara. Adicionalmente, evalúa el interruptor digital de presión atmosférica (`ATM_SWITCH`), actualiza la etiqueta LED visual correspondiente y retorna el estado booleano de la cámara.
+    Realiza la adquisición de tensión analógica del manómetro Baratron, escala linealmente la lectura a Torr (basado en `BARATRON_FULL_SCALE`) y la proyecta en el visor LCD de la cámara. Adicionalmente, evalúa el interruptor digital de presión atmosférica (`ATM_SWITCH`), actualiza la etiqueta LED visual correspondiente y retorna el estado booleano de la cámara. Si se alcanzo un vacio menor a 0.06 mueve la throttle a la posicion inicial para evitar zona muerta desde la posicion de apertura.
 
     ```python
     def update_pressure_display(win) -> bool:
+        """Lee el Baratron y el ATM_SWITCH, actualiza la GUI y retorna el estado de ATM."""
         try:
             voltage = win.hw.analog_read("BARATRON")
             pressure_torr = max(0.0, voltage * (BARATRON_FULL_SCALE / 10.0))
+            # Indicacion de presion en menu Mantenimiento
             win.ui.MenuPrincipal_chamber_pressure.display(f"{pressure_torr:.3f}")
+            # Indicacion de presion en menu Throttle
+            win.ui.ThrottleMenu_chamber_pressure.display(f"{pressure_torr:.3f}")
+            # Llamada para ajuste de setpoint de throttle
+            win.throttle.update_pressure_loop(pressure_torr)
+
+            # Mover throttle a REST_POSITION cuando se alcanza vacío base ──
+            if (win.is_in_vacuum and not win.throttle._rest_position_reached and pressure_torr < 0.06):
+                win.throttle.go_to_rest_position()
+                win.throttle._rest_position_reached = True
+                print("[SISTEMA] Vacío base alcanzado. Throttle moviendo a REST_POSITION.")
 
             # Lectura del switch de presión atmosférica
             atm_active = win.hw.digital_read("ATM_SWITCH")

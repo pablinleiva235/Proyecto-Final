@@ -38,6 +38,12 @@ def update_pressure_display(win) -> bool:
         # Llamada para ajuste de setpoint de throttle
         win.throttle.update_pressure_loop(pressure_torr)
 
+        # Mover throttle a REST_POSITION cuando se alcanza vacío base ──
+        if (win.is_in_vacuum and not win.throttle._rest_position_reached and pressure_torr < 0.06):
+            win.throttle.go_to_rest_position()
+            win.throttle._rest_position_reached = True
+            print("[SISTEMA] Vacío base alcanzado. Throttle moviendo a REST_POSITION.")
+
         # Lectura del switch de presión atmosférica
         atm_active = win.hw.digital_read("ATM_SWITCH")
         update_led_indicator(

@@ -1605,7 +1605,13 @@
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_open</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc2_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-    <span class="c1"># G. Mostrar Pop-up modal de advertencia al usuario</span>
+    <span class="c1"># G. Detener lazo de control automático de la Throttle Valve</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>  <span class="c1"># Apaga el lazo, frena el motor y cancela el log</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[CORTE DE SEGURIDAD] Lazo de control automático de Throttle detenido.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># H. Mostrar Pop-up modal de advertencia al usuario</span>
     <span class="n">gas_list_str</span> <span class="o">=</span> <span class="s2">&quot; y &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">failed_gases</span><span class="p">)</span>
     <span class="n">msg_box</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
     <span class="n">msg_box</span><span class="o">.</span><span class="n">setIcon</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Warning</span><span class="p">)</span>

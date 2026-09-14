@@ -44,7 +44,7 @@ class ThrottleController:
         self._is_logging = False  # Flag para habilitar la captura de muestras (segun sea Modo Manual o Automatico)
         self._log_title = ""      # Título dinámico del gráfico (segun sea Modo Manual o Automatico)
         # Variables para post-muestreo en gráficos
-        self._POST_LOG_SECONDS = 5.0  # Segundos extra a registrar tras frenar
+        self._POST_LOG_SECONDS = 10.0  # Segundos extra a registrar tras frenar
         self._stop_log_time = None  # Timestamp en que se solicitó frenar
 
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo

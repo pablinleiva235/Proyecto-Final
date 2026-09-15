@@ -652,7 +652,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_pasos_label.setText(_translate("MainWindow", "pasos"))
         self.ThrottleMenu_step_set.setText(_translate("MainWindow", "Ajustar posicion"))
         self.ThrottleMenu_chamber_pressure_unit_lbl.setText(_translate("MainWindow", "Torr"))
-        self.ThrottleMenu_pressure_entry.setText(_translate("MainWindow", "1.5 - 2.5"))
+        self.ThrottleMenu_pressure_entry.setText(_translate("MainWindow", "1.5 - 7"))
         self.ThrottleMenu_pressureUnit_lbl_2.setText(_translate("MainWindow", "Presion de camara"))
         self.ThrottleMenu_setpoint_pressure_unit_lbl.setText(_translate("MainWindow", "Torr"))
         self.ThrottleMenu_pressureUnit_lbl_4.setText(_translate("MainWindow", "Setpoint de presion"))

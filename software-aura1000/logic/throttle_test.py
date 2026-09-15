@@ -36,19 +36,13 @@ class ThrottleController:
         self.auto_control_enabled = False
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW
-        self.MAX_PRESSURE_LIMIT = 2.5 # Torr
+        self.MAX_PRESSURE_LIMIT = 7 # Torr
 
         # Listas para graficar ajuste de presion en funcion del tiempo
         self._log_time     = []   # timestamps en segundos
         self._log_pressure = []   # presión medida en Torr
         self._log_setpoint = []   # setpoint para graficarlo como línea de referencia
         self._log_start_time = None
-        # Flags para detectar si se graficara o no la presion(t)
-        self._is_logging = False  # Flag para habilitar la captura de muestras (segun sea Modo Manual o Automatico)
-        self._log_title = ""      # Título dinámico del gráfico (segun sea Modo Manual o Automatico)
-        # Variables para post-muestreo en gráficos
-        self._POST_LOG_SECONDS = 10.0  # Segundos extra a registrar tras frenar
-        self._stop_log_time = None  # Timestamp en que se solicitó frenar
 
         # Parametros para llevar throttle a posicion inicial y evitar zona muerta
         self._rest_position_reached = False
@@ -123,9 +117,8 @@ class ThrottleController:
     #        METODOS PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
     # =============================================================================  
     def _generate_pressure_plot(self):
-        if not self._is_logging or len(self._log_time) < 2:
+        if len(self._log_time) < 2:
             print("[THROTTLE] Sin datos suficientes para graficar.")
-            self._is_logging = False
             return
 
         import matplotlib.pyplot as plt
@@ -133,6 +126,7 @@ class ThrottleController:
         import subprocess
         import sys
 
+        # Carpeta logs/ siempre al lado de throttle_controller.py
         base_dir = os.path.dirname(os.path.abspath(__file__))
         logs_dir = os.path.join(base_dir, "logs")
         os.makedirs(logs_dir, exist_ok=True)
@@ -144,21 +138,20 @@ class ThrottleController:
 
         ax.plot(self._log_time, self._log_pressure,
                 label="Presión medida", color="royalblue", linewidth=1.5)
+        ax.plot(self._log_time, self._log_setpoint,
+                label="Setpoint", color="red",
+                linewidth=1.2, linestyle="--")
 
-        # Solo si proviene de control automático, graficamos Setpoint y Deadband
-        if self._log_setpoint:
-            ax.plot(self._log_time, self._log_setpoint,
-                    label="Setpoint", color="red",
-                    linewidth=1.2, linestyle="--")
-            ax.axhline(self.target_pressure + self.deadband,
-                       color="orange", linewidth=0.8,
-                       linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
-            ax.axhline(self.target_pressure - self.deadband,
-                       color="orange", linewidth=0.8, linestyle=":")
+        # Banda muerta
+        ax.axhline(self.target_pressure + self.deadband,
+                color="orange", linewidth=0.8,
+                linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
+        ax.axhline(self.target_pressure - self.deadband,
+                color="orange", linewidth=0.8, linestyle=":")
 
         ax.set_xlabel("Tiempo (s)")
         ax.set_ylabel("Presión (Torr)")
-        ax.set_title(self._log_title)
+        ax.set_title(f"Control de Presión Throttle — Setpoint: {self.target_pressure:.3f} Torr")
         ax.legend()
         ax.grid(True, alpha=0.3)
 
@@ -167,7 +160,14 @@ class ThrottleController:
         plt.close(fig)
 
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
-        self._is_logging = False  # Reset del flag de muestreo
+
+        '''
+        # Abrir automáticamente
+        if sys.platform == "win32":
+            os.startfile(filename)
+        else:
+            subprocess.Popen(["xdg-open", filename])
+        '''
 
         
     # =============================================================================
@@ -185,19 +185,8 @@ class ThrottleController:
         self._log_pressure = []
         self._log_setpoint = []
         self._log_start_time = time.time()
-        self._is_logging = True
-        self._log_title = f"Control Automático Throttle — Setpoint: {self.target_pressure:.3f} Torr"
 
         print(f"[THROTTLE] Control de presión ACTIVADO. Target: {self.target_pressure:.3f} Torr")
-
-        '''# Ráfaga inicial si estamos en la zona de paso neutro (< 200 pasos)
-        if self.current_step < 400:
-            print("[THROTTLE] Ejecutando ráfaga inicial para superar zona neutra...")
-            self.set_direction(ACTIVE)  # Cierre
-            self.start_movement(self.SPEED_MS, steps=450)
-        else:
-            # Si ya está posicionada, arranca directamente el lazo continuo
-            self.start_movement(self.SPEED_MS)'''
 
         self.start_movement(self.SPEED_MS)  
 
@@ -205,30 +194,21 @@ class ThrottleController:
         """Desactiva la regulación automática y detiene el motor."""
         print("[THROTTLE] Control de presión DESACTIVADO manualmente.")
         self.stop_movement()
+        self.go_to_rest_position()
+        self._generate_pressure_plot()
 
     def update_pressure_loop(self, current_pressure: float):
-        # Registro de Muestras (Incluye Post-Muestreo tras frenar) 
-        if self._is_logging and self._log_start_time is not None:
-            elapsed = time.time() - self._log_start_time
-            self._log_time.append(elapsed)
-            self._log_pressure.append(current_pressure)
-            
-            if self.auto_control_enabled:
-                self._log_setpoint.append(self.target_pressure)
-
-            # Si se solicitó la detención y ya pasaron los N segundos extra, se genera el gráfico
-            if self._stop_log_time is not None:
-                if (time.time() - self._stop_log_time) >= self._POST_LOG_SECONDS:
-                    self._generate_pressure_plot()
-                    self._stop_log_time = None
-
-        # Lazo de Control de Presión Automático 
         if not self.auto_control_enabled:
             return
 
         error = self.target_pressure - current_pressure
 
-        error = self.target_pressure - current_pressure
+        # Registrar lectura para generar grafico
+        if self._log_start_time is not None:
+            elapsed = time.time() - self._log_start_time
+            self._log_time.append(elapsed)
+            self._log_pressure.append(current_pressure)
+            self._log_setpoint.append(self.target_pressure)
 
         # 1. Zona muerta
         if abs(error) <= self.deadband:
@@ -239,22 +219,22 @@ class ThrottleController:
                 print("[THROTTLE] Presión dentro de tolerancia. Motor pausado.")
             return
 
-    # 2. Velocidad y modo según magnitud y signo del error (A 250 Hz)
+        # 2. Velocidad y modo según magnitud y signo del error (A 250 Hz)
         if error > 0:
-            # ── SUBIENDO PRESIÓN (Cerrando válvula) ──
             if error > 0.3:
-                speed_ms = self.SPEED_MS  # 250 Hz - Full Step (Rampa rápida)
+                speed_ms = self.SPEED_MS       # 250 Hz - Full Step
                 use_half = False
-            elif error > 0.2:
-                speed_ms = self.SPEED_MS * 2  # 125 Hz - Full Step
-                use_half = False
+            elif error > 0.15:
+                speed_ms = self.SPEED_MS * 2   # 125 Hz - Full Step
+                use_half = True
+            elif error > 0.05:
+                speed_ms = self.SPEED_MS * 3   # 83 Hz - Half Step
+                use_half = True
             else:
-                speed_ms = (self.SPEED_MS * 2) # 62.5 Hz - Half Step
+                speed_ms = self.SPEED_MS * 5   # 50 Hz - Half Step
                 use_half = True
         else:
-            # ── BAJANDO PRESIÓN (Abriendo válvula tras pasarse) ──
-            # Modo suave para no caer en el valle de 2.91 Torr
-            speed_ms = self.SPEED_MS * 2
+            speed_ms = self.SPEED_MS * 5       # 50 Hz - Half Step (más suave al abrir)
             use_half = True
 
         # 3. Cambiar modo de paso si es necesario (con motor detenido momentáneamente)
@@ -285,7 +265,7 @@ class ThrottleController:
             target = float(val_text)
 
             # 1. Lectura analógica en vivo de la presión de la cámara (Baratron)
-            current_p = round(self.hw.analog_read("BARATRON_PRESSURE"), 2)
+            current_p = round(self.hw.analog_read("BARATRON"), 2)
 
             # 2. Validaciones dinámicas
             if target < current_p:
@@ -299,7 +279,7 @@ class ThrottleController:
                 )
                 print(f"[THROTTLE] Setpoint ({target}) rechazado: menor a presión base actual ({current_p}).")
 
-            elif target > MAX_PRESSURE_LIMIT:
+            elif target > self.MAX_PRESSURE_LIMIT:
                 QMessageBox.warning(
                     self.win,
                     "Límite Excedido",
@@ -379,11 +359,6 @@ class ThrottleController:
 
             self._update_ui_interlocks(running=False)
             self.reset_run_button()
-
-            # Si había una sesión de captura de datos activa, iniciamos el conteo de post-muestreo
-            if self._is_logging and self._stop_log_time is None:
-                self._stop_log_time = time.time()
-                print(f"[THROTTLE] Motor detenido. Registrando {self._POST_LOG_SECONDS}s adicionales para el gráfico...")
 
             print("[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.")
 

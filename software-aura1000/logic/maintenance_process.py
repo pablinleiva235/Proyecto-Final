@@ -5,11 +5,16 @@ from PyQt5.QtCore import QEventLoop, QTimer
 from config.digital_signals import ACTIVE, INACTIVE
 
 # Constantes físicas de los MFCs (Unit UFC-1100A)
-MFC1_MAX_SLM = 10.0   
-MFC2_MAX_SLM = 1.0    
+MFC1_MAX_SLM = 10   
+MFC2_MAX_SLM = 1   
 
-MFC1_MAX_VOLT = 10.0  
-MFC2_MAX_VOLT = 1.0
+MFC1_MAX_VOLT = 5
+MFC2_MAX_VOLT = 5
+
+MFC1_MAX_PROCESS_SLM = 6.5
+MFC2_MAX_PROCESS_SLM = 0.65
+
+MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
 
 # =============================================================================
 # HELPERS DE SEGURIDAD Y ESTADO DE VENTEO
@@ -281,23 +286,41 @@ def toggle_main_vacuum(win):
         btn_main.setText("Main Vacuum Off")
         btn_main.setStyleSheet("background-color: #f44336; color: white;")
         btn_door.setEnabled(False)
-        
+
         # Apagado automático de Soft Vacuum
         if btn_soft.text() == "Soft Vacuum Off":
             win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
             btn_soft.setText("Soft Vacuum On")
             btn_soft.setStyleSheet("")
             print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
-        
+
         # Habilitación de MFCs al alcanzar vacío principal
         set_mfc_lamps_controls_enabled(win, True)
+
+        # ── Habilitación de Throttle por Estado de Vacío ──
+        win.is_in_vacuum = True
+        if hasattr(win, "throttle"):
+            win.throttle.update_vacuum_interlocks()
+
+        win.throttle.go_to_rest_position()
+
     else:
         win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
         btn_main.setText("Main Vacuum On")
         btn_main.setStyleSheet("")
-        
+
         # Corte de vacío principal: deshabilitamos MFCs
         set_mfc_lamps_controls_enabled(win, False)
+
+        # Resetea flag de rest position de la throttle
+        win.throttle._rest_position_reached = False
+
+        # ── Bloqueo de Throttle por Corte de Vacío ──
+        win.is_in_vacuum = False
+        if hasattr(win, "throttle"):
+            if win.throttle.auto_control_enabled:
+                win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
+            win.throttle.update_vacuum_interlocks()
 
     update_vent_button_state(win)
 
@@ -337,6 +360,13 @@ def vent_chamber(win):
         win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
         btn_vent.setText("Venteando...")
         btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
+
+        # ── Seguridad Throttle al iniciar venteo ──
+        win.is_in_vacuum = False
+        if hasattr(win, "throttle"):
+            if win.throttle.auto_control_enabled:
+                win.throttle.stop_movement()
+            win.throttle.update_vacuum_interlocks()
         
         # Bloqueos de seguridad durante el venteo
         btn_soft.setEnabled(False)
@@ -372,6 +402,11 @@ def finish_vent_sequence(win):
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
     set_mfc_lamps_controls_enabled(win, False)
+
+    # ── Confirmación de Atmósfera y estado de Throttle ──
+    win.is_in_vacuum = False
+    if hasattr(win, "throttle"):
+        win.throttle.update_vacuum_interlocks()
     
     print("Secuencia de venteo finalizada con éxito. Cámara segura para apertura.")
 
@@ -419,8 +454,9 @@ def set_mfc1_flow(win):
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
     try:
         slm_target = float(text_val)
-        if 0.0 <= slm_target <= MFC1_MAX_SLM:
-            voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
+        if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
+            slm_equiv_n2 = slm_target / MFC1_CONVERSION_FACTOR # Conversion con el FACTOR del MFC de O2 
+            voltage = (slm_equiv_n2 / MFC1_MAX_SLM) * MFC1_MAX_VOLT
             win.hw.analog_write("MFC1_SETPOINT", voltage)
             # Guardar target y limpiar historial para nuevo promedio
             win.mfc1_target_slm = slm_target
@@ -431,7 +467,7 @@ def set_mfc1_flow(win):
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QtWidgets.QMessageBox.warning(
                 win, "Rango Inválido",
-                f"El caudal de O2 debe estar entre 0.0 y {MFC1_MAX_SLM} SLM."
+                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
@@ -446,7 +482,7 @@ def set_mfc2_flow(win):
     btn_set = win.ui.MenuPrincipal_btn_mfc2_set
     try:
         slm_target = float(text_val)
-        if 0.0 <= slm_target <= MFC2_MAX_SLM:
+        if 0.1 <= slm_target <= MFC2_MAX_PROCESS_SLM:
             voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
             win.hw.analog_write("MFC2_SETPOINT", voltage)
             # Guardar target y limpiar historial para nuevo promedio
@@ -458,7 +494,7 @@ def set_mfc2_flow(win):
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QtWidgets.QMessageBox.warning(
                 win, "Rango Inválido",
-                f"El caudal de N2 debe estar entre 0.0 y {MFC2_MAX_SLM} SLM."
+                f"El caudal de N2 debe estar entre 0.1 y {MFC2_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")

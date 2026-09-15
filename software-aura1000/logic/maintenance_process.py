@@ -11,8 +11,8 @@ MFC2_MAX_SLM = 1
 MFC1_MAX_VOLT = 5
 MFC2_MAX_VOLT = 5
 
-MFC1_MAX_PROCESS_SLM = 4.5
-MFC2_MAX_PROCESS_SLM = 0.5
+MFC1_MAX_PROCESS_SLM = 6.5
+MFC2_MAX_PROCESS_SLM = 0.65
 
 MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
 

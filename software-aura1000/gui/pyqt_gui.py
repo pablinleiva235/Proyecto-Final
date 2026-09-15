@@ -602,7 +602,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -619,8 +619,8 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_btn_mfc2_open.setText(_translate("MainWindow", "Abrir Valvula MFC2: N2"))
         self.MenuPrincipal_lbl_mfc1.setText(_translate("MainWindow", "MFC1: O2"))
         self.MenuPrincipal_lbl_mfc2.setText(_translate("MainWindow", "MFC2: N2"))
-        self.MenuPrincipal_mfc1_setpoint.setText(_translate("MainWindow", "1.0 - 5.0 "))
-        self.MenuPrincipal_mfc2_setpoint.setText(_translate("MainWindow", "0.1 - 1.0 "))
+        self.MenuPrincipal_mfc1_setpoint.setText(_translate("MainWindow", "1.0 - 4.5 "))
+        self.MenuPrincipal_mfc2_setpoint.setText(_translate("MainWindow", "0.1 - 0.5"))
         self.MenuPrincipal_mfc1_setpoint_lbl.setText(_translate("MainWindow", "SLPM"))
         self.MenuPrincipal_mfc2_setpoint_lbl.setText(_translate("MainWindow", "SLPM"))
         self.MenuPrincipal_btn_mfc1_set.setText(_translate("MainWindow", "Set O2"))
@@ -652,7 +652,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_pasos_label.setText(_translate("MainWindow", "pasos"))
         self.ThrottleMenu_step_set.setText(_translate("MainWindow", "Ajustar posicion"))
         self.ThrottleMenu_chamber_pressure_unit_lbl.setText(_translate("MainWindow", "Torr"))
-        self.ThrottleMenu_pressure_entry.setText(_translate("MainWindow", "1.5 - 7"))
+        self.ThrottleMenu_pressure_entry.setText(_translate("MainWindow", "1.5 - 2.5"))
         self.ThrottleMenu_pressureUnit_lbl_2.setText(_translate("MainWindow", "Presion de camara"))
         self.ThrottleMenu_setpoint_pressure_unit_lbl.setText(_translate("MainWindow", "Torr"))
         self.ThrottleMenu_pressureUnit_lbl_4.setText(_translate("MainWindow", "Setpoint de presion"))

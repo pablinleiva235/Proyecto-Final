@@ -36,7 +36,7 @@ class ThrottleController:
         self.auto_control_enabled = False
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW
-        self.MAX_PRESSURE_LIMIT = 7 # Torr
+        self.MAX_PRESSURE_LIMIT = 2.5 # Torr
 
         # Listas para graficar ajuste de presion en funcion del tiempo
         self._log_time     = []   # timestamps en segundos

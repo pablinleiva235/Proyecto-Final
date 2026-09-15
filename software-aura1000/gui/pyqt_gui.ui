@@ -26,7 +26,7 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
        <widget class="QLabel" name="MenuPrincipal_label">
@@ -366,7 +366,7 @@
          </font>
         </property>
         <property name="text">
-         <string>1.0 - 5.0 </string>
+         <string>1.0 - 4.5 </string>
         </property>
        </widget>
        <widget class="QLineEdit" name="MenuPrincipal_mfc2_setpoint">
@@ -384,7 +384,7 @@
          </font>
         </property>
         <property name="text">
-         <string>0.1 - 1.0 </string>
+         <string>0.1 - 0.5</string>
         </property>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_mfc1_setpoint_lbl">
@@ -1272,7 +1272,7 @@
          </font>
         </property>
         <property name="text">
-         <string>1.5 - 7</string>
+         <string>1.5 - 2.5</string>
         </property>
        </widget>
        <widget class="QLabel" name="ThrottleMenu_pressureUnit_lbl_2">

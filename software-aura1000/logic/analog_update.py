@@ -4,6 +4,16 @@ from config.digital_signals import ACTIVE, INACTIVE
 
 BARATRON_FULL_SCALE = 10
 
+# Constantes de conversión para Readout
+MFC1_FULL_SCALE_SLM = 10.0 # O2: 5V = 10 SLM
+MFC2_FULL_SCALE_SLM = 1.0  # N2: 5V = 1 SLM
+
+MFC1_MAX_VOLTAGE_READ = 5.0   
+MFC2_MAX_VOLTAGE_READ = 5.0  
+
+MFC1_CONVERSION_FACTOR = 0.981
+
+
 # =================================================================================
 # MÉTODO HELPER PARA INDICADORES LED
 # =================================================================================
@@ -80,22 +90,25 @@ def update_temp_display(win):
 # LECTURA DE CAUDALES DE MFCs (O2 / N2) y METODOS EN CASO DE FALLA POR IRSE EL SETPOINT DE TOLERANCIA
 # ===================================================================================================
 def update_mfc_displays(win):
-    """Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW
+    """Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW (0-5V)
 
-    y actualiza los LCDs de la GUI.
+    y convierte la tensión a SLM según la escala completa de cada MFC.
     """
     try:
-        # --- 1. Lectura de MFC1 (O2) ---
+        # --- 1. Lectura y conversión de MFC1 (O2: 0-5V -> 0-10 SLM) ---
         v_mfc1 = win.hw.analog_read("MFC1_FLOW")
-        slm_mfc1 = max(0.0, v_mfc1)
+        # Escalamos de tensión (0-5V) a SLM reales
+        slm_n2_mfc1 = max(0.0, (v_mfc1 / MFC1_MAX_VOLTAGE_READ) * MFC1_FULL_SCALE_SLM)
+        slm_o2_real = slm_n2_mfc1 * MFC1_CONVERSION_FACTOR # Se convierte al valor de O2 con el factor de conversion
         win.ui.MenuPrincipal_mfc1_readout.display(f"{slm_mfc1:.2f}")
-        win.mfc1_flow_history.append(slm_mfc1)  # Se agrega al buffer de 3s
+        win.mfc1_flow_history.append(slm_mfc1)  # Buffer para monitoreo
 
-        # --- 2. Lectura de MFC2 (N2) ---
+        # --- 2. Lectura y conversión de MFC2 (N2: 0-5V -> 0-1 SLM) ---
         v_mfc2 = win.hw.analog_read("MFC2_FLOW")
-        slm_mfc2 = max(0.0, v_mfc2)
+        # Escalamos de tensión (0-5V) a SLM reales
+        slm_mfc2 = max(0.0, (v_mfc2 / MFC2_MAX_VOLTAGE_READ) * MFC2_FULL_SCALE_SLM)
         win.ui.MenuPrincipal_mfc2_readout.display(f"{slm_mfc2:.2f}")
-        win.mfc2_flow_history.append(slm_mfc2)  # Se agrega al buffer de 3s
+        win.mfc2_flow_history.append(slm_mfc2)  # Buffer para monitoreo
 
         # --- 3. Evaluación de seguridad de caudal ---
         _check_mfc_faults(win)

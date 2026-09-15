@@ -5,11 +5,16 @@ from PyQt5.QtCore import QEventLoop, QTimer
 from config.digital_signals import ACTIVE, INACTIVE
 
 # Constantes físicas de los MFCs (Unit UFC-1100A)
-MFC1_MAX_SLM = 4.5   
-MFC2_MAX_SLM = 0.45   
+MFC1_MAX_SLM = 10   
+MFC2_MAX_SLM = 1   
 
-MFC1_MAX_VOLT = 4.5
-MFC2_MAX_VOLT = 0.45
+MFC1_MAX_VOLT = 5
+MFC2_MAX_VOLT = 5
+
+MFC1_MAX_PROCESS_SLM = 4.5
+MFC2_MAX_PROCESS_SLM = 0.5
+
+MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
 
 # =============================================================================
 # HELPERS DE SEGURIDAD Y ESTADO DE VENTEO
@@ -449,8 +454,9 @@ def set_mfc1_flow(win):
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
     try:
         slm_target = float(text_val)
-        if 1 <= slm_target <= MFC1_MAX_SLM:
-            voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
+        if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
+            slm_equiv_n2 = slm_target / MFC1_CONVERSION_FACTOR # Conversion con el FACTOR del MFC de O2 
+            voltage = (slm_equiv_n2 / MFC1_MAX_SLM) * MFC1_MAX_VOLT
             win.hw.analog_write("MFC1_SETPOINT", voltage)
             # Guardar target y limpiar historial para nuevo promedio
             win.mfc1_target_slm = slm_target
@@ -461,7 +467,7 @@ def set_mfc1_flow(win):
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QtWidgets.QMessageBox.warning(
                 win, "Rango Inválido",
-                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_SLM} SLM."
+                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
@@ -476,7 +482,7 @@ def set_mfc2_flow(win):
     btn_set = win.ui.MenuPrincipal_btn_mfc2_set
     try:
         slm_target = float(text_val)
-        if 0.1 <= slm_target <= MFC2_MAX_SLM:
+        if 0.1 <= slm_target <= MFC2_MAX_PROCESS_SLM:
             voltage = (slm_target / MFC2_MAX_SLM) * MFC2_MAX_VOLT
             win.hw.analog_write("MFC2_SETPOINT", voltage)
             # Guardar target y limpiar historial para nuevo promedio
@@ -488,7 +494,7 @@ def set_mfc2_flow(win):
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QtWidgets.QMessageBox.warning(
                 win, "Rango Inválido",
-                f"El caudal de N2 debe estar entre 0.1 y {MFC2_MAX_SLM} SLM."
+                f"El caudal de N2 debe estar entre 0.1 y {MFC2_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")

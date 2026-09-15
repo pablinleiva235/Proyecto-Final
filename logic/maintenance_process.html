@@ -1588,13 +1588,19 @@
 <summary>Constantes MFCs: </summary>
 <p>MFC1: O2</p>
 <p>MFC2: N2</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Constantes para el flujo maximo de los MFC</span>
-<span class="n">MFC1_MAX_SLM</span> <span class="o">=</span> <span class="mf">4.5</span>   
-<span class="n">MFC2_MAX_SLM</span> <span class="o">=</span> <span class="mf">0.45</span>    
+<div class="highlight"><pre><span></span><code><span class="c1"># Valores maximos de flujo de gas de los MFCs</span>
+<span class="n">MFC1_MAX_SLM</span> <span class="o">=</span> <span class="mi">10</span>   
+<span class="n">MFC2_MAX_SLM</span> <span class="o">=</span> <span class="mi">1</span>   
 
-<span class="c1"># Constantes para la tension maxima de los MFC</span>
-<span class="n">MFC1_MAX_VOLT</span> <span class="o">=</span> <span class="mf">4.5</span>
-<span class="n">MFC2_MAX_VOLT</span> <span class="o">=</span> <span class="mf">0.45</span>
+<span class="c1"># Valores maximos de tension de ajuste de setpoints de MFCs</span>
+<span class="n">MFC1_MAX_VOLT</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">MFC2_MAX_VOLT</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="c1"># Valores maximos de Flujos de gases para los procesos</span>
+<span class="n">MFC1_MAX_PROCESS_SLM</span> <span class="o">=</span> <span class="mf">6.5</span>
+<span class="n">MFC2_MAX_PROCESS_SLM</span> <span class="o">=</span> <span class="mf">0.65</span>
+
+<span class="n">MFC1_CONVERSION_FACTOR</span> <span class="o">=</span> <span class="mf">0.981</span> <span class="c1"># Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2</span>
 </code></pre></div>
 </details>
 <hr />
@@ -2058,33 +2064,34 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 </details>
 <details class="note">
 <summary><code>set_mfc1_flow(win)</code></summary>
-<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc1_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc1_flow_history</code></p>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc1_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc1_flow_history</code></p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc1_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 &quot;&quot;&quot;</span>
-    <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
-    <span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">slm_target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">text_val</span><span class="p">)</span>
-        <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC1_MAX_SLM</span><span class="p">:</span>
-            <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC1_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC1_MAX_VOLT</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
-            <span class="c1"># Guardar target y limpiar historial para nuevo promedio</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="n">slm_target</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC1 O2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
-            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">&quot;El caudal de O2 debe estar entre 1 y </span><span class="si">{</span><span class="n">MFC1_MAX_SLM</span><span class="si">}</span><span class="s2"> SLM.&quot;</span>
-            <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+<span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 &quot;&quot;&quot;</span>
+<span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">slm_target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">text_val</span><span class="p">)</span>
+    <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC1_MAX_PROCESS_SLM</span><span class="p">:</span>
+        <span class="n">slm_equiv_n2</span> <span class="o">=</span> <span class="n">slm_target</span> <span class="o">/</span> <span class="n">MFC1_CONVERSION_FACTOR</span> <span class="c1"># Conversion con el FACTOR del MFC de O2 </span>
+        <span class="n">voltage</span> <span class="o">=</span> <span class="p">(</span><span class="n">slm_equiv_n2</span> <span class="o">/</span> <span class="n">MFC1_MAX_SLM</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC1_MAX_VOLT</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="n">voltage</span><span class="p">)</span>
+        <span class="c1"># Guardar target y limpiar historial para nuevo promedio</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="n">slm_target</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC1 O2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
+        <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
         <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
         <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de O2.&quot;</span>
+            <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;El caudal de O2 debe estar entre 1 y </span><span class="si">{</span><span class="n">MFC1_MAX_PROCESS_SLM</span><span class="si">}</span><span class="s2"> SLM.&quot;</span>
         <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de O2.&quot;</span>
+    <span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">

@@ -1131,6 +1131,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constantes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#adquisicion-de-datos-y-monitoreo-analogico" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1366,6 +1377,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#constantes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constantes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#adquisicion-de-datos-y-monitoreo-analogico" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1406,6 +1428,21 @@
 
 <h1 id="analog_updatepy"><code>analog_update.py</code></h1>
 <p>El módulo <code>analog_update.py</code> tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz</p>
+<hr />
+<h2 id="constantes"><span style="color: #4CAF50;">Constantes</span></h2>
+<details class="note">
+<summary>Constantes MFCs: </summary>
+<p>MFC1: O2</p>
+<p>MFC2: N2</p>
+<div class="highlight"><pre><span></span><code><span class="n">MFC1_FULL_SCALE_SLM</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="c1"># O2: 5V = 10 SLM</span>
+<span class="n">MFC2_FULL_SCALE_SLM</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># N2: 5V = 1 SLM</span>
+
+<span class="n">MFC1_MAX_VOLTAGE_READ</span> <span class="o">=</span> <span class="mf">5.0</span>   
+<span class="n">MFC2_MAX_VOLTAGE_READ</span> <span class="o">=</span> <span class="mf">5.0</span>  
+
+<span class="n">MFC1_CONVERSION_FACTOR</span> <span class="o">=</span> <span class="mf">0.981</span>
+</code></pre></div>
+</details>
 <hr />
 <h2 id="adquisicion-de-datos-y-monitoreo-analogico"><span style="color: #4CAF50;">Adquisición de Datos y Monitoreo Analógico</span></h2>
 <details class="note">
@@ -1480,26 +1517,33 @@
 </details>
 <details class="note">
 <summary>Lectura de readouts de flujo de MFCs: <code>update_mfc_displays(win)</code></summary>
-<p>Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal <code>MFC1_FLOW</code> (Oxígeno) y <code>MFC2_FLOW</code> (Nitrógeno). Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla. Agrega cada medicion al buffer circular de 30 muestras (<code>MFC_WINDOW_SAMPLES</code>) y chequea que el promedio de estas lecturas del buffer no se salga de la tolerancia dada por <code>MFC_FLOW_TOLERANCE_PCT</code>.</p>
+<p>Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal <code>MFC1_FLOW</code> (Oxígeno) y <code>MFC2_FLOW</code> (Nitrógeno). El valor leido del MFC de O2 lo multiplica por el factor de conversion de 0.981 dado por el fabricante ya que fue calibrado con N2. Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla. Agrega cada medicion al buffer circular de 30 muestras (<code>MFC_WINDOW_SAMPLES</code>) y chequea que el promedio de estas lecturas del buffer no se salga de la tolerancia dada por <code>MFC_FLOW_TOLERANCE_PCT</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_mfc_displays</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># --- 1. Lectura de MFC1 (O2) ---</span>
-        <span class="n">v_mfc1</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC1_FLOW&quot;</span><span class="p">)</span>
-        <span class="n">slm_mfc1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc1</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc1</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_mfc1</span><span class="p">)</span>  <span class="c1"># Se agrega al buffer de 3s</span>
+<span class="sd">&quot;&quot;&quot;Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW (0-5V)</span>
 
-        <span class="c1"># --- 2. Lectura de MFC2 (N2) ---</span>
-        <span class="n">v_mfc2</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC2_FLOW&quot;</span><span class="p">)</span>
-        <span class="n">slm_mfc2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">v_mfc2</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_mfc2</span><span class="p">)</span>  <span class="c1"># Se agrega al buffer de 3s</span>
+<span class="sd">y convierte la tensión a SLM según la escala completa de cada MFC.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># --- 1. Lectura y conversión de MFC1 (O2: 0-5V -&gt; 0-10 SLM) ---</span>
+    <span class="n">v_mfc1</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC1_FLOW&quot;</span><span class="p">)</span>
+    <span class="c1"># Escalamos de tensión (0-5V) a SLM reales</span>
+    <span class="n">slm_n2_mfc1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">v_mfc1</span> <span class="o">/</span> <span class="n">MFC1_MAX_VOLTAGE_READ</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC1_FULL_SCALE_SLM</span><span class="p">)</span>
+    <span class="n">slm_o2_real</span> <span class="o">=</span> <span class="n">slm_n2_mfc1</span> <span class="o">*</span> <span class="n">MFC1_CONVERSION_FACTOR</span> <span class="c1"># Se convierte al valor de O2 con el factor de conversion</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_o2_real</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_o2_real</span><span class="p">)</span>  <span class="c1"># Buffer para monitoreo</span>
 
-        <span class="c1"># --- 3. Evaluación de seguridad de caudal ---</span>
-        <span class="n">_check_mfc_faults</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+    <span class="c1"># --- 2. Lectura y conversión de MFC2 (N2: 0-5V -&gt; 0-1 SLM) ---</span>
+    <span class="n">v_mfc2</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;MFC2_FLOW&quot;</span><span class="p">)</span>
+    <span class="c1"># Escalamos de tensión (0-5V) a SLM reales</span>
+    <span class="n">slm_mfc2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">v_mfc2</span> <span class="o">/</span> <span class="n">MFC2_MAX_VOLTAGE_READ</span><span class="p">)</span> <span class="o">*</span> <span class="n">MFC2_FULL_SCALE_SLM</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc2_readout</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">slm_mfc2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc2_flow_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">slm_mfc2</span><span class="p">)</span>  <span class="c1"># Buffer para monitoreo</span>
 
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error al leer flujo de MFCs: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># --- 3. Evaluación de seguridad de caudal ---</span>
+    <span class="n">_check_mfc_faults</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[ERROR] Error al leer flujo de MFCs: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">

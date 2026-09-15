@@ -100,8 +100,8 @@ def update_mfc_displays(win):
         # Escalamos de tensión (0-5V) a SLM reales
         slm_n2_mfc1 = max(0.0, (v_mfc1 / MFC1_MAX_VOLTAGE_READ) * MFC1_FULL_SCALE_SLM)
         slm_o2_real = slm_n2_mfc1 * MFC1_CONVERSION_FACTOR # Se convierte al valor de O2 con el factor de conversion
-        win.ui.MenuPrincipal_mfc1_readout.display(f"{slm_mfc1:.2f}")
-        win.mfc1_flow_history.append(slm_mfc1)  # Buffer para monitoreo
+        win.ui.MenuPrincipal_mfc1_readout.display(f"{slm_o2_real:.2f}")
+        win.mfc1_flow_history.append(slm_o2_real)  # Buffer para monitoreo
 
         # --- 2. Lectura y conversión de MFC2 (N2: 0-5V -> 0-1 SLM) ---
         v_mfc2 = win.hw.analog_read("MFC2_FLOW")

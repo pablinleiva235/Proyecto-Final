@@ -11,13 +11,19 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     MFC2: N2
 
     ```python
-    # Constantes para el flujo maximo de los MFC
-    MFC1_MAX_SLM = 4.5   
-    MFC2_MAX_SLM = 0.45    
+    # Valores maximos de flujo de gas de los MFCs
+    MFC1_MAX_SLM = 10   
+    MFC2_MAX_SLM = 1   
 
-    # Constantes para la tension maxima de los MFC
-    MFC1_MAX_VOLT = 4.5
-    MFC2_MAX_VOLT = 0.45
+    # Valores maximos de tension de ajuste de setpoints de MFCs
+    MFC1_MAX_VOLT = 5
+    MFC2_MAX_VOLT = 5
+
+    # Valores maximos de Flujos de gases para los procesos
+    MFC1_MAX_PROCESS_SLM = 6.5
+    MFC2_MAX_PROCESS_SLM = 0.65
+
+    MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
     ```
 ---
 
@@ -430,7 +436,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`finish_vent_sequence(win)`"
-    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos 
+    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial
 
     ```python
     def finish_vent_sequence(win):
@@ -448,6 +454,10 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
+
+    # Regreso de Throttle a posición Home (Apertura total / Paso 0)
+    if hasattr(win, "throttle"):
+        win.throttle.home_on_startup()
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
     set_mfc_lamps_controls_enabled(win, False)
@@ -505,35 +515,36 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`set_mfc1_flow(win)`"
-    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc1_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc1_flow_history`
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc1_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc1_flow_history`
 
     ```python
     def set_mfc1_flow(win):
-        """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
-        text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
-        btn_set = win.ui.MenuPrincipal_btn_mfc1_set
-        try:
-            slm_target = float(text_val)
-            if 1 <= slm_target <= MFC1_MAX_SLM:
-                voltage = (slm_target / MFC1_MAX_SLM) * MFC1_MAX_VOLT
-                win.hw.analog_write("MFC1_SETPOINT", voltage)
-                # Guardar target y limpiar historial para nuevo promedio
-                win.mfc1_target_slm = slm_target
-                win.mfc1_flow_history.clear()
-                print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
-                btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
-            else:
-                btn_set.setStyleSheet("background-color: #f44336; color: white;")
-                QtWidgets.QMessageBox.warning(
-                    win, "Rango Inválido",
-                    f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_SLM} SLM."
-                )
-        except ValueError:
+    """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
+    text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
+    btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    try:
+        slm_target = float(text_val)
+        if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
+            slm_equiv_n2 = slm_target / MFC1_CONVERSION_FACTOR # Conversion con el FACTOR del MFC de O2 
+            voltage = (slm_equiv_n2 / MFC1_MAX_SLM) * MFC1_MAX_VOLT
+            win.hw.analog_write("MFC1_SETPOINT", voltage)
+            # Guardar target y limpiar historial para nuevo promedio
+            win.mfc1_target_slm = slm_target
+            win.mfc1_flow_history.clear()
+            print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
+            btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+        else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QtWidgets.QMessageBox.warning(
-                win, "Entrada Inválida",
-                "Por favor ingrese un número válido para el setpoint de O2."
+                win, "Rango Inválido",
+                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
             )
+    except ValueError:
+        btn_set.setStyleSheet("background-color: #f44336; color: white;")
+        QtWidgets.QMessageBox.warning(
+            win, "Entrada Inválida",
+            "Por favor ingrese un número válido para el setpoint de O2."
+        )
     ```
 
 ??? note "`set_mfc2_flow(win)`"

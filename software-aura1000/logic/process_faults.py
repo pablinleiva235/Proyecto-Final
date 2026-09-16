@@ -44,7 +44,7 @@ def check_process_faults(win, hw):
 
         # 1 - Detener el motor y el control de la Throttle Valve ──────
         if hasattr(win, "throttle"):
-            win.throttle.stop_auto_control()  # Detiene la regulación y congela el moto
+            win.throttle.stop_auto_control()  # Detiene la regulación y congela el motor
 
         # 2 - Apagado inmediato en hardware
         hw.digital_set("LAMP1_ON_CMD", INACTIVE)

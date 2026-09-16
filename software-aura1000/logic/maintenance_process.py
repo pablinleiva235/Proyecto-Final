@@ -399,6 +399,10 @@ def finish_vent_sequence(win):
     win.ui.MenuPrincipal_btn_soft_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
+
+    # Regreso de Throttle a posición Home (Apertura total / Paso 0)
+    if hasattr(win, "throttle"):
+        win.throttle.home_on_startup()
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
     set_mfc_lamps_controls_enabled(win, False)

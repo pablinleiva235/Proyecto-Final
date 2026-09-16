@@ -4,6 +4,24 @@ El módulo `analog_update.py` tiene los metodos llamados en el timer general cad
 
 ---
 
+## <span style="color: #4CAF50;">Constantes</span>
+??? note "Constantes MFCs: "
+    MFC1: O2
+
+    MFC2: N2
+
+    ```python
+    MFC1_FULL_SCALE_SLM = 10.0 # O2: 5V = 10 SLM
+    MFC2_FULL_SCALE_SLM = 1.0  # N2: 5V = 1 SLM
+
+    MFC1_MAX_VOLTAGE_READ = 5.0   
+    MFC2_MAX_VOLTAGE_READ = 5.0  
+
+    MFC1_CONVERSION_FACTOR = 0.981
+    ```
+
+---
+
 ## <span style="color: #4CAF50;">Adquisición de Datos y Monitoreo Analógico</span>
 
 ??? note "Helper de Indicadores Visuales: `update_led_indicator(...)`"
@@ -80,28 +98,35 @@ El módulo `analog_update.py` tiene los metodos llamados en el timer general cad
     ```
 
 ??? note "Lectura de readouts de flujo de MFCs: `update_mfc_displays(win)`"
-    Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal `MFC1_FLOW` (Oxígeno) y `MFC2_FLOW` (Nitrógeno). Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla. Agrega cada medicion al buffer circular de 30 muestras (`MFC_WINDOW_SAMPLES`) y chequea que el promedio de estas lecturas del buffer no se salga de la tolerancia dada por `MFC_FLOW_TOLERANCE_PCT`.
+    Interroga en tiempo real las entradas analógicas de retorno de flujo de los controladores masivos de caudal `MFC1_FLOW` (Oxígeno) y `MFC2_FLOW` (Nitrógeno). El valor leido del MFC de O2 lo multiplica por el factor de conversion de 0.981 dado por el fabricante ya que fue calibrado con N2. Sanitiza los valores leídos para evitar números negativos y actualiza los indicadores LCD de realimentación de caudal en la pantalla. Agrega cada medicion al buffer circular de 30 muestras (`MFC_WINDOW_SAMPLES`) y chequea que el promedio de estas lecturas del buffer no se salga de la tolerancia dada por `MFC_FLOW_TOLERANCE_PCT`.
 
     ```python
     def update_mfc_displays(win):
-        try:
-            # --- 1. Lectura de MFC1 (O2) ---
-            v_mfc1 = win.hw.analog_read("MFC1_FLOW")
-            slm_mfc1 = max(0.0, v_mfc1)
-            win.ui.MenuPrincipal_mfc1_readout.display(f"{slm_mfc1:.2f}")
-            win.mfc1_flow_history.append(slm_mfc1)  # Se agrega al buffer de 3s
+    """Lee el caudal real de los sensores analógicos MFC1_FLOW y MFC2_FLOW (0-5V)
 
-            # --- 2. Lectura de MFC2 (N2) ---
-            v_mfc2 = win.hw.analog_read("MFC2_FLOW")
-            slm_mfc2 = max(0.0, v_mfc2)
-            win.ui.MenuPrincipal_mfc2_readout.display(f"{slm_mfc2:.2f}")
-            win.mfc2_flow_history.append(slm_mfc2)  # Se agrega al buffer de 3s
+    y convierte la tensión a SLM según la escala completa de cada MFC.
+    """
+    try:
+        # --- 1. Lectura y conversión de MFC1 (O2: 0-5V -> 0-10 SLM) ---
+        v_mfc1 = win.hw.analog_read("MFC1_FLOW")
+        # Escalamos de tensión (0-5V) a SLM reales
+        slm_n2_mfc1 = max(0.0, (v_mfc1 / MFC1_MAX_VOLTAGE_READ) * MFC1_FULL_SCALE_SLM)
+        slm_o2_real = slm_n2_mfc1 * MFC1_CONVERSION_FACTOR # Se convierte al valor de O2 con el factor de conversion
+        win.ui.MenuPrincipal_mfc1_readout.display(f"{slm_o2_real:.2f}")
+        win.mfc1_flow_history.append(slm_o2_real)  # Buffer para monitoreo
 
-            # --- 3. Evaluación de seguridad de caudal ---
-            _check_mfc_faults(win)
+        # --- 2. Lectura y conversión de MFC2 (N2: 0-5V -> 0-1 SLM) ---
+        v_mfc2 = win.hw.analog_read("MFC2_FLOW")
+        # Escalamos de tensión (0-5V) a SLM reales
+        slm_mfc2 = max(0.0, (v_mfc2 / MFC2_MAX_VOLTAGE_READ) * MFC2_FULL_SCALE_SLM)
+        win.ui.MenuPrincipal_mfc2_readout.display(f"{slm_mfc2:.2f}")
+        win.mfc2_flow_history.append(slm_mfc2)  # Buffer para monitoreo
 
-        except Exception as e:
-            print(f"[ERROR] Error al leer flujo de MFCs: {e}")
+        # --- 3. Evaluación de seguridad de caudal ---
+        _check_mfc_faults(win)
+
+    except Exception as e:
+        print(f"[ERROR] Error al leer flujo de MFCs: {e}")
     ```
 
 ??? note "Lectura de señal del Sensor End of Process (EOP): `update_eop_displays(win)`"

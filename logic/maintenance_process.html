@@ -1994,7 +1994,7 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 </details>
 <details class="note">
 <summary><code>finish_vent_sequence(win)</code></summary>
-<p>Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos </p>
+<p>Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">finish_vent_sequence</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="sd">&quot;&quot;&quot; Se ejecuta automáticamente por timer X segundos después de detectar ATM. &quot;&quot;&quot;</span>
 <span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
@@ -2010,6 +2010,10 @@ Llama a <code>set_mfc_lamps_controls_enabled</code> para deshabilitar panel de M
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Regreso de Throttle a posición Home (Apertura total / Paso 0)</span>
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">home_on_startup</span><span class="p">()</span>
 
 <span class="c1"># Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo</span>
 <span class="n">set_mfc_lamps_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>

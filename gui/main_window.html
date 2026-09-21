@@ -1475,8 +1475,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span> <span class="o">=</span> <span class="n">timersIOManager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">start_all_core_timers</span><span class="p">()</span>
 
-    <span class="c1"># Instanciamos el controlador de pruebas del motor</span>
-    <span class="c1"># self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py</span>
+    <span class="c1"># Instanciamos el controlador de la valvula throttle</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">throttle</span> <span class="o">=</span> <span class="n">ThrottleController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> 
+
+    <span class="c1"># Instanciamos el controlador de temperatura</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">temp_ctrl</span> <span class="o">=</span> <span class="n">TempController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="c1"># Iniciar la máquina de estados en PRE_ENCENDIDO</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span>

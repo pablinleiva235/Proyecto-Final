@@ -1,6 +1,5 @@
 # logic/throttle_controller.py
 import time
-import os
 from PyQt5.QtWidgets import QMessageBox
 from config.digital_signals import ACTIVE, INACTIVE
 
@@ -121,10 +120,9 @@ class ThrottleController:
             print("[THROTTLE] Sin datos suficientes para graficar.")
             return
 
-        import matplotlib.pyplot as plt
+        import os
         from datetime import datetime
-        import subprocess
-        import sys
+        import matplotlib.pyplot as plt
 
         # Carpeta logs/ siempre al lado de throttle_controller.py
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -161,15 +159,6 @@ class ThrottleController:
 
         print(f"[THROTTLE] Gráfico guardado en: {filename}")
 
-        '''
-        # Abrir automáticamente
-        if sys.platform == "win32":
-            os.startfile(filename)
-        else:
-            subprocess.Popen(["xdg-open", filename])
-        '''
-
-        
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION
     # =============================================================================  

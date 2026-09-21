@@ -1,5 +1,6 @@
 # logic/temperature_controller.py
 import time
+import os
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMessageBox
 from config.digital_signals import ACTIVE, INACTIVE
@@ -27,6 +28,12 @@ class TempController:
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
 
+        # Listas para graficar temperatura en función del tiempo
+        self._log_time = []  # timestamps en segundos
+        self._log_temp = []  # temperatura medida en °C
+        self._log_setpoint = []  # setpoint objetivo
+        self._log_start_time = None
+
         # Timer dedicado a la modulación PWM y actualización del lazo
         self.pwm_timer = QtCore.QTimer()
         self.pwm_timer.timeout.connect(self._update_temperature_loop)
@@ -41,6 +48,56 @@ class TempController:
             self.ui.MenuPrincipal_btn_temp_set.clicked.connect(self.on_start_auto_control)
         if hasattr(self.ui, "MenuPrincipal_btn_temp_stop"):
             self.ui.MenuPrincipal_btn_temp_stop.clicked.connect(self.stop_auto_control)
+
+    # =============================================================================
+    #        METODO PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
+    # =============================================================================  
+    def _generate_temperature_plot(self):
+        if len(self._log_time) < 2:
+            print("[TEMP] Sin datos suficientes para graficar.")
+            return
+
+        import os
+        from datetime import datetime
+        import matplotlib.pyplot as plt
+
+        # Carpeta logs/ al lado de temperature_controller.py
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        logs_dir = os.path.join(base_dir, "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = os.path.join(logs_dir, f"temp_log_{timestamp}.png")
+
+        fig, ax = plt.subplots(figsize=(12, 5))
+
+        ax.plot(
+            self._log_time,
+            self._log_temp,
+            label="Temperatura medida",
+            color="crimson",
+            linewidth=1.5,
+        )
+        ax.plot(
+            self._log_time,
+            self._log_setpoint,
+            label="Setpoint",
+            color="darkblue",
+            linewidth=1.2,
+            linestyle="--",
+        )
+
+        ax.set_xlabel("Tiempo (s)")
+        ax.set_ylabel("Temperatura (°C)")
+        ax.set_title(f"Control de Temperatura — Setpoint: {self.target_temp:.1f} °C")
+        ax.legend(loc="upper left")
+        ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig(filename, dpi=150)
+        plt.close(fig)
+
+        print(f"[TEMP] Gráfico de temperatura guardado en: {filename}")
 
     # =============================================================================
     #                       INICIO Y PARADA DE LAZO AUTOMÁTICO
@@ -90,7 +147,13 @@ class TempController:
         # 2. Bloquear controles manuales de lámparas
         self._update_ui_interlocks(running=True)
 
-        # 3. Arrancar timer del lazo PWM (evaluación rápida cada 100 ms)
+        # 3. Reiniciar búferes de logueo
+        self._log_time = []
+        self._log_temp = []
+        self._log_setpoint = []
+        self._log_start_time = time.time()
+
+        # 4. Arrancar timer del lazo PWM (evaluación rápida cada 100 ms)
         self._window_start_time = time.time()
         self.pwm_timer.start(100)
 
@@ -111,6 +174,9 @@ class TempController:
         self.win.state_lamps13_pulsing = False
         self.win.lamp2_on = False
 
+        # Generar gráfico al detener el lazo
+        self._generate_temperature_plot()
+
         # Liberar controles de UI
         self._update_ui_interlocks(running=False)
 
@@ -126,6 +192,13 @@ class TempController:
         current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
         if current_temp is None:
             return
+
+        # ── REGISTRO DE DATOS PARA EL GRÁFICO ──
+        if self._log_start_time is not None:
+            elapsed = time.time() - self._log_start_time
+            self._log_time.append(elapsed)
+            self._log_temp.append(current_temp)
+            self._log_setpoint.append(self.target_temp)
 
         # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
         if self.in_preheat_ramp:

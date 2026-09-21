@@ -49,8 +49,15 @@ def set_throttle_pressure_controls_enabled(win, enabled: bool):
     """Habilita o deshabilita las entradas y botones de control de presión de la Throttle."""
     if hasattr(win.ui, "ThrottleMenu_pressure_set"):
         win.ui.ThrottleMenu_pressure_set.setEnabled(enabled)
-        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled)
         win.ui.ThrottleMenu_pressure_entry.setEnabled(enabled)
+
+        # Averiguar si el lazo automático de presión de la Throttle está activo
+        is_throttle_running = False
+        if hasattr(win, "throttle"):
+            is_throttle_running = getattr(win.throttle, "auto_control_enabled", False)
+
+        # El botón STOP solo se habilita si hay vacío y el control automático de presion esta activo
+        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled and is_throttle_running)
 
 # =============================================================================
 # INICIALIZACION
@@ -100,18 +107,18 @@ def init(win):
     win.ui.MenuPrincipal_btn_plasma.clicked.connect(lambda: toggle_plasma(win))
 
     # ESTADO INICIAL DE SEGURIDAD: Deshabilitamos el panel de MFCs y lamparas al arrancar
-    set_mfc_lamps_controls_enabled(win, False)
+    set_process_controls_enabled(win, False)
 
 # =============================================================================
 # HELPER DE BLOQUEO/DESBLOQUEO DE CONTROLES MFC
 # =============================================================================
 
-def set_mfc_lamps_controls_enabled(win, enabled: bool):
+def set_process_controls_enabled(win, enabled: bool):
     """
     Habilita o deshabilita en bloque las entradas y botones de control
-    de los MFCs y del Sistema de Lámparas.
+    de los MFCs, Sistema de lamparas, control de presion (throttle) y plasma
     Si se deshabilita (enabled=False), fuerza el cierre de válvulas,
-    setpoints a 0V y apagado de comandos de lámparas y plasma.
+    setpoints a 0V y apagado de comandos de lámparas, plasma y control de throttle
     """
     # -------------------------------------------------------------------------
     # 1. Habilitar/Deshabilitar widgets de interfaz (MFCs)
@@ -125,7 +132,7 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_mfc2_set.setEnabled(enabled)
 
     # -------------------------------------------------------------------------
-    # 2. Habilitar/Deshabilitar widgets de interfaz (Lámparas y Plasma)
+    # 2. Habilitar/Deshabilitar widgets de interfaz (Lámparas (Manual) y Plasma)
     # -------------------------------------------------------------------------
     win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
@@ -133,16 +140,27 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
 
     # -------------------------------------------------------------------------
-    # 3. Deshabilitar control de Presión (Menú Throttle)
+    # 3. Habilitar/Deshabilitar widgets de interfaz (Lamparas (Automatico))
+    # -------------------------------------------------------------------------
+    win.ui.MenuPrincipal_temp_setpoint.setEnabled(enabled) 
+    win.ui.MenuPrincipal_btn_temp_set.setEnabled(enabled)
+    # El botón STOP solo se habilita si hay vacío Y el lazo de temperatura está activo
+    is_temp_running = False
+    if hasattr(win, "temp_ctrl"):
+        is_temp_running = win.temp_ctrl.auto_control_enabled
+    win.ui.MenuPrincipal_btn_temp_stop.setEnabled(enabled and is_temp_running)
+
+    # -------------------------------------------------------------------------
+    # 4. Deshabilitar control de Presión (Menú Throttle)
     # -------------------------------------------------------------------------
     set_throttle_pressure_controls_enabled(win, enabled)
 
     # -------------------------------------------------------------------------
-    # 3. Si se deshabilitan por pérdida de vacío / venteo:
+    # 5. Si se deshabilitan por pérdida de vacío / venteo:
     # -------------------------------------------------------------------------
     if not enabled:
         win.state_lamps13_pulsing = False
-        # A. Cierre físico de válvulas de inyección y setpoints de MFCs
+        # Cierre físico de válvulas de inyección y setpoints de MFCs
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
         win.hw.digital_set("MFC2_OPEN", INACTIVE)
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
@@ -158,11 +176,15 @@ def set_mfc_lamps_controls_enabled(win, enabled: bool):
         win.ui.MenuPrincipal_btn_mfc2_open.setText("Abrir Valvula MFC2: N2")
         win.ui.MenuPrincipal_btn_mfc2_open.setStyleSheet("")
 
-        # B. Apagado físico de comandos de Lámparas y RF Plasma
+        # Apagado físico de comandos de Lámparas y RF Plasma
         win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)  # Reposo del monoestable
         win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)  # Reposo del monoestable
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)  # Lámpara 2 apagada
         win.hw.digital_set("RF_ON_CMD", INACTIVE)     # RF Plasma apagado
+
+        # Detener ajuste automatico de temperatura
+        if hasattr(win, "temp_ctrl") and win.temp_ctrl.auto_control_enabled:
+            win.temp_ctrl.stop_auto_control()
 
         # limpiar flag y estilo del pulso de lámparas 1&3, por si el
         # apagado ocurre a mitad de un qt_sleep en trigger_lamps_1_3
@@ -295,7 +317,7 @@ def toggle_main_vacuum(win):
             print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
 
         # Habilitación de MFCs al alcanzar vacío principal
-        set_mfc_lamps_controls_enabled(win, True)
+        set_process_controls_enabled(win, True)
 
         # ── Habilitación de Throttle por Estado de Vacío ──
         win.is_in_vacuum = True
@@ -310,7 +332,7 @@ def toggle_main_vacuum(win):
         btn_main.setStyleSheet("")
 
         # Corte de vacío principal: deshabilitamos MFCs
-        set_mfc_lamps_controls_enabled(win, False)
+        set_process_controls_enabled(win, False)
 
         # Resetea flag de rest position de la throttle
         win.throttle._rest_position_reached = False
@@ -372,7 +394,7 @@ def vent_chamber(win):
         btn_soft.setEnabled(False)
         btn_main.setEnabled(False)
         win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
-        set_mfc_lamps_controls_enabled(win, False)
+        set_process_controls_enabled(win, False)
         
     else:
         # Cancelación manual
@@ -405,7 +427,7 @@ def finish_vent_sequence(win):
         win.throttle.home_on_startup()
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
-    set_mfc_lamps_controls_enabled(win, False)
+    set_process_controls_enabled(win, False)
 
     # ── Confirmación de Atmósfera y estado de Throttle ──
     win.is_in_vacuum = False
@@ -539,17 +561,29 @@ def trigger_lamps_1_3(win):
     win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
     print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
 
+    # 3. Deshabilitar widgets del control automatico
+    win.ui.MenuPrincipal_btn_temp_set.setEnabled(False)
+    win.ui.MenuPrincipal_btn_temp_stop.setEnabled(False)
+    win.ui.MenuPrincipal_temp_setpoint.setEnabled(False)
+
+
     # 3. Definir la función que se ejecutará AL FINALIZAR el tiempo
     def on_pulse_complete():
         # Si durante la espera se cortó el vacío o se deshabilitaron los controles,
-        # 'state_lamps13_pulsing' ya habrá sido puesto a False en set_mfc_lamps_controls_enabled
+        # 'state_lamps13_pulsing' ya habrá sido puesto a False en set_process_controls_enabled
         if not win.state_lamps13_pulsing:
             print("[INFO] El pulso de lámparas fue abortado por seguridad antes de tiempo.")
             return
 
         win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
         win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+
+        # Vuelve a habilitar widgets de control automatico, el stop no porque solo se habilita al tocar el boton de ajustar temperatura
+        win.ui.MenuPrincipal_btn_temp_set.setEnabled(True)
+        win.ui.MenuPrincipal_temp_setpoint.setEnabled(True)
+
         win.state_lamps13_pulsing = False
+        btn.setEnabled(True)  # Vuelve a habilitar el boton de lamparas 1 y 3
         btn.setStyleSheet("")
         print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso). Precalentamiento completo.")
 
@@ -572,12 +606,23 @@ def toggle_lamp_2(win):
 
     if btn.text() == "Lamp 2 On":
         win.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+
+        # Deshabilitar widgets del control automatico
+        win.ui.MenuPrincipal_btn_temp_set.setEnabled(False)
+        win.ui.MenuPrincipal_btn_temp_stop.setEnabled(False)
+        win.ui.MenuPrincipal_temp_setpoint.setEnabled(False)
+
         win.lamp2_on = True # Flag para la funcion de deteccion de fallas, que solamente detecta al estar activas
         btn.setText("Lamp 2 Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
         print("[INFO] Lámpara 2 (Central) Encendida.")
     else:
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+
+        # Vuelve a habilitar widgets de control automatico, el stop no porque solo se habilita al tocar el boton de ajustar temperatura
+        win.ui.MenuPrincipal_btn_temp_set.setEnabled(True)
+        win.ui.MenuPrincipal_temp_setpoint.setEnabled(True)
+
         win.lamp2_on = False # Vuelvo el flag a False una vez apagada para que no detecte fallas
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
@@ -595,6 +640,7 @@ def toggle_plasma(win):
 
     if btn.text() == "Plasma On":
         win.hw.digital_set("RF_ON_CMD", ACTIVE)
+        win.ui.MenuPrincipal_btn_outerLamps.setEnabled(False)
         win.rf_on = True
         win.rf_on_time = time.time()  # Marca de tiempo de encendido
         btn.setText("Plasma Off")

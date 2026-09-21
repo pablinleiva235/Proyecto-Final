@@ -7,6 +7,7 @@ from logic.timers_io import timersIOManager
 import logic.pre_encendido as preEncendido
 import logic.maintenance_process as maintenanceProcess
 from logic.throttle_test import ThrottleController
+from logic.temperature_controller import TempController
 from config.digital_signals import ACTIVE, INACTIVE
 from collections import deque
 
@@ -78,8 +79,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
 
-        # Instanciamos el controlador de pruebas del motor
+        # Instanciamos el controlador de la throttle
         self.throttle = ThrottleController(self) 
+
+        # Instanciamos el controlador de temperatura
+        self.temp_ctrl = TempController(self)
 
         # Configurar botones de navegación entre menús
         self._setup_navigation()

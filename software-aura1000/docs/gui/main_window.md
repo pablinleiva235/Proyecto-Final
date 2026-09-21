@@ -52,8 +52,11 @@ El módulo `main_window.py` constituye el componente de interfaz gráfica de usu
         self.timer_manager = timersIOManager(self)
         self.timer_manager.start_all_core_timers()
 
-        # Instanciamos el controlador de pruebas del motor
-        # self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
+        # Instanciamos el controlador de la valvula throttle
+        self.throttle = ThrottleController(self) 
+
+        # Instanciamos el controlador de temperatura
+        self.temp_ctrl = TempController(self)
 
         # Iniciar la máquina de estados en PRE_ENCENDIDO
         self.current_state = systemState.PRE_ENCENDIDO

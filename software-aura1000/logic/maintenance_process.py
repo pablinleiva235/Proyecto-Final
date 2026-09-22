@@ -302,6 +302,15 @@ def toggle_main_vacuum(win):
 
         # ── Habilitación de Throttle por Estado de Vacío ──
         win.is_in_vacuum = True
+        # Cartel informativo global del proceso de evacuación
+        win._vac_wait_dialog = QProgressDialog(
+            "Evacuando cámara hasta presión base...", None, 0, 0, win
+        )
+        win._vac_wait_dialog.setWindowTitle("Estableciendo Vacío")
+        win._vac_wait_dialog.setCancelButton(None)
+        win._vac_wait_dialog.setRange(0, 0)  # Barra animada 'Busy'
+        win._vac_wait_dialog.setMinimumDuration(0)
+        win._vac_wait_dialog.show()
         if hasattr(win, "throttle"):
             win.throttle.update_vacuum_interlocks()
 

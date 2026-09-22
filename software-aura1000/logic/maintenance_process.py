@@ -1,7 +1,7 @@
 # logic/maintenance_process.py
 import time
-from PyQt5 import QtWidgets 
-from PyQt5.QtCore import QEventLoop, QTimer
+from PyQt5.QtCore import QEventLoop, QTimer, Qt
+from PyQt5.QtWidgets import QMessageBox, QProgressDialog
 from config.digital_signals import ACTIVE, INACTIVE
 
 # Constantes físicas de los MFCs (Unit UFC-1100A)
@@ -264,22 +264,22 @@ def toggle_main_vacuum(win):
     # -------------------------------------------------------------------------
     is_vacuum_on = (btn_main.text() == "Main Vacuum Off")
     if is_vacuum_on and check_active_power(win):
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win,
             "Acción Bloqueada por Seguridad",
             "No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.\n"
             "Apague todos los procesos térmicos y de RF primero.",
-            QtWidgets.QMessageBox.Ok
+            QMessageBox.Ok
         )
         return
 
     # 1. Validación de prerrequisito para ENCENDER
     if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win, 
             "Secuencia Inválida", 
             "No se puede activar Main Vacuum si Soft Vacuum no está encendido primero.",
-            QtWidgets.QMessageBox.Ok
+            QMessageBox.Ok
         )
         return
 
@@ -336,24 +336,24 @@ def vent_chamber(win):
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
 
     if check_active_power(win):
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win,
             "Secuencia Inválida",
             "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
             "Apague todos los procesos térmicos y de RF primero.",
-            QtWidgets.QMessageBox.Ok
+            QMessageBox.Ok
         )
         return
 
     if btn_vent.text() == "Vent Chamber":
         # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
         if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
-            QtWidgets.QMessageBox.warning(
+            QMessageBox.warning(
                 win,
                 "Secuencia Inválida",
                 "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
                 "Cierre las válvulas de vacío primero.",
-                QtWidgets.QMessageBox.Ok
+                QMessageBox.Ok
             )
             return
 
@@ -401,8 +401,23 @@ def finish_vent_sequence(win):
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
 
-    # Regreso de Throttle a posición Home (Apertura total / Paso 0)
+    # Regreso de Throttle a posición Home con ventana emergente de aviso
     if hasattr(win, "throttle"):
+        # 1. Crear y mostrar la ventana emergente de espera
+        win.throttle._home_dialog = QProgressDialog(
+            "Espere... Llevando Throttle a posición de apertura",
+            None,
+            0,
+            0,
+            win,
+        )
+        win.throttle._home_dialog.setWindowTitle("Posicionando Throttle")
+        win.throttle._home_dialog.setCancelButton(None)
+        win.throttle._home_dialog.setRange(0, 0)
+        win.throttle._home_dialog.setMinimumDuration(0)
+        win.throttle._home_dialog.show()
+
+        # 2. Ejecutar la rutina de homing
         win.throttle.home_on_startup()
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
@@ -470,13 +485,13 @@ def set_mfc1_flow(win):
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
         else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
-            QtWidgets.QMessageBox.warning(
+            QMessageBox.warning(
                 win, "Rango Inválido",
                 f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win, "Entrada Inválida",
             "Por favor ingrese un número válido para el setpoint de O2."
         )
@@ -497,13 +512,13 @@ def set_mfc2_flow(win):
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
         else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
-            QtWidgets.QMessageBox.warning(
+            QMessageBox.warning(
                 win, "Rango Inválido",
                 f"El caudal de N2 debe estar entre 0.1 y {MFC2_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win, "Entrada Inválida",
             "Por favor ingrese un número válido para el setpoint de N2."
         )

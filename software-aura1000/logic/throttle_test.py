@@ -1,6 +1,7 @@
 # logic/throttle_controller.py
 import time
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMessageBox, QProgressDialog
 from config.digital_signals import ACTIVE, INACTIVE
 
 class ThrottleController:
@@ -96,6 +97,21 @@ class ThrottleController:
             print(f"[THROTTLE] Ya en posición de reposo ({self.THROTTLE_REST_POSITION} pasos). Sin movimiento.")
             return
 
+        # 1.  Crear y mostrar la ventana para dar aviso al usuario que espere hasta que la throttle llegue
+        self._rest_dialog = QProgressDialog(
+            "Espere... Moviendo Throttle a posición inicial",
+            None,
+            0,
+            0,
+            self.win,
+        )
+        self._rest_dialog.setWindowTitle("Posicionando Throttle")
+        self._rest_dialog.setCancelButton(None)  # Quitar botón de cancelar
+        self._rest_dialog.setRange(0, 0)  # Animación de espera activa
+        self._rest_dialog.setMinimumDuration(0)  # Mostrar de inmediato
+        self._rest_dialog.show()
+
+        # 2. Calcular sentido y pasos necesarios
         if self.current_step < self.THROTTLE_REST_POSITION:
             steps_needed = self.THROTTLE_REST_POSITION - self.current_step
             self.set_direction(ACTIVE)    # cerrar
@@ -216,7 +232,7 @@ class ThrottleController:
             elif error > 0.15:
                 speed_ms = self.SPEED_MS * 2   # 125 Hz - Full Step
                 use_half = False
-            elif error > 0.05:
+            elif error > 0.02:
                 speed_ms = self.SPEED_MS * 3   # 83 Hz - Half Step
                 use_half = True
             else:
@@ -372,6 +388,10 @@ class ThrottleController:
                 self._target_steps -= 1
                 if self._target_steps <= 0:
                     print("[THROTTLE] Ráfaga inicial completada con éxito.")
+                    # Cerrar ventana de espera si estaba abierta
+                    if (hasattr(self, "_rest_dialog") and self._rest_dialog is not None):
+                        self._rest_dialog.close()
+                        self._rest_dialog = None
                     if self.auto_control_enabled:
                         # Si estamos en control automático, pasamos a modo continuo sin apagar el lazo
                         self._step_mode = "CONTINUOUS"
@@ -599,6 +619,10 @@ class ThrottleController:
         if open_confirmed:
             lbl_open.setText("ABIERTA ✓")
             lbl_open.setStyleSheet("color: green; font-weight: bold; font-size: 48px;")
+            #  Cierre de la ventana emergente de throttle yendo a home si fue abierta en el venteo 
+            if hasattr(self, "_home_dialog") and self._home_dialog is not None:
+                self._home_dialog.close()
+                self._home_dialog = None
         else:
             lbl_open.setText("Abierta: —")
             lbl_open.setStyleSheet("")

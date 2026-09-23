@@ -154,7 +154,6 @@ class TempController:
         self._log_start_time = time.time()
 
         # 4. Arrancar timer del lazo PWM (evaluación rápida cada 100 ms)
-        self._window_start_time = time.time()
         self.pwm_timer.start(100)
 
     def stop_auto_control(self):
@@ -184,68 +183,79 @@ class TempController:
     #                     LAZO CERRADO Y MODULACIÓN PWM
     # =============================================================================
     def _update_temperature_loop(self):
-        """Calcula el Duty Cycle y conmuta el SSR2 (Lámpara Central) en la ventana de 2s."""
-        if not self.auto_control_enabled:
-            return
-
-        # 1. Lectura de temperatura actual
-        current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
-        if current_temp is None:
-            return
-
-        # ── REGISTRO DE DATOS PARA EL GRÁFICO ──
-        if self._log_start_time is not None:
-            elapsed = time.time() - self._log_start_time
-            self._log_time.append(elapsed)
-            self._log_temp.append(current_temp)
-            self._log_setpoint.append(self.target_temp)
-
-        # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
-        if self.in_preheat_ramp:
-            preheat_threshold = self.target_temp * 0.90
-            if current_temp >= preheat_threshold:
-                print(f"[TEMP] Rampa completada ({current_temp:.1f} °C). Apagando Lámparas 1 y 3. Mantenimiento exclusivo con Lámpara Central.")
-                self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-                self.win.state_lamps13_pulsing = False
-                self.in_preheat_ramp = False
-            else:
-                # Durante la rampa, las 3 lámparas quedan al 100% encendidas
+            """Calcula el Duty Cycle y conmuta el SSR2 (Lámpara Central) con PWM de alta frecuencia."""
+            if not self.auto_control_enabled:
                 return
 
-        # 3. FASE DE MANTENIMIENTO: Calculamos el error y asignamos el Duty Cycle
-        error = self.target_temp - current_temp
+            # 1. Lectura de temperatura actual
+            current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
+            if current_temp is None:
+                return
 
-        if error > 30.0:
-            self.duty_cycle = 1.0  # 100% ON
-        elif error > 10.0:
-            self.duty_cycle = 0.7  # 70% ON
-        elif error > 5.0:
-            self.duty_cycle = 0.4  # 40% ON
-        elif error > 0.0:
-            self.duty_cycle = 0.2  # 20% ON
-        else:
-            self.duty_cycle = 0.0  # OFF (Pasado o en Setpoint)
+            # ── REGISTRO DE DATOS PARA EL GRÁFICO ──
+            if self._log_start_time is not None:
+                elapsed = time.time() - self._log_start_time
+                self._log_time.append(elapsed)
+                self._log_temp.append(current_temp)
+                self._log_setpoint.append(self.target_temp)
 
-        # 4. Modulación PWM en ventana de 2000 ms
-        now = time.time()
-        elapsed_ms = (now - self._window_start_time) * 1000.0
+            # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
+            if self.in_preheat_ramp:
+                preheat_threshold = self.target_temp * 0.90
+                if current_temp >= preheat_threshold:
+                    print(
+                        f"[TEMP] Rampa completada ({current_temp:.1f} °C). Apagando Lámparas 1 y 3. "
+                        f"Mantenimiento exclusivo con Lámpara Central."
+                    )
+                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                    self.win.state_lamps13_pulsing = False
+                    self.in_preheat_ramp = False
 
-        # Reiniciar ventana de 2s si se cumplió el período
-        if elapsed_ms >= self.CONTROL_PERIOD_MS:
-            self._window_start_time = now
-            elapsed_ms = 0.0
+                    # Impulso inicial al 70% para mitigar la caída de temperatura por apagar L1 y L3
+                    self.duty_cycle = 0.7
+                    self._window_start_time = time.time()  # Reiniciar ventana PWM
+                else:
+                    # Durante la rampa, las 3 lámparas quedan al 100% encendidas
+                    return
+            else:
+                # 3. FASE DE MANTENIMIENTO: Calculamos el error y asignamos el Duty Cycle por tramos
+                error = self.target_temp - current_temp
 
-        # Tiempo ON correspondiente dentro de la ventana
-        on_time_ms = self.CONTROL_PERIOD_MS * self.duty_cycle
+                if error > 20.0:
+                    self.duty_cycle = 1.0  # 100% ON
+                elif error > 10.0:
+                    self.duty_cycle = 0.9  # 90% ON
+                elif error > 5.0:
+                    self.duty_cycle = 0.7  # 70% ON
+                elif error > 2.0:
+                    self.duty_cycle = 0.5  # 50% ON
+                elif error > 0.0:
+                    self.duty_cycle = 0.3  # 30% ON
+                elif error > -5.0:
+                    self.duty_cycle = 0.1  # 10% ON (Mantenimiento mínimo / previene apagado)
+                else:
+                    self.duty_cycle = 0.0  # OFF (Sobrepaso > 5°C)
 
-        # Conmutar SSR2 de Lámpara Central
-        if elapsed_ms < on_time_ms:
-            self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
-            self.win.lamp2_on = True
-        else:
-            self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
-            self.win.lamp2_on = False
+            # 4. Modulación PWM en ventana de CONTROL_PERIOD_MS (Recomendado: 1000 ms)
+            now = time.time()
+            elapsed_ms = (now - self._window_start_time) * 1000.0
+
+            # Reiniciar ventana PWM si se cumplió el período
+            if elapsed_ms >= self.CONTROL_PERIOD_MS:
+                self._window_start_time = now
+                elapsed_ms = 0.0
+
+            # Tiempo ON correspondiente dentro de la ventana
+            on_time_ms = self.CONTROL_PERIOD_MS * self.duty_cycle
+
+            # Conmutar SSR2 de Lámpara Central
+            if elapsed_ms < on_time_ms:
+                self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+                self.win.lamp2_on = True
+            else:
+                self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+                self.win.lamp2_on = False
 
     # =============================================================================
     #                          INTERLOCKS DE INTERFAZ

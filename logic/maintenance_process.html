@@ -1634,20 +1634,12 @@ Se llama en las funciones que habilitan valvulas de vacio y las de control de la
 </code></pre></div>
 </details>
 <details class="note">
-<summary><code>set_throttle_pressure_controls_enabled(win)</code></summary>
-<p>Habilita o deshabilita las entradas y botones de control de presión de la Throttle, para habilitar solo en vacio o sin fallas, es llamado desde <code>set_process_controls_enabled</code> y desde <code>toggle_main_vacuum</code></p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_throttle_pressure_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_set&quot;</span><span class="p">):</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
-
-    <span class="c1"># Averiguar si el lazo automático de presión de la Throttle está activo</span>
-    <span class="n">is_throttle_running</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-        <span class="n">is_throttle_running</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="p">,</span> <span class="s2">&quot;auto_control_enabled&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-
-    <span class="c1"># El botón STOP solo se habilita si hay vacío y el control automático de presion esta activo</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span> <span class="ow">and</span> <span class="n">is_throttle_running</span><span class="p">)</span>
+<summary><code>is_mfc1_o2_active(win)</code></summary>
+<p>Verifica si la válvula del MFC1 (O2) está abierta y tiene un setpoint mayor a 0. Se usa para la habilitacion del boton de plasma</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_mfc1_o2_active</span><span class="p">(</span><span class="n">win</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">valve_open</span> <span class="o">=</span> <span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Cerrar Valvula MFC1: O2&quot;</span><span class="p">)</span>
+    <span class="n">target_set</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;mfc1_target_slm&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="n">valve_open</span> <span class="ow">and</span> <span class="n">target_set</span>
 </code></pre></div>
 </details>
 <hr />
@@ -1707,7 +1699,7 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <h2 id="funcion-para-deshabilitar-panel-de-mfcs-lamparas-presion-y-plasma-si-no-hay-vacio"><span style="color: #4CAF50;">Funcion para deshabilitar panel de MFCs, lamparas, presion y plasma si no hay vacio</span></h2>
 <details class="note">
 <summary><code>set_process_controls_enabled(win)</code></summary>
-<p>Habilita o deshabilita en bloque las entradas y botones de control de los MFCs, lámparas, presion y plasma. Si se deshabilita (enabled=False), fuerza el cierre de válvulas, setpoints a 0V y apagado de comandos de MFCs, lámparas, plasma y presion</p>
+<p>Habilita o deshabilita en bloque las entradas y botones de control de los MFCs, lámparas, presion y plasma. Si se deshabilita (enabled=False), fuerza el cierre de válvulas, setpoints a 0V y apagado de comandos de MFCs, lámparas y plasma </p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 <span class="c1"># -------------------------------------------------------------------------</span>
 <span class="c1"># 1. Habilitar/Deshabilitar widgets de interfaz (MFCs)</span>
@@ -1726,7 +1718,9 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_outerLamps</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span> 
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_centralLamp</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_outerLamps_pulseTime</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
-<span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span><span class="p">)</span>
+<span class="c1"># El botón de Plasma SOLO se habilita si hay vacío Y hay flujo de O2 configurado/abierto</span>
+<span class="n">plasma_safe</span> <span class="o">=</span> <span class="n">enabled</span> <span class="ow">and</span> <span class="n">is_mfc1_o2_active</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+<span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">plasma_safe</span><span class="p">)</span>
 
 <span class="c1"># -------------------------------------------------------------------------</span>
 <span class="c1"># 3. Habilitar/Deshabilitar widgets de interfaz (Lamparas (Automatico))</span>
@@ -1740,12 +1734,7 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_temp_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="n">enabled</span> <span class="ow">and</span> <span class="n">is_temp_running</span><span class="p">)</span>
 
 <span class="c1"># -------------------------------------------------------------------------</span>
-<span class="c1"># 4. Deshabilitar control de Presión (Menú Throttle)</span>
-<span class="c1"># -------------------------------------------------------------------------</span>
-<span class="n">set_throttle_pressure_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="n">enabled</span><span class="p">)</span>
-
-<span class="c1"># -------------------------------------------------------------------------</span>
-<span class="c1"># 5. Si se deshabilitan por pérdida de vacío / venteo:</span>
+<span class="c1"># 4. Si se deshabilitan por pérdida de vacío / venteo:</span>
 <span class="c1"># -------------------------------------------------------------------------</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
     <span class="n">win</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1867,83 +1856,86 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 </details>
 <details class="note">
 <summary><code>toggle_main_vacuum(win)</code></summary>
-<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.</p>
+<p>Comanda la válvula de alto flujo de vacío (<code>MAIN_VACUUM_CONTROL</code>). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Abre una ventana de espera hasta alcanzar presion base. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_main_vacuum</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Controla la activación de Main Vacuum.</span>
-<span class="sd">    Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
-    <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
-    <span class="n">btn_door</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
+<span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
+<span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
+<span class="n">btn_door</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
 
-    <span class="c1"># -------------------------------------------------------------------------</span>
-    <span class="c1"># Impedir apagar el vacío si hay potencia activa</span>
-    <span class="c1"># -------------------------------------------------------------------------</span>
-    <span class="n">is_vacuum_on</span> <span class="o">=</span> <span class="p">(</span><span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">is_vacuum_on</span> <span class="ow">and</span> <span class="n">check_active_power</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="n">win</span><span class="p">,</span>
-            <span class="s2">&quot;Acción Bloqueada por Seguridad&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;Apague todos los procesos térmicos y de RF primero.&quot;</span><span class="p">,</span>
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
-        <span class="p">)</span>
-        <span class="k">return</span>
+<span class="c1"># -------------------------------------------------------------------------</span>
+<span class="c1"># Impedir apagar el vacío si hay potencia activa</span>
+<span class="c1"># -------------------------------------------------------------------------</span>
+<span class="n">is_vacuum_on</span> <span class="o">=</span> <span class="p">(</span><span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">is_vacuum_on</span> <span class="ow">and</span> <span class="n">check_active_power</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+    <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="n">win</span><span class="p">,</span>
+        <span class="s2">&quot;Acción Bloqueada por Seguridad&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;Apague todos los procesos térmicos y de RF primero.&quot;</span><span class="p">,</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+    <span class="p">)</span>
+    <span class="k">return</span>
 
-    <span class="c1"># 1. Validación de prerrequisito para ENCENDER</span>
-    <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum On&quot;</span> <span class="ow">and</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
-        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="n">win</span><span class="p">,</span> 
-            <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span> 
-            <span class="s2">&quot;No se puede activar Main Vacuum si Soft Vacuum no está encendido primero.&quot;</span><span class="p">,</span>
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
-        <span class="p">)</span>
-        <span class="k">return</span>
+<span class="c1"># 1. Validación de prerrequisito para ENCENDER</span>
+<span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum On&quot;</span> <span class="ow">and</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
+    <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="n">win</span><span class="p">,</span> 
+        <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;No se puede activar Main Vacuum si Soft Vacuum no está encendido primero.&quot;</span><span class="p">,</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+    <span class="p">)</span>
+    <span class="k">return</span>
 
-    <span class="c1"># 2. Encendido / Apagado de Main Vacuum</span>
-    <span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
-        <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
-        <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-        <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1"># 2. Encendido / Apagado de Main Vacuum</span>
+<span class="k">if</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">:</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+    <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">)</span>
+    <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="n">btn_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="c1"># Apagado automático de Soft Vacuum</span>
-        <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">:</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
-            <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.&quot;</span><span class="p">)</span>
+    <span class="c1"># Apagado automático de Soft Vacuum</span>
+    <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span><span class="p">:</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;SOFT_START_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Soft Vacuum On&quot;</span><span class="p">)</span>
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Habilitación de MFCs al alcanzar vacío principal</span>
-        <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Habilitación de MFCs al alcanzar vacío principal</span>
+    <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1"># ── Habilitación de Throttle por Estado de Vacío ──</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
+    <span class="c1"># ── Habilitación de Throttle por Estado de Vacío ──</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># Cartel informativo global del proceso de evacuación</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span> <span class="o">=</span> <span class="n">QProgressDialog</span><span class="p">(</span>
+        <span class="s2">&quot;Evacuando cámara hasta presión base...&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">win</span>
+    <span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Estableciendo Vacío&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span><span class="o">.</span><span class="n">setCancelButton</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Barra animada &#39;Busy&#39;</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span><span class="o">.</span><span class="n">setMinimumDuration</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">_vac_wait_dialog</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
 
-        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">go_to_rest_position</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+    <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">)</span>
+    <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MAIN_VACUUM_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-        <span class="n">btn_main</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Main Vacuum On&quot;</span><span class="p">)</span>
-        <span class="n">btn_main</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="c1"># Corte de vacío principal: deshabilitamos MFCs</span>
+    <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
-        <span class="c1"># Corte de vacío principal: deshabilitamos MFCs</span>
-        <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># Resetea flag de rest position de la throttle</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_rest_position_reached</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="c1"># Resetea flag de rest position de la throttle</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_rest_position_reached</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># ── Bloqueo de Throttle por Corte de Vacío ──</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>  <span class="c1"># Detiene el lazo automático si estaba activo</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
 
-        <span class="c1"># ── Bloqueo de Throttle por Corte de Vacío ──</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
-                <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>  <span class="c1"># Detiene el lazo automático si estaba activo</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
-
-    <span class="n">update_vent_button_state</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+<span class="n">update_vent_button_state</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <hr />
@@ -2010,7 +2002,7 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 </details>
 <details class="note">
 <summary><code>finish_vent_sequence(win)</code></summary>
-<p>Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial</p>
+<p>Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial, abriendo una ventana modal para avisar al usuario que espere a que la throttle llegue</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">finish_vent_sequence</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="sd">&quot;&quot;&quot; Se ejecuta automáticamente por timer X segundos después de detectar ATM. &quot;&quot;&quot;</span>
 <span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
@@ -2027,8 +2019,23 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="c1"># Regreso de Throttle a posición Home (Apertura total / Paso 0)</span>
+<span class="c1"># Regreso de Throttle a posición Home con ventana emergente de aviso</span>
 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+    <span class="c1"># 1. Crear y mostrar la ventana emergente de espera</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span> <span class="o">=</span> <span class="n">QProgressDialog</span><span class="p">(</span>
+        <span class="s2">&quot;Espere... Llevando Throttle a posición de apertura&quot;</span><span class="p">,</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="n">win</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Posicionando Throttle&quot;</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">setCancelButton</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">setMinimumDuration</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c1"># 2. Ejecutar la rutina de homing</span>
     <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">home_on_startup</span><span class="p">()</span>
 
 <span class="c1"># Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo</span>
@@ -2046,21 +2053,34 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <h2 id="control-de-los-mfcs"><span style="color: #4CAF50;">Control de los MFCs</span></h2>
 <details class="note">
 <summary><code>toggle_mfc1_valve(win)</code></summary>
-<p>Controla la señal digital de corte para la línea de Oxígeno (<code>MFC1_OPEN</code>). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia</p>
+<p>Controla la señal digital de corte para la línea de Oxígeno (<code>MFC1_OPEN</code>). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia. Habilita el plasma si ya se habia seteado un setpoint antes de abrir la valvula del MFC, y si habia plasma habilitado, al cerrar la valvula apaga el plasma</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_mfc1_valve</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; Habilita / Deshabilita la válvula de corte de O2 (MFC1) &quot;&quot;&quot;</span>
-    <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span>
-    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">:</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
-        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrar Valvula MFC1: O2&quot;</span><span class="p">)</span>
-        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">)</span>
-        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">btn_shutoff</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_open</span>
+<span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span>
+<span class="n">btn_plasma</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span>
+
+<span class="k">if</span> <span class="n">btn_shutoff</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">:</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+    <span class="n">btn_shutoff</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrar Valvula MFC1: O2&quot;</span><span class="p">)</span>
+    <span class="n">btn_shutoff</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="c1"># Si ya había un setpoint de O2 mayor a 0 cargado, habilitar Plasma</span>
+    <span class="k">if</span> <span class="n">is_mfc1_o2_active</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+        <span class="n">btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_write</span><span class="p">(</span><span class="s2">&quot;MFC1_SETPOINT&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;MFC1_OPEN&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">btn_shutoff</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abrir Valvula MFC1: O2&quot;</span><span class="p">)</span>
+    <span class="n">btn_shutoff</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="c1"># ── INTERLOCK O2 / PLASMA ──</span>
+    <span class="c1"># Si el plasma estaba encendido, forzar apagado físico y reseteo gráfico</span>
+    <span class="k">if</span> <span class="n">btn_plasma</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Plasma Off&quot;</span><span class="p">:</span>
+        <span class="n">toggle_plasma</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>  <span class="c1"># Llama a la rutina de apagado de RF (apaga RF_ON_CMD)</span>
+
+    <span class="c1"># Deshabilitar botón de Plasma por falta de O2</span>
+    <span class="n">btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">
@@ -2084,11 +2104,13 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 </details>
 <details class="note">
 <summary><code>set_mfc1_flow(win)</code></summary>
-<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc1_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc1_flow_history</code></p>
+<p>Lee el campo de texto (<code>QLineEdit</code>) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (<code>MFC1_SETPOINT</code>) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un <code>QMessageBox</code>. Al pulsar el boton de Set guarda en <code>mfc1_target_slm</code> para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola <code>mfc1_flow_history</code>. Habilita el boton de plasma si la valvula ya se habia abierto y se seteo un flujo</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_mfc1_flow</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="sd">&quot;&quot;&quot; Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 &quot;&quot;&quot;</span>
 <span class="n">text_val</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_mfc1_setpoint</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
 <span class="n">btn_set</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_mfc1_set</span>
+<span class="n">btn_plasma</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_plasma</span>
+
 <span class="k">try</span><span class="p">:</span>
     <span class="n">slm_target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">text_val</span><span class="p">)</span>
     <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">slm_target</span> <span class="o">&lt;=</span> <span class="n">MFC1_MAX_PROCESS_SLM</span><span class="p">:</span>
@@ -2100,15 +2122,19 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
         <span class="n">win</span><span class="o">.</span><span class="n">mfc1_flow_history</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MFC1 O2] Setpoint cargado: </span><span class="si">{</span><span class="n">slm_target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> SLM (</span><span class="si">{</span><span class="n">voltage</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> V)&quot;</span><span class="p">)</span>
         <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #4CAF50; color: white;&quot;</span><span class="p">)</span>
+        <span class="c1"># ── HABILITACIÓN DE PLASMA TRAS SETEAR O2 ──</span>
+        <span class="c1"># Si la válvula de O2 ya se encuentra abierta, habilitar inmediatamente el botón de Plasma</span>
+        <span class="k">if</span> <span class="n">is_mfc1_o2_active</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+            <span class="n">btn_plasma</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
             <span class="sa">f</span><span class="s2">&quot;El caudal de O2 debe estar entre 1 y </span><span class="si">{</span><span class="n">MFC1_MAX_PROCESS_SLM</span><span class="si">}</span><span class="s2"> SLM.&quot;</span>
         <span class="p">)</span>
 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
     <span class="n">btn_set</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
-    <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+    <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
         <span class="n">win</span><span class="p">,</span> <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
         <span class="s2">&quot;Por favor ingrese un número válido para el setpoint de O2.&quot;</span>
     <span class="p">)</span>

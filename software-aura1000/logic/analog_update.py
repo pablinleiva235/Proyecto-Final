@@ -147,7 +147,7 @@ def _check_mfc_faults(win):
             fault_detected = True
             failed_gases.append("N2 (MFC2)")
 
-# 3. Disparar corte si falló o rehabilitar si el caudal es correcto
+    # 3. Disparar corte si falló o rehabilitar si el caudal es correcto
     if fault_detected:
         _trigger_mfc_safety_shutdown(win, failed_gases)
     else:
@@ -157,9 +157,10 @@ def _check_mfc_faults(win):
         is_safe = main_vacuum_on and not alarm_active
 
         # Habilitamos o deshabilitamos widgets de plasma y lamparas
-        win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe)
         win.ui.MenuPrincipal_btn_outerLamps.setEnabled(is_safe)
         win.ui.MenuPrincipal_btn_centralLamp.setEnabled(is_safe)
+        o2_active = (hasattr(win, "mfc1_target_slm") and win.mfc1_target_slm > 0.0 and win.ui.MenuPrincipal_btn_mfc1_open.text() == "Cerrar Valvula MFC1: O2")
+        win.ui.MenuPrincipal_btn_plasma.setEnabled(is_safe and o2_active)
 
         # Habilitamos o deshabilitamos widgets de control de presion
         if hasattr(win.ui, "ThrottleMenu_pressure_set"):

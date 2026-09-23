@@ -59,22 +59,14 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
     ```
 
-??? note "`set_throttle_pressure_controls_enabled(win)`"
-    Habilita o deshabilita las entradas y botones de control de presión de la Throttle, para habilitar solo en vacio o sin fallas, es llamado desde `set_process_controls_enabled` y desde `toggle_main_vacuum`
+??? note "`is_mfc1_o2_active(win)`"
+    Verifica si la válvula del MFC1 (O2) está abierta y tiene un setpoint mayor a 0. Se usa para la habilitacion del boton de plasma
 
     ```python
-    def set_throttle_pressure_controls_enabled(win, enabled: bool):
-    if hasattr(win.ui, "ThrottleMenu_pressure_set"):
-        win.ui.ThrottleMenu_pressure_set.setEnabled(enabled)
-        win.ui.ThrottleMenu_pressure_entry.setEnabled(enabled)
-
-        # Averiguar si el lazo automático de presión de la Throttle está activo
-        is_throttle_running = False
-        if hasattr(win, "throttle"):
-            is_throttle_running = getattr(win.throttle, "auto_control_enabled", False)
-
-        # El botón STOP solo se habilita si hay vacío y el control automático de presion esta activo
-        win.ui.ThrottleMenu_pressure_stop.setEnabled(enabled and is_throttle_running)
+    def is_mfc1_o2_active(win) -> bool:
+        valve_open = (win.ui.MenuPrincipal_btn_mfc1_open.text() == "Cerrar Valvula MFC1: O2")
+        target_set = getattr(win, "mfc1_target_slm", 0.0) > 0.0
+        return valve_open and target_set
     ```
 ---
 
@@ -137,7 +129,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 ## <span style="color: #4CAF50;">Funcion para deshabilitar panel de MFCs, lamparas, presion y plasma si no hay vacio</span>
 
 ??? note "`set_process_controls_enabled(win)`"
-    Habilita o deshabilita en bloque las entradas y botones de control de los MFCs, lámparas, presion y plasma. Si se deshabilita (enabled=False), fuerza el cierre de válvulas, setpoints a 0V y apagado de comandos de MFCs, lámparas, plasma y presion
+    Habilita o deshabilita en bloque las entradas y botones de control de los MFCs, lámparas, presion y plasma. Si se deshabilita (enabled=False), fuerza el cierre de válvulas, setpoints a 0V y apagado de comandos de MFCs, lámparas y plasma 
 
     ```python
     def set_process_controls_enabled(win, enabled: bool):
@@ -158,7 +150,9 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
     win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
-    win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
+    # El botón de Plasma SOLO se habilita si hay vacío Y hay flujo de O2 configurado/abierto
+    plasma_safe = enabled and is_mfc1_o2_active(win)
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(plasma_safe)
 
     # -------------------------------------------------------------------------
     # 3. Habilitar/Deshabilitar widgets de interfaz (Lamparas (Automatico))
@@ -172,12 +166,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     win.ui.MenuPrincipal_btn_temp_stop.setEnabled(enabled and is_temp_running)
 
     # -------------------------------------------------------------------------
-    # 4. Deshabilitar control de Presión (Menú Throttle)
-    # -------------------------------------------------------------------------
-    set_throttle_pressure_controls_enabled(win, enabled)
-
-    # -------------------------------------------------------------------------
-    # 5. Si se deshabilitan por pérdida de vacío / venteo:
+    # 4. Si se deshabilitan por pérdida de vacío / venteo:
     # -------------------------------------------------------------------------
     if not enabled:
         win.state_lamps13_pulsing = False
@@ -305,85 +294,88 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`toggle_main_vacuum(win)`"
-    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.
+    Comanda la válvula de alto flujo de vacío (`MAIN_VACUUM_CONTROL`). Solo se puede accionar si esta habilitada la valvula de Soft Vacuum. Una vez encendida la valvula de Main Vacuum, se apaga la de Soft Vacuum. Impide apagarla si hay potencia activa. Abre una ventana de espera hasta alcanzar presion base. Una vez hecho el vacio habilita el panel de MFCs, Lamparas, Plasma y el ajuste de control de presion en el menu de throttle, ademas de mover a la throttle a una posicion inicial para evitar zona muerta desde la posicion de apertura.
 
     ```python
     def toggle_main_vacuum(win):
-        """
-        Controla la activación de Main Vacuum.
-        Al encenderlo, apaga automáticamente Soft Vacuum según el manual del equipo.
-        """
-        btn_main = win.ui.MenuPrincipal_btn_main_vacuum
-        btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
-        btn_door = win.ui.MenuPrincipal_btn_open_door
-        
-        # -------------------------------------------------------------------------
-        # Impedir apagar el vacío si hay potencia activa
-        # -------------------------------------------------------------------------
-        is_vacuum_on = (btn_main.text() == "Main Vacuum Off")
-        if is_vacuum_on and check_active_power(win):
-            QtWidgets.QMessageBox.warning(
-                win,
-                "Acción Bloqueada por Seguridad",
-                "No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.\n"
-                "Apague todos los procesos térmicos y de RF primero.",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
+    btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+    btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
+    btn_door = win.ui.MenuPrincipal_btn_open_door
+    
+    # -------------------------------------------------------------------------
+    # Impedir apagar el vacío si hay potencia activa
+    # -------------------------------------------------------------------------
+    is_vacuum_on = (btn_main.text() == "Main Vacuum Off")
+    if is_vacuum_on and check_active_power(win):
+        QMessageBox.warning(
+            win,
+            "Acción Bloqueada por Seguridad",
+            "No se puede apagar el Vacío Principal mientras haya Lámparas o Plasma activados.\n"
+            "Apague todos los procesos térmicos y de RF primero.",
+            QMessageBox.Ok
+        )
+        return
 
-        # 1. Validación de prerrequisito para ENCENDER
-        if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
-            QtWidgets.QMessageBox.warning(
-                win, 
-                "Secuencia Inválida", 
-                "No se puede activar Main Vacuum si Soft Vacuum no está encendido primero.",
-                QtWidgets.QMessageBox.Ok
-            )
-            return
+    # 1. Validación de prerrequisito para ENCENDER
+    if btn_soft.text() == "Soft Vacuum On" and btn_main.text() == "Main Vacuum On":
+        QMessageBox.warning(
+            win, 
+            "Secuencia Inválida", 
+            "No se puede activar Main Vacuum si Soft Vacuum no está encendido primero.",
+            QMessageBox.Ok
+        )
+        return
 
-        # 2. Encendido / Apagado de Main Vacuum
-        if btn_main.text() == "Main Vacuum On":
-            win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
-            btn_main.setText("Main Vacuum Off")
-            btn_main.setStyleSheet("background-color: #f44336; color: white;")
-            btn_door.setEnabled(False)
+    # 2. Encendido / Apagado de Main Vacuum
+    if btn_main.text() == "Main Vacuum On":
+        win.hw.digital_set("MAIN_VACUUM_CONTROL", ACTIVE)
+        btn_main.setText("Main Vacuum Off")
+        btn_main.setStyleSheet("background-color: #f44336; color: white;")
+        btn_door.setEnabled(False)
 
-            # Apagado automático de Soft Vacuum
-            if btn_soft.text() == "Soft Vacuum Off":
-                win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
-                btn_soft.setText("Soft Vacuum On")
-                btn_soft.setStyleSheet("")
-                print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
+        # Apagado automático de Soft Vacuum
+        if btn_soft.text() == "Soft Vacuum Off":
+            win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
+            btn_soft.setText("Soft Vacuum On")
+            btn_soft.setStyleSheet("")
+            print("[INFO] Soft Vacuum cerrado automáticamente al pasar a Main Vacuum.")
 
-            # Habilitación de MFCs al alcanzar vacío principal
-            set_process_controls_enabled(win, True)
+        # Habilitación de MFCs al alcanzar vacío principal
+        set_process_controls_enabled(win, True)
 
-            # ── Habilitación de Throttle por Estado de Vacío ──
-            win.is_in_vacuum = True
-            if hasattr(win, "throttle"):
-                win.throttle.update_vacuum_interlocks()
+        # ── Habilitación de Throttle por Estado de Vacío ──
+        win.is_in_vacuum = True
+        # Cartel informativo global del proceso de evacuación
+        win._vac_wait_dialog = QProgressDialog(
+            "Evacuando cámara hasta presión base...", None, 0, 0, win
+        )
+        win._vac_wait_dialog.setWindowTitle("Estableciendo Vacío")
+        win._vac_wait_dialog.setCancelButton(None)
+        win._vac_wait_dialog.setRange(0, 0)  # Barra animada 'Busy'
+        win._vac_wait_dialog.setMinimumDuration(0)
+        win._vac_wait_dialog.show()
+        if hasattr(win, "throttle"):
+            win.throttle.update_vacuum_interlocks()
 
-            win.throttle.go_to_rest_position()
+    else:
+        win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
+        btn_main.setText("Main Vacuum On")
+        btn_main.setStyleSheet("")
 
-        else:
-            win.hw.digital_set("MAIN_VACUUM_CONTROL", INACTIVE)
-            btn_main.setText("Main Vacuum On")
-            btn_main.setStyleSheet("")
+        # Corte de vacío principal: deshabilitamos MFCs
+        set_process_controls_enabled(win, False)
 
-            # Corte de vacío principal: deshabilitamos MFCs
-            set_process_controls_enabled(win, False)
+        # Resetea flag de rest position de la throttle
+        win.throttle._rest_position_reached = False
 
-            # Resetea flag de rest position de la throttle
-            win.throttle._rest_position_reached = False
+        # ── Bloqueo de Throttle por Corte de Vacío ──
+        win.is_in_vacuum = False
+        if hasattr(win, "throttle"):
+            if win.throttle.auto_control_enabled:
+                win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
+            win.throttle.update_vacuum_interlocks()
 
-            # ── Bloqueo de Throttle por Corte de Vacío ──
-            win.is_in_vacuum = False
-            if hasattr(win, "throttle"):
-                if win.throttle.auto_control_enabled:
-                    win.throttle.stop_movement()  # Detiene el lazo automático si estaba activo
-                win.throttle.update_vacuum_interlocks()
-
-        update_vent_button_state(win)
+    update_vent_button_state(win)
     ```
 
 ---
@@ -452,7 +444,7 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`finish_vent_sequence(win)`"
-    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial
+    Subrutina de callback asíncrona disparada automáticamente por el gestor de tiempos una vez transcurrido el retardo de estabilización post-detección de presión atmosférica (ATM). Valida que la secuencia no haya sido abortada previamente, desenergiza la electroválvula de venteo y devuelve los controles periféricos y mecánicos a su estado de libre operación segura. Actualiza el estado de los widgets de la throttle para ajuste de presion, deshabilitandolos y la regresa a su posicion de apertura inicial, abriendo una ventana modal para avisar al usuario que espere a que la throttle llegue
 
     ```python
     def finish_vent_sequence(win):
@@ -471,8 +463,23 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     win.ui.MenuPrincipal_btn_main_vacuum.setEnabled(True)
     win.ui.MenuPrincipal_btn_open_door.setEnabled(True)
 
-    # Regreso de Throttle a posición Home (Apertura total / Paso 0)
+    # Regreso de Throttle a posición Home con ventana emergente de aviso
     if hasattr(win, "throttle"):
+        # 1. Crear y mostrar la ventana emergente de espera
+        win.throttle._home_dialog = QProgressDialog(
+            "Espere... Llevando Throttle a posición de apertura",
+            None,
+            0,
+            0,
+            win,
+        )
+        win.throttle._home_dialog.setWindowTitle("Posicionando Throttle")
+        win.throttle._home_dialog.setCancelButton(None)
+        win.throttle._home_dialog.setRange(0, 0)
+        win.throttle._home_dialog.setMinimumDuration(0)
+        win.throttle._home_dialog.show()
+
+        # 2. Ejecutar la rutina de homing
         win.throttle.home_on_startup()
     
     # Mantenemos los MFCs deshabilitados hasta que vuelva a hacerse un vacío completo
@@ -491,23 +498,36 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 ## <span style="color: #4CAF50;">Control de los MFCs</span>
 
 ??? note "`toggle_mfc1_valve(win)`"
-    Controla la señal digital de corte para la línea de Oxígeno (`MFC1_OPEN`). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia
+    Controla la señal digital de corte para la línea de Oxígeno (`MFC1_OPEN`). Al cerrar la válvula de corte, resetea por seguridad la tensión del setpoint analógico a 0.0 V para evitar acumulación de presión en la línea y tambien resetea la cola de lecturas de flujos y la variable del setpoint establecido usadas para monitorear que no se salga de tolerancia. Habilita el plasma si ya se habia seteado un setpoint antes de abrir la valvula del MFC, y si habia plasma habilitado, al cerrar la valvula apaga el plasma
 
     ```python
     def toggle_mfc1_valve(win):
-        """ Habilita / Deshabilita la válvula de corte de O2 (MFC1) """
-        btn = win.ui.MenuPrincipal_btn_mfc1_open
-        if btn.text() == "Abrir Valvula MFC1: O2":
-            win.hw.digital_set("MFC1_OPEN", ACTIVE)
-            btn.setText("Cerrar Valvula MFC1: O2")
-            btn.setStyleSheet("background-color: #f44336; color: white;")
-        else:
-            win.hw.digital_set("MFC1_OPEN", INACTIVE)
-            win.hw.analog_write("MFC1_SETPOINT", 0.0)
-            win.mfc1_target_slm = 0.0
-            win.mfc1_flow_history.clear()
-            btn.setText("Abrir Valvula MFC1: O2")
-            btn.setStyleSheet("")
+    btn_shutoff = win.ui.MenuPrincipal_btn_mfc1_open
+    btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    btn_plasma = win.ui.MenuPrincipal_btn_plasma
+
+    if btn_shutoff.text() == "Abrir Valvula MFC1: O2":
+        win.hw.digital_set("MFC1_OPEN", ACTIVE)
+        btn_shutoff.setText("Cerrar Valvula MFC1: O2")
+        btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
+        # Si ya había un setpoint de O2 mayor a 0 cargado, habilitar Plasma
+        if is_mfc1_o2_active(win):
+            btn_plasma.setEnabled(True)
+    else:
+        win.hw.analog_write("MFC1_SETPOINT", 0.0)
+        win.hw.digital_set("MFC1_OPEN", INACTIVE)
+        win.mfc1_target_slm = 0.0
+        win.mfc1_flow_history.clear()
+        btn_shutoff.setText("Abrir Valvula MFC1: O2")
+        btn_shutoff.setStyleSheet("")
+        btn_set.setStyleSheet("")
+        # ── INTERLOCK O2 / PLASMA ──
+        # Si el plasma estaba encendido, forzar apagado físico y reseteo gráfico
+        if btn_plasma.text() == "Plasma Off":
+            toggle_plasma(win)  # Llama a la rutina de apagado de RF (apaga RF_ON_CMD)
+
+        # Deshabilitar botón de Plasma por falta de O2
+        btn_plasma.setEnabled(False)
     ```
 
 ??? note "`toggle_mfc2_valve(win)`"
@@ -531,13 +551,15 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```
 
 ??? note "`set_mfc1_flow(win)`"
-    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc1_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc1_flow_history`
+    Lee el campo de texto (`QLineEdit`) con el setpoint seteado, reemplazando comas por puntos, y valida numéricamente que el setpoint ingresada en SLM esté dentro del rango seguro. Escala proporcionalmente el caudal a su correspondiente tensión analógica de salida de la DAQ (`MFC1_SETPOINT`) considerando el factor de conversion del MFC ya que es de O2 y se calibro con N2 y notifica cualquier inconsistencia o fuera de rango mediante un `QMessageBox`. Al pulsar el boton de Set guarda en `mfc1_target_slm` para ser comparado con el promedio que se calcula de las mediciones guardadas en la cola `mfc1_flow_history`. Habilita el boton de plasma si la valvula ya se habia abierto y se seteo un flujo
 
     ```python
     def set_mfc1_flow(win):
     """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
     text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    btn_plasma = win.ui.MenuPrincipal_btn_plasma
+
     try:
         slm_target = float(text_val)
         if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
@@ -549,15 +571,19 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
             win.mfc1_flow_history.clear()
             print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+            # ── HABILITACIÓN DE PLASMA TRAS SETEAR O2 ──
+            # Si la válvula de O2 ya se encuentra abierta, habilitar inmediatamente el botón de Plasma
+            if is_mfc1_o2_active(win):
+                btn_plasma.setEnabled(True)
         else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
-            QtWidgets.QMessageBox.warning(
+            QMessageBox.warning(
                 win, "Rango Inválido",
                 f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
-        QtWidgets.QMessageBox.warning(
+        QMessageBox.warning(
             win, "Entrada Inválida",
             "Por favor ingrese un número válido para el setpoint de O2."
         )

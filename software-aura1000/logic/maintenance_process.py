@@ -17,7 +17,7 @@ MFC2_MAX_PROCESS_SLM = 0.65
 MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
 
 # =============================================================================
-# HELPERS DE SEGURIDAD Y ESTADO DE VENTEO
+# HELPERS DE SEGURIDAD, ESTADO DE VENTEO y FLUJO DE O2
 # =============================================================================
 
 def check_active_power(win) -> bool:
@@ -44,6 +44,12 @@ def update_vent_button_state(win):
         win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(True)
     else:
         win.ui.MenuPrincipal_btn_vent_chamber.setEnabled(False)
+
+def is_mfc1_o2_active(win) -> bool:
+    """Verifica si la válvula del MFC1 (O2) está abierta y tiene un setpoint mayor a 0."""
+    valve_open = (win.ui.MenuPrincipal_btn_mfc1_open.text() == "Cerrar Valvula MFC1: O2")
+    target_set = getattr(win, "mfc1_target_slm", 0.0) > 0.0
+    return valve_open and target_set
 
 # =============================================================================
 # INICIALIZACION
@@ -123,7 +129,9 @@ def set_process_controls_enabled(win, enabled: bool):
     win.ui.MenuPrincipal_btn_outerLamps.setEnabled(enabled) 
     win.ui.MenuPrincipal_btn_centralLamp.setEnabled(enabled)
     win.ui.MenuPrincipal_outerLamps_pulseTime.setEnabled(enabled)
-    win.ui.MenuPrincipal_btn_plasma.setEnabled(enabled)
+    # El botón de Plasma SOLO se habilita si hay vacío Y hay flujo de O2 configurado/abierto
+    plasma_safe = enabled and is_mfc1_o2_active(win)
+    win.ui.MenuPrincipal_btn_plasma.setEnabled(plasma_safe)
 
     # -------------------------------------------------------------------------
     # 3. Habilitar/Deshabilitar widgets de interfaz (Lamparas (Automatico))
@@ -447,10 +455,15 @@ def toggle_mfc1_valve(win):
     """ Habilita / Deshabilita la válvula de corte de O2 (MFC1) """
     btn_shutoff = win.ui.MenuPrincipal_btn_mfc1_open
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    btn_plasma = win.ui.MenuPrincipal_btn_plasma
+
     if btn_shutoff.text() == "Abrir Valvula MFC1: O2":
         win.hw.digital_set("MFC1_OPEN", ACTIVE)
         btn_shutoff.setText("Cerrar Valvula MFC1: O2")
         btn_shutoff.setStyleSheet("background-color: #f44336; color: white;")
+        # Si ya había un setpoint de O2 mayor a 0 cargado, habilitar Plasma
+        if is_mfc1_o2_active(win):
+            btn_plasma.setEnabled(True)
     else:
         win.hw.analog_write("MFC1_SETPOINT", 0.0)
         win.hw.digital_set("MFC1_OPEN", INACTIVE)
@@ -459,6 +472,13 @@ def toggle_mfc1_valve(win):
         btn_shutoff.setText("Abrir Valvula MFC1: O2")
         btn_shutoff.setStyleSheet("")
         btn_set.setStyleSheet("")
+        # ── INTERLOCK O2 / PLASMA ──
+        # Si el plasma estaba encendido, forzar apagado físico y reseteo gráfico
+        if btn_plasma.text() == "Plasma Off":
+            toggle_plasma(win)  # Llama a la rutina de apagado de RF (apaga RF_ON_CMD)
+
+        # Deshabilitar botón de Plasma por falta de O2
+        btn_plasma.setEnabled(False)
 
 def toggle_mfc2_valve(win):
     """ Habilita / Deshabilita la válvula de corte de N2 (MFC2) """
@@ -481,6 +501,8 @@ def set_mfc1_flow(win):
     """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
     text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
+    btn_plasma = win.ui.MenuPrincipal_btn_plasma
+
     try:
         slm_target = float(text_val)
         if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
@@ -492,6 +514,10 @@ def set_mfc1_flow(win):
             win.mfc1_flow_history.clear()
             print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+            # ── HABILITACIÓN DE PLASMA TRAS SETEAR O2 ──
+            # Si la válvula de O2 ya se encuentra abierta, habilitar inmediatamente el botón de Plasma
+            if is_mfc1_o2_active(win):
+                btn_plasma.setEnabled(True)
         else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QMessageBox.warning(

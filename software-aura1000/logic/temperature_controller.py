@@ -22,7 +22,8 @@ class TempController:
         self.MAX_TEMP_SETPOINT = 200.0
 
         # Lógica PWM de Ventana Fija (2.0 segundos)
-        self.CONTROL_PERIOD_MS = 2000
+        self.CONTROL_PERIOD_MS = 500
+        self.TIMER_INTERVAL_MS = 50
         self.duty_cycle = 0.0  # 0.0 a 1.0
 
         # Estado interno de la Rampa Inicial
@@ -153,8 +154,8 @@ class TempController:
         self._log_setpoint = []
         self._log_start_time = time.time()
 
-        # 4. Arrancar timer del lazo PWM (evaluación rápida cada 100 ms)
-        self.pwm_timer.start(100)
+        # 4. Arrancar timer del lazo PWM (evaluación rápida cada 50 ms)
+        self.pwm_timer.start(self.TIMER_INTERVAL_MS)
 
     def stop_auto_control(self):
         """Apaga el lazo automático, desactiva comandos y libera los botones manuales."""
@@ -201,7 +202,7 @@ class TempController:
 
             # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
             if self.in_preheat_ramp:
-                preheat_threshold = self.target_temp * 0.90
+                preheat_threshold = self.target_temp * 1.05
                 if current_temp >= preheat_threshold:
                     print(
                         f"[TEMP] Rampa completada ({current_temp:.1f} °C). Apagando Lámparas 1 y 3. "
@@ -213,29 +214,23 @@ class TempController:
                     self.in_preheat_ramp = False
 
                     # Impulso inicial al 70% para mitigar la caída de temperatura por apagar L1 y L3
-                    self.duty_cycle = 0.7
+                    self.duty_cycle = 1.0
                     self._window_start_time = time.time()  # Reiniciar ventana PWM
                 else:
                     # Durante la rampa, las 3 lámparas quedan al 100% encendidas
                     return
             else:
-                # 3. FASE DE MANTENIMIENTO: Calculamos el error y asignamos el Duty Cycle por tramos
+                # 3. FASE DE MANTENIMIENTO: Lámpara Central sola
                 error = self.target_temp - current_temp
 
-                if error > 20.0:
-                    self.duty_cycle = 1.0  # 100% ON
-                elif error > 10.0:
-                    self.duty_cycle = 0.9  # 90% ON
-                elif error > 5.0:
-                    self.duty_cycle = 0.7  # 70% ON
-                elif error > 2.0:
-                    self.duty_cycle = 0.5  # 50% ON
-                elif error > 0.0:
-                    self.duty_cycle = 0.3  # 30% ON
+                if error > -2.0:
+                    self.duty_cycle = 1.0  # 100% ON hasta estar +2°C sobre el setpoint
                 elif error > -5.0:
-                    self.duty_cycle = 0.1  # 10% ON (Mantenimiento mínimo / previene apagado)
+                    self.duty_cycle = 0.9  # 80% ON para sobrepasos leves (+2°C a +5°C)
+                elif error > -10.0:
+                    self.duty_cycle = 0.8  # 50% ON para frenar subidas continuas
                 else:
-                    self.duty_cycle = 0.0  # OFF (Sobrepaso > 5°C)
+                    self.duty_cycle = 0.7  # OFF solo con sobrepaso > 10°C
 
             # 4. Modulación PWM en ventana de CONTROL_PERIOD_MS (Recomendado: 1000 ms)
             now = time.time()
@@ -247,6 +242,7 @@ class TempController:
                 elapsed_ms = 0.0
 
             # Tiempo ON correspondiente dentro de la ventana
+            print(f"duty cycle: {self.duty_cycle}")
             on_time_ms = self.CONTROL_PERIOD_MS * self.duty_cycle
 
             # Conmutar SSR2 de Lámpara Central

@@ -49,7 +49,7 @@ def update_pressure_display(win) -> bool:
         win.throttle.update_pressure_loop(pressure_torr)
 
         # Mover throttle a REST_POSITION cuando se alcanza vacío base ──
-        if (win.is_in_vacuum and not win.throttle._rest_position_reached and pressure_torr < 0.066):
+        if (win.is_in_vacuum and not win.throttle._rest_position_reached and pressure_torr < 0.076):
             # 1. Cerrar el cartel global de evacuación de cámara
             if (hasattr(win, "_vac_wait_dialog") and win._vac_wait_dialog is not None):
                 win._vac_wait_dialog.close()

@@ -17,12 +17,12 @@ def check_process_faults(win, hw):
     cmd_lamp2 = getattr(win, "lamp2_on", False)
     cmd_rf = getattr(win, "rf_on", False)
 
-    if cmd_rf:
+    '''if cmd_rf:
         elapsed = now - getattr(win, "rf_on_time", 0.0)
         signal = hw.digital_read("PLASMA_FAIL")
         print(
             f"[DIAGNOSTICO PLASMA] T: {elapsed:.1f}s | PLASMA_FAIL pin: {signal}"
-        )
+        )'''
         
     # 2. Lámparas: evaluación inmediata (responden rápido)
     lamp1_fail = cmd_lamps13 and hw.digital_read("LAMP1_FAIL")

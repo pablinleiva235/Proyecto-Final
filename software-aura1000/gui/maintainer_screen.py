@@ -38,18 +38,7 @@ from PyQt5.QtWidgets import (
 
 from config.digital_signals import DIGITALSIGNALS
 from config_gui.maintainer_signals import MAINTAINER_SIGNALS
-from config_gui.strings import (
-    BACK_BUTTON_TEXT,
-    DIGITAL_INPUTS_TITLE,
-    DIGITAL_OUTPUTS_TITLE,
-    MAINTAINER_SIGNALS_TAB,
-    MAINTAINER_SECUENCES_TAB,
-    MAINTAINER_TITLE,
-    DOOR_SEQUENCE_BUTTON,
-    SOFT_VACUUM_SEQUENCE_BUTTON,
-    MAIN_VACUUM_SEQUENCE_BUTTON,
-    VENT_CHAMBER_SEQUENCE_BUTTON,
-)
+import config_gui.strings as myStr
 from gui.widgets.signal_widget import SignalWidget
 
 
@@ -84,7 +73,7 @@ class MaintainerScreen(QWidget):
     def create_widgets(self) -> None:
         """Crea los componentes visuales de la pantalla."""
 
-        self.title_label = QLabel(MAINTAINER_TITLE)
+        self.title_label = QLabel(myStr.MAINTAINER_TITLE)
         self.title_label.setObjectName("TitleLabel")
         self.title_label.setAlignment(Qt.AlignCenter)
 
@@ -99,12 +88,12 @@ class MaintainerScreen(QWidget):
 
         self.tabs.addTab(
             self.sequences_tab,
-            MAINTAINER_SECUENCES_TAB,
+            myStr.MAINTAINER_SECUENCES_TAB,
         )
 
         self.tabs.addTab(
             self.signals_tab,
-            MAINTAINER_SIGNALS_TAB,
+            myStr.MAINTAINER_SIGNALS_TAB,
         )
 
         # ---------------------------------------------------------------------
@@ -112,28 +101,28 @@ class MaintainerScreen(QWidget):
         # ---------------------------------------------------------------------
 
         self.door_sequence_button = QPushButton(
-            DOOR_SEQUENCE_BUTTON
+            myStr.DOOR_SEQUENCE_OPEN_BUTTON
         )
         self.door_sequence_button.setObjectName(
             "MaintainerSequenceButton"
         )
 
         self.soft_vacuum_sequence_button = QPushButton(
-            SOFT_VACUUM_SEQUENCE_BUTTON
+            myStr.SOFT_VACUUM_ON_BUTTON
         )
         self.soft_vacuum_sequence_button.setObjectName(
             "MaintainerSequenceButton"
         )
 
         self.main_vacuum_sequence_button = QPushButton(
-            MAIN_VACUUM_SEQUENCE_BUTTON
+            myStr.MAIN_VACUUM_ON_BUTTON
         )
         self.main_vacuum_sequence_button.setObjectName(
             "MaintainerSequenceButton"
         )
 
         self.vent_chamber_sequence_button = QPushButton(
-            VENT_CHAMBER_SEQUENCE_BUTTON
+            myStr.VENT_ON_BUTTON
         )
         self.vent_chamber_sequence_button.setObjectName(
             "MaintainerSequenceButton"
@@ -144,14 +133,14 @@ class MaintainerScreen(QWidget):
         # ---------------------------------------------------------------------
 
         self.inputs_title_label = QLabel(
-            DIGITAL_INPUTS_TITLE
+            myStr.DIGITAL_INPUTS_TITLE
         )
         self.inputs_title_label.setObjectName(
             "SectionTitleLabel"
         )
 
         self.outputs_title_label = QLabel(
-            DIGITAL_OUTPUTS_TITLE
+            myStr.DIGITAL_OUTPUTS_TITLE
         )
         self.outputs_title_label.setObjectName(
             "SectionTitleLabel"
@@ -164,11 +153,18 @@ class MaintainerScreen(QWidget):
         # ---------------------------------------------------------------------
 
         self.back_button = QPushButton(
-            BACK_BUTTON_TEXT
+            myStr.BACK_BUTTON_TEXT
         )
         self.back_button.setObjectName(
             "BackButton"
         )
+
+        self._sequence_buttons = {
+        "door": self.door_sequence_button,
+        "soft_vacuum": self.soft_vacuum_sequence_button,
+        "main_vacuum": self.main_vacuum_sequence_button,
+        "vent": self.vent_chamber_sequence_button,
+        }
 
     def setup_layout(self) -> None:
         """Organiza las pestañas y la navegación."""
@@ -422,10 +418,7 @@ class MaintainerScreen(QWidget):
                 signal_name
             ] = widget
 
-            if (
-                direction
-                == self.INPUT_DIRECTION
-            ):
+            if (direction == self.INPUT_DIRECTION):
                 self._input_widgets.append(
                     widget
                 )
@@ -551,3 +544,134 @@ class MaintainerScreen(QWidget):
             )
 
         return signal_config
+
+    # =========================================================================
+    # Secuencia puerta
+    # =========================================================================
+    def set_door_state(self, state):
+        #Actualiza el texto del botón de puerta según el estado actual
+        if state.value == "opening":
+            self.door_sequence_button.setText(
+                myStr.DOOR_SEQUENCE_OPENING_BUTTON
+            )
+
+        elif state.value == "closing":
+            self.door_sequence_button.setText(
+                myStr.DOOR_SEQUENCE_CLOSING_BUTTON
+            )
+
+        elif state.value == "open":
+            self.door_sequence_button.setText(
+                myStr.DOOR_SEQUENCE_CLOSE_BUTTON
+            )
+
+        elif state.value == "closed":
+            self.door_sequence_button.setText(
+                myStr.DOOR_SEQUENCE_OPEN_BUTTON
+            )
+
+        elif state.value == "error":
+            self.door_sequence_button.setText(
+                myStr.DOOR_SEQUENCE_ERROR_BUTTON
+            )
+    
+    # =========================================================================
+    # Secuencia Soft Vacuum
+    # =========================================================================
+    def set_soft_vacuum_state(self, state):
+        #Actualiza el texto del botón de Soft Vacuum según el estado actual
+        if state.value == "starting":
+            self.soft_vacuum_sequence_button.setText(
+                myStr.SOFT_VACUUM_ON_BUTTON
+            )
+
+        elif state.value == "running":
+            self.soft_vacuum_sequence_button.setText(
+                myStr.SOFT_VACUUM_OFF_BUTTON
+            )
+
+        elif state.value == "stopping":
+            self.soft_vacuum_sequence_button.setText(
+                myStr.SOFT_VACUUM_OFF_BUTTON
+            )
+
+        elif state.value == "idle":
+            self.soft_vacuum_sequence_button.setText(
+                myStr.SOFT_VACUUM_ON_BUTTON
+            )
+
+        elif state.value == "error":
+            self.soft_vacuum_sequence_button.setText(
+                myStr.SOFT_VACUUM_ERROR_BUTTON
+            )
+
+    # =========================================================================
+    # Secuencia Main Vacuum
+    # =========================================================================
+    def set_main_vacuum_state(self, state):
+        #Actualiza el texto del botón de Main Vacuum según el estado actual de la secuencia.
+        if state.value == "starting":
+            self.main_vacuum_sequence_button.setText(
+                myStr.MAIN_VACUUM_ON_BUTTON
+            )
+
+        elif state.value == "running":
+            self.main_vacuum_sequence_button.setText(
+                myStr.MAIN_VACUUM_OFF_BUTTON
+            )
+
+        elif state.value == "stopping":
+            self.main_vacuum_sequence_button.setText(
+                myStr.MAIN_VACUUM_OFF_BUTTON
+            )
+
+        elif state.value == "idle":
+            self.main_vacuum_sequence_button.setText(
+                myStr.MAIN_VACUUM_ON_BUTTON
+            )
+
+        elif state.value == "error":
+            self.main_vacuum_sequence_button.setText(
+                myStr.MAIN_VACUUM_ERROR_BUTTON
+            )
+
+    def set_sequence_enabled(
+        self,
+        sequence_name,
+        enabled,
+    ):
+        button = self._sequence_buttons.get(
+            sequence_name
+        )
+
+        if button is not None:
+            button.setEnabled(
+                enabled
+            )
+
+
+    # =========================================================================
+    # Secuencia de Venteo
+    # =========================================================================
+    def set_vent_state(self,state):
+        # modificar el texto del botón de venteo según el estado actual de la secuencia
+        if state.value == "starting":
+            self.vent_chamber_sequence_button.setText(
+                myStr.VENT_ON_BUTTON
+            )
+        elif state.value == "running":
+            self.vent_chamber_sequence_button.setText(
+                myStr.VENT_OFF_BUTTON
+            )
+        elif state.value == "stopping":
+            self.vent_chamber_sequence_button.setText(
+                myStr.VENT_OFF_BUTTON
+            )
+        elif state.value == "idle":
+            self.vent_chamber_sequence_button.setText(
+                myStr.VENT_ON_BUTTON
+            )
+        elif state.value == "error":
+            self.vent_chamber_sequence_button.setText(
+                myStr  .VENT_ERROR_BUTTON
+            )

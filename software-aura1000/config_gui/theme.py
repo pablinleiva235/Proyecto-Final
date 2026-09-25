@@ -14,6 +14,7 @@ apariencia o la incorporación de distintos temas visuales.
 BACKGROUND_COLOR = "#1E1E1E"
 SURFACE_COLOR = "#2B2B2B"
 SURFACE_HOVER_COLOR = "#3A3A3A"
+SURFACE_DISABLED_COLOR = "#555555"
 TEXTBOX_BACKGROUND_COLOR = "#252525"
 
 PRIMARY_COLOR = "#0094FF"
@@ -197,6 +198,11 @@ QPushButton:hover {{
 
 QPushButton:pressed {{
     background-color: {PRIMARY_COLOR};
+}}
+
+QPushButton:disabled {{
+    border: {SURFACE_DISABLED_COLOR};
+    color: {TEXT_MUTED_COLOR};
 }}
 
 /* -------------------------------------------------------------------------- */

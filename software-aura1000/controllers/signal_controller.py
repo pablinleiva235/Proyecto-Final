@@ -239,7 +239,6 @@ class SignalController(QObject):
     def _poll_signals(self) -> None:
         """Lee todas las señales configuradas para monitoreo."""
         for signal_name in self._monitored_signals:
-
             # Una salida en procesamiento se actualiza mediante
             # _execute_output_change(), por lo que el polling la ignora
             # temporalmente.
@@ -250,12 +249,10 @@ class SignalController(QObject):
                 active = self._hardware.digital_read(
                     signal_name
                 )
-
                 active = self._validate_read_value(
                     signal_name,
                     active,
                 )
-
                 self._update_confirmed_state(
                     signal_name,
                     active,
@@ -268,14 +265,6 @@ class SignalController(QObject):
                     error,
                 )
 
-            active = self._hardware.digital_read(
-                signal_name
-            )
-
-            """ print(
-                f"[SignalController] READ "
-                f"{signal_name}: {active}"
-            ) """
         
     # =========================================================================
     # Gestión de estados

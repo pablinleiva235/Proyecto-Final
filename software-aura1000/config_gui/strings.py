@@ -117,11 +117,24 @@ BACK_BUTTON_TEXT = "Volver"
 MAINTAINER_SECUENCES_TAB = "Modulos"
 MAINTAINER_SIGNALS_TAB = "DIO - Digital Input Output"
 
-DOOR_SEQUENCE_BUTTON = "Control de Puerta"
-SOFT_VACUUM_SEQUENCE_BUTTON = "Soft Vacuum"
-MAIN_VACUUM_SEQUENCE_BUTTON = "Main Vacuum"
-VENT_CHAMBER_SEQUENCE_BUTTON = "Vanteo de Cámara"
+DOOR_SEQUENCE_OPEN_BUTTON = "Abrir Puerta"
+DOOR_SEQUENCE_CLOSE_BUTTON = "Cerrar Puerta"
 
+DOOR_SEQUENCE_OPENING_BUTTON = "Abriendo..."
+DOOR_SEQUENCE_CLOSING_BUTTON = "Cerrando..."
+DOOR_SEQUENCE_ERROR_BUTTON = "Error de Puerta"
+
+SOFT_VACUUM_ON_BUTTON = "Soft Vacuum ON"
+SOFT_VACUUM_OFF_BUTTON = "Soft Vacuum OFF"
+SOFT_VACUUM_ERROR_BUTTON = "Error Soft Vacuum"
+
+MAIN_VACUUM_ON_BUTTON = "Main Vacuum ON"
+MAIN_VACUUM_OFF_BUTTON = "Main Vacuum OFF"
+MAIN_VACUUM_ERROR_BUTTON = "Error Main Vacuum"
+
+VENT_ON_BUTTON = "Vent ON"
+VENT_OFF_BUTTON = "Vent OFF"
+VENT_ERROR_BUTTON = "Error de Venteo"
 
 # =============================================================================
 # SEÑALES

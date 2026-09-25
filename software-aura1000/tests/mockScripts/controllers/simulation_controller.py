@@ -8,28 +8,32 @@ class SimulationController(QObject):
 
         self._hardware = hardware
 
-    def eventFilter(self, obj, event):
-
+    def eventFilter(self,obj,event):
         if event.type() == QEvent.KeyPress:
 
             if event.key() == Qt.Key_P:
-
-                current_state = self._hardware.digital_read(
-                    "POWER_ON_SWITCH"
-                )
-
-                new_state = not current_state
-
-                self._hardware.set_input_state(
-                    "POWER_ON_SWITCH",
-                    new_state,
-                )
-
-                print(
-                    "[Simulation] POWER_ON_SWITCH -> "
-                    f"{new_state}"
-                )
-
+                self._toggle_input("POWER_ON_SWITCH")
                 return True
 
-        return super().eventFilter(obj, event)
+            if event.key() == Qt.Key_A:
+                self._toggle_input("ATM_SWITCH")
+                return True
+
+        return super().eventFilter(obj,event)
+
+    def _toggle_input(self,signal_name):
+        current_state = self._hardware.digital_read(
+            signal_name
+        )
+
+        new_state = not current_state
+
+        self._hardware.set_input_state(
+            signal_name,
+            new_state,
+        )
+
+        print(
+            "[SimulationController] "
+            f"{signal_name} -> {new_state}"
+        )

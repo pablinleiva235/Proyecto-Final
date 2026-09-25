@@ -18,20 +18,13 @@ from PyQt5.QtCore import Qt
 #from logic.throttle_test import ThrottleController
 from config.digital_signals import ACTIVE, INACTIVE
 
-from config_gui.strings import (
-    APP_TITLE,
-    EXIT_CONFIRMATION_TITLE,
-    EXIT_CONFIRMATION_MESSAGE,
-)
-from config_gui.constants import (
-    WELCOME_SCREEN,
-    MAINTAINER_SCREEN,
-    STATISTICS_SCREEN,
-)
-from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_SIGNALS,)
+from config_gui.strings import (APP_TITLE,EXIT_CONFIRMATION_TITLE,EXIT_CONFIRMATION_MESSAGE)
+from config_gui.constants import (WELCOME_SCREEN,MAINTAINER_SCREEN,STATISTICS_SCREEN)
+from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_SIGNALS)
 
 from controllers.navigation_controller import NavigationController
 from controllers.signal_controller import SignalController
+from controllers.interlock_controller import InterlockController
 
 from gui.widgets.top_bar_widget import TopBarWidget
 from gui.welcome_screen import WelcomeScreen
@@ -42,7 +35,11 @@ from gui.login_dialog import LoginDialog
 #from services.hardware import Hardware
 #from tests.mockScripts.mock_hardware import MockHardware
 
-from logic.door_sequence import DoorSequence
+from logic.door_sequence import (DoorSequence, DoorState)
+from logic.soft_vacuum_sequence import (SoftVacuumSequence, SoftVacuumState)
+from logic.main_vacuum_sequence import (MainVacuumSequence, MainVacuumState)
+from logic.vent_sequence import (VentSequence, VentState)
+from logic.vent_sequence import (VentSequence,VentState)
 
 # gui-developement
 class MainWindow(QMainWindow):
@@ -98,10 +95,44 @@ class MainWindow(QMainWindow):
             poll_interval_ms=100,
         )
 
+        #Secuencias funcionales
         self.door_sequence = DoorSequence(
-            hardware=self.hardware
+            hardware=self.hardware,
+        )
+        self.soft_vacuum_sequence = SoftVacuumSequence(
+            hardware=self.hardware,
+        )      
+        self.main_vacuum_sequence = MainVacuumSequence(
+            hardware=self.hardware,
+        )
+        self.vent_sequence = VentSequence(
+            hardware=self.hardware,
         )
 
+        # Controlador de interlocks - Determina el uso seguro de las secuencias según el estado del equipo
+        self.interlock_controller = InterlockController(
+            door_sequence=self.door_sequence,
+            soft_vacuum_sequence=self.soft_vacuum_sequence,
+            main_vacuum_sequence=self.main_vacuum_sequence,
+            vent_sequence=self.vent_sequence,   
+        )
+
+        self.door_sequence.set_can_open(
+            self.interlock_controller.can_open_door
+        )
+        self.soft_vacuum_sequence.set_can_start(
+            self.interlock_controller.can_start_soft_vacuum
+        )
+        self.main_vacuum_sequence.set_can_start(
+            self.interlock_controller.can_start_main_vacuum
+        )
+        self.main_vacuum_sequence.set_can_stop(
+            self.interlock_controller.can_stop_main_vacuum
+        )
+        self.vent_sequence.set_can_start(
+            self.interlock_controller.can_start_vent
+        )
+        
     def setup_layout(self):
         # Organiza la barra superior y el contenido principal
         main_layout = QVBoxLayout()
@@ -152,54 +183,108 @@ class MainWindow(QMainWindow):
         self.signal_controller.signal_state_changed.connect(
             self.maintainer_screen.set_signal_active
         )
+        # Informa a las secuencias sobre cambios
+        # relevantes en las entradas digitales.
+        self.signal_controller.signal_state_changed.connect(
+            self._handle_digital_signal_changed
+        )
         # Manejo temporal de errores.
         self.signal_controller.signal_error.connect(
             self._handle_signal_error
         )
 
-
         # ====================
         # Sequencias definidas
         # ====================
-        # Control y cierre de puerta
+    # Puerta
         self.maintainer_screen.door_sequence_requested.connect(
            self.door_sequence.toggle
         )
+        self.door_sequence.state_changed.connect(
+            self._handle_door_state_changed
+        )
+        self.door_sequence.sequence_error.connect(
+            self._handle_door_sequence_error
+        )
+    # Soft Vacuum
+        self.maintainer_screen.soft_vacuum_sequence_requested.connect(
+            self.soft_vacuum_sequence.toggle
+        )
+        self.soft_vacuum_sequence.state_changed.connect(
+            self._handle_soft_vacuum_state_changed
+        )
+        self.soft_vacuum_sequence.sequence_error.connect(
+            self._handle_soft_vacuum_sequence_error
+        )
+    # Main Vacuum
+        self.maintainer_screen.main_vacuum_sequence_requested.connect(
+            self.main_vacuum_sequence.toggle
+        )
+        self.main_vacuum_sequence.state_changed.connect(
+            self._handle_main_vacuum_state_changed
+        )
+        self.main_vacuum_sequence.sequence_error.connect(
+            self._handle_main_vacuum_sequence_error
+        )
+
+    # Vent sequence
+        self.maintainer_screen.vent_chamber_sequence_requested.connect(
+            self.vent_sequence.toggle
+        )
+        self.vent_sequence.state_changed.connect(
+            self._handle_vent_state_changed
+        )
+        self.vent_sequence.vent_completed.connect(
+            self._handle_vent_completed
+        )
+        self.vent_sequence.sequence_error.connect(
+            self._handle_vent_sequence_error
+        )
+
+        # =========================================================
+        # Estado inicial de las secuencias
+        # =========================================================
+        self.maintainer_screen.set_door_state( self.door_sequence.state )
+        self.maintainer_screen.set_soft_vacuum_state( self.soft_vacuum_sequence.state )
+        self.maintainer_screen.set_main_vacuum_state(self.main_vacuum_sequence.state )
+        self.maintainer_screen.set_vent_state(self.vent_sequence.state )
+        self._update_sequence_permissions()
 
         # ====================
         # TEST sequencias borrar
         # ====================
         self.maintainer_screen.soft_vacuum_sequence_requested.connect(
-            lambda: print("[Maintainer] Soft Vacuum solicitado")
+            lambda: print("[Maintainer] Soft Vacuum")
         )
 
         self.maintainer_screen.main_vacuum_sequence_requested.connect(
-            lambda: print("[Maintainer] Main Vacuum solicitado")
+            lambda: print("[Maintainer] Main Vacuum")
         )
 
         self.maintainer_screen.vent_chamber_sequence_requested.connect(
-            lambda: print("[Maintainer] Vanteo de Cámara solicitado")
-        )
+            lambda: print("[Maintainer] Vanteo de Cámara")
+        )        
         # ====================
         # Fin TEST sequencias
         # ====================
 
+
     def _show_welcome_screen(self):
-        # Muestra la pantalla de bienvenida
+    # Muestra la pantalla de bienvenida
         self.signal_controller.stop_monitoring()
         self.navigation_controller.show_screen(
             WELCOME_SCREEN
         )
 
     def _show_maintainer_screen(self):
-        # Muestra la pantalla de mantenimiento e inicia el monitoreo de señales
+    # Muestra la pantalla de mantenimiento e inicia el monitoreo de señales
         self.navigation_controller.show_screen(
             MAINTAINER_SCREEN
         )
         self.signal_controller.start_monitoring()
 
     def _show_statistics_screen(self):
-        # Muestra la pantalla de estadísticas
+    # Muestra la pantalla de estadísticas
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
         )
@@ -224,6 +309,17 @@ class MainWindow(QMainWindow):
             f"[SignalController] ERROR {signal_name}: {message}"
         )
 
+
+    def _handle_digital_signal_changed(
+        self,
+        signal_name,
+        active,
+    ):
+        if signal_name == "ATM_SWITCH":
+            self.vent_sequence.update_atmospheric_state(
+                active
+            )
+            
     def _confirm_exit(self):
     # Confirma con el usuario antes de cerrar la aplicación
         response = QMessageBox.question(
@@ -237,138 +333,117 @@ class MainWindow(QMainWindow):
         if response == QMessageBox.Yes:
             self.close()
 
+    def _update_sequence_permissions(self):
+        """
+        Actualiza visualmente los permisos de las
+        secuencias según los interlocks actuales.
+        """
+        permissions = (
+            self.interlock_controller.get_permissions()
+        )
 
-# main 
-'''
-class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, hardware):
-        super().__init__()
-        
-        self.hw = hardware
-        self.offClose = 0
-        self.startup_progress = 0  # Almacena el progreso de la barra
-
-        # Crear interfaz autogenerada
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
-
-        # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
-        self.state_lamps13_pulsing = False
-        self.lamp2_on = False
-        self.rf_on = False
-
-        # Control de ventanas emergentes de alarma/advertencia
-        self.alarm_active = False
-        self.warning_mag_shown = False
-
-        # Variable con tiempo desde que se pulsa el boton de plasma 
-        self.rf_on_time = 0.0
-
-        # =====================================================================
-        # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
-        # =====================================================================
-        old_central = self.centralWidget()
-
-        if old_central:
-            # A. Le fijamos un alto mínimo real a la UI original para que NO se comprima.
-            # 950px asegura que entre todo el contenido de Lámparas y Temperatura holgadamente.
-            old_central.setMinimumSize(980, 950)
-
-            # B. Creamos el QScrollArea y configuramos sus políticas
-            scroll = QtWidgets.QScrollArea()
-            scroll.setWidget(old_central)
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-
-            # C. Forzamos la barra de scroll vertical para que aparezca siempre
-            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Por si el ancho también se queda corto
-
-            # D. Reemplazamos el widget central
-            self.setCentralWidget(scroll)
-        # =====================================================================
-        
-        # Instanciar el manager de timers pasándole 'self' (esta ventana)
-        self.timer_manager = timersIOManager(self)
-        self.timer_manager.start_all_core_timers()
-
-        # Instanciamos el controlador de pruebas del motor
-        # self.throttle = ThrottleController(self) # DESCOMENTAR CUANDO PROBEMOS LA THROTTLE YA MODIFICADO throttle.py
-
-        # Iniciar la máquina de estados en PRE_ENCENDIDO
-        self.current_state = systemState.PRE_ENCENDIDO
-        self.change_state(systemState.PRE_ENCENDIDO)
-
-
-    # =========================================================
-    # MAQUINA DE ESTADOS PRINCIPAL
-    # =========================================================
-    def change_state(self, new_state):
-        print(f"STATE: {self.current_state} -> {new_state}")
-        self.current_state = new_state
-        
-        if new_state == systemState.PRE_ENCENDIDO:
-            preEncendido.init(self)
-        elif new_state == systemState.MAIN_MENU:
-            self.MainMenu_init()
-
-    # =========================================================
-    # ACCIONES INVOCADAS POR LA LOGICA EXTERNA
-    # =========================================================
-
-    # ==================== DEL PRE-ENCENDIDO ====================
-    def preEncendido_startup_sequence(self):
-        # La lógica de timers detectó el botón ON y le ordena a la ventana ejecutar el startup
-        preEncendido.startup(self)
-
-    # ==================== DEL MAIN MENU ====================
-    # ------- Fuerza el cierre seguro por pulsador físico OFF -----------
-    def trigger_hardware_off(self):
-        self.offClose = 1
-        self.close() # Esto llama a closeEvent
-
-    # =========================================================
-    # METODOS DE INICIALIZACION DE LOS ESTADOS
-    # =========================================================
-    # ------------ Inicializa visualmente el menú principal ----------------
-    def MainMenu_init(self):
-        self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
-        #Inicia modo de prueba modular
-        maintenanceProcess.init(self)
-
-    # =========================================================
-    # CONTROL DE CIERRE SEGURO DE VENTANA
-    # =========================================================
-    def closeEvent(self, event):
-        # Frenamos todos los lazos de tiempo antes de abrir diálogos
-        self.timer_manager.stop_all_timers()
-
-        if self.offClose == 0:
-            # --- CASO 1: Cierre por la "X" del software ---
-            reply = QtWidgets.QMessageBox.question(
-                self, 'Confirmar Salida', '¿Está seguro de que desea cerrar la aplicación?',
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No
+        for sequence_name, enabled in permissions.items():
+            self.maintainer_screen.set_sequence_enabled(
+                sequence_name,
+                enabled,
             )
-            if reply == QtWidgets.QMessageBox.Yes:
-                self._safely_shutdown()
-                event.accept()
-            else:
-                # Si cancela, reactivamos los timers de lectura
-                self.timer_manager.start_all_core_timers()
-                event.ignore()
-        else:
-            # --- CASO 2: Cierre por pulsador físico OFF ---
-            QtWidgets.QMessageBox.information(
-                self, 'Apagado del Sistema', 'El programa se cerrará dejando las placas en estado seguro.', QtWidgets.QMessageBox.Ok
+
+    # ============================================================
+    # Secuencias funcionales - Manejo de eventos
+    # ============================================================
+# Puerta
+    def _handle_door_state_changed(
+        self,
+        state,
+    ):
+        print(
+            f"[DoorSequence] Estado: {state.value}"
+        )
+        self.maintainer_screen.set_door_state(
+            state
+        )
+        self._update_sequence_permissions()
+
+    def _handle_door_sequence_error(self, message):
+        print(
+            f"[DoorSequence] ERROR: {message}"
+        )
+
+    def _can_open_door(self):
+        #La puerta solo puede abrirse si las valvulas de vacio estan detenidas.
+        return (
+            self.soft_vacuum_sequence.state
+            == SoftVacuumState.IDLE
+        )
+
+# Soft Vacumm
+    def _can_start_soft_vacuum(self):
+        #Soft Vacuum solo puede iniciarse con la puerta cerrada.
+        return ( self.door_sequence.state == DoorState.CLOSED )
+
+    def _handle_soft_vacuum_state_changed(self,state):
+        print(
+            "[SoftVacuumSequence] "
+            f"Estado: {state.value}"
+        )
+        self.maintainer_screen.set_soft_vacuum_state(state)
+        if state == SoftVacuumState.RUNNING:
+            self.interlock_controller.vacuum_started()
+        self._update_sequence_permissions()
+
+    def _handle_soft_vacuum_sequence_error(self,message):
+        print(
+            "[SoftVacuumSequence] "
+            f"ERROR: {message}"
+        )
+
+# Main Vacuum
+    def _handle_main_vacuum_state_changed(self,state):
+        print(
+            "[MainVacuumSequence] "
+            f"Estado: {state.value}"
+        )
+        self.maintainer_screen.set_main_vacuum_state(state)
+        if state == MainVacuumState.RUNNING:
+            self.interlock_controller.vacuum_started()
+            self._handle_main_vacuum_started()
+        self._update_sequence_permissions()
+
+    def _handle_main_vacuum_started(self):
+        #Coordina las acciones necesarias después del arranque de Main Vacuum.
+        if (self.soft_vacuum_sequence.state == SoftVacuumState.RUNNING):
+            self.soft_vacuum_sequence.stop()
+
+    def _handle_main_vacuum_sequence_error(self,message):
+        print(
+            "[MainVacuumSequence] "
+            f"ERROR: {message}"
+        )
+
+    def _handle_vent_state_changed(self,state):
+        print(
+            "[VentSequence] "
+            f"Estado: {state.value}"
+        )
+        self.maintainer_screen.set_vent_state(state)
+        if state == VentState.RUNNING:
+            atm_active = (
+                self.signal_controller.get_last_state("ATM_SWITCH")
             )
-            self._safely_shutdown()
-            event.accept()
+            if atm_active is not None:
+                self.vent_sequence.update_atmospheric_state(atm_active)
+        self._update_sequence_permissions()
 
-    def _safely_shutdown(self):
-        try:
-            self.hw.shutdown_state()
-            print("Hardware llevado a estado seguro correctamente.")
-        except Exception as e:
-            print(f"Error al intentar llevar el hardware a estado seguro: {e}")
+#Venteo
+    def _handle_vent_completed(self):
+        print(
+            "[VentSequence] Venteo completado."
+        )
+        self.interlock_controller.vent_completed()
+        self._update_sequence_permissions()
 
-'''
+    def _handle_vent_sequence_error(self,message):
+        print(
+            "[VentSequence] "
+            f"ERROR: {message}"
+        )

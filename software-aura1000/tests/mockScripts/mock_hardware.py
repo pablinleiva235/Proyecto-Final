@@ -23,10 +23,10 @@ class MockHardware:
             False,
         )
 
-        print(
-            f"[MockHardware] READ "
-            f"{signal_name} -> {state}"
-        )
+        # print(
+        #     f"[MockHardware] READ "
+        #     f"{signal_name} -> {state}"
+        # )
 
         return state
 

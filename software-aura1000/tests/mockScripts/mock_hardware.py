@@ -5,6 +5,8 @@ MockHardware implementa la misma interfaz pública utilizada por los
 controladores, pero no accede a drivers ni placas físicas.
 """
 
+from config.digital_signals import DIGITALSIGNALS
+
 
 class MockHardware:
 
@@ -64,3 +66,30 @@ class MockHardware:
         print(
             "[MockHardware] initialize_AD()"
         )
+
+
+    def shutdown_state(self):
+        """
+        Simula el estado seguro global del hardware.
+
+        Lleva todas las salidas digitales al estado lógico
+        correspondiente a su initial_state.
+        """
+        print(
+            "[MockHardware] shutdown_state()"
+        )
+
+        for signal_name, signal in DIGITALSIGNALS.items():
+
+            if signal["dir"] != "OUT":
+                continue
+
+            active = (
+                signal["initial_state"]
+                == signal["active_state"]
+            )
+
+            self.digital_set(
+                signal_name,
+                active,
+            )

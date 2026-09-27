@@ -129,6 +129,22 @@ class SoftVacuumSequence(QObject):
         except Exception as error:
             self._handle_error(error)
 
+    def shutdown(self):
+        """
+        Lleva Soft Vacuum a su estado seguro durante
+        el apagado general.
+        """
+        try:
+            self._set_safe_outputs()
+
+            if self._state != SoftVacuumState.IDLE:
+                self._set_state(
+                    SoftVacuumState.IDLE
+                )
+        except Exception as error:
+            self._handle_error(error)
+            raise
+
     def _set_safe_outputs(self):
         """Lleva Soft Vacuum a su estado seguro."""
 

@@ -25,6 +25,7 @@ from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_
 from controllers.navigation_controller import NavigationController
 from controllers.signal_controller import SignalController
 from controllers.interlock_controller import InterlockController
+from controllers.shutdown_controller import ShutdownController
 
 from gui.widgets.top_bar_widget import TopBarWidget
 from gui.welcome_screen import WelcomeScreen
@@ -109,6 +110,14 @@ class MainWindow(QMainWindow):
             hardware=self.hardware,
         )
 
+        # Controlador de apagado seguro del equipo - Coordina la detención de secuencias y el estado seguro del hardware
+        self.shutdown_controller = ShutdownController(
+            hardware=self.hardware,
+            soft_vacuum_sequence=self.soft_vacuum_sequence,
+            main_vacuum_sequence=self.main_vacuum_sequence,
+            vent_sequence=self.vent_sequence,
+        )
+
         # Controlador de interlocks - Determina el uso seguro de las secuencias según el estado del equipo
         self.interlock_controller = InterlockController(
             door_sequence=self.door_sequence,
@@ -169,6 +178,19 @@ class MainWindow(QMainWindow):
         )
 
         # ===================================================================================
+        # Conexión con ShutdownController - (control de apagado seguro del equipo)
+        # ===================================================================================
+        self.shutdown_controller.shutdown_started.connect(
+            self._handle_shutdown_started
+        )
+        self.shutdown_controller.shutdown_completed.connect(
+            self._handle_shutdown_completed
+        )
+        self.shutdown_controller.shutdown_error.connect(
+            self._handle_shutdown_error
+        )
+
+        # ===================================================================================
         # Conexión con SignalController - (control de señales digitales en mantainer_screen)
         # ===================================================================================
         # Solicitudes de cambio desde MaintainerScreen hacia SignalController.
@@ -226,7 +248,6 @@ class MainWindow(QMainWindow):
         self.main_vacuum_sequence.sequence_error.connect(
             self._handle_main_vacuum_sequence_error
         )
-
     # Vent sequence
         self.maintainer_screen.vent_chamber_sequence_requested.connect(
             self.vent_sequence.toggle
@@ -256,11 +277,9 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.soft_vacuum_sequence_requested.connect(
             lambda: print("[Maintainer] Soft Vacuum")
         )
-
         self.maintainer_screen.main_vacuum_sequence_requested.connect(
             lambda: print("[Maintainer] Main Vacuum")
         )
-
         self.maintainer_screen.vent_chamber_sequence_requested.connect(
             lambda: print("[Maintainer] Vanteo de Cámara")
         )        
@@ -309,7 +328,6 @@ class MainWindow(QMainWindow):
             f"[SignalController] ERROR {signal_name}: {message}"
         )
 
-
     def _handle_digital_signal_changed(
         self,
         signal_name,
@@ -328,11 +346,19 @@ class MainWindow(QMainWindow):
         EXIT_CONFIRMATION_MESSAGE,
         QMessageBox.Yes | QMessageBox.No,
         QMessageBox.No,
-    )
-
-        if response == QMessageBox.Yes:
-            self.close()
-
+            )
+        print(
+            "[topBar] "
+            "Cierre del programa."
+        )
+        if response == QMessageBox.No:
+            print(
+                "[topBar] "
+                "Cancelado"
+            )
+            return
+        self.shutdown_controller.start()
+        
     def _update_sequence_permissions(self):
         """
         Actualiza visualmente los permisos de las
@@ -347,7 +373,33 @@ class MainWindow(QMainWindow):
                 sequence_name,
                 enabled,
             )
-
+    # ============================================================
+    # Manejo de eventos de ShutdownController
+    # ============================================================
+    def _handle_shutdown_started(self):
+        print(
+            "[ShutdownController] "
+            "Apagado iniciado."
+        )
+    def _handle_shutdown_completed(self):
+        print(
+            "[ShutdownController] "
+            "Apagado completado correctamente."
+        )
+        self.close()
+        
+    def _handle_shutdown_error(self,message):
+        print(
+            "[ShutdownController] "
+            f"ERROR: {message}"
+        )
+        QMessageBox.critical(self,"Error de apagado",
+            (
+                "No fue posible completar correctamente "
+                "el apagado del equipo.\n\n"
+                f"{message}"
+            ),
+        )
     # ============================================================
     # Secuencias funcionales - Manejo de eventos
     # ============================================================
@@ -447,3 +499,4 @@ class MainWindow(QMainWindow):
             "[VentSequence] "
             f"ERROR: {message}"
         )
+

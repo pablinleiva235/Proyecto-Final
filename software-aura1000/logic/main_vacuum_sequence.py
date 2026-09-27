@@ -139,6 +139,24 @@ class MainVacuumSequence(QObject):
         except Exception as error:
             self._handle_error(error)
 
+    def shutdown(self):
+        """
+        Lleva la secuencia a su estado seguro durante
+        el apagado general del equipo.
+        No aplica los interlocks de operación normal.
+        """
+        try:
+            self._set_safe_outputs()
+
+            if self._state != MainVacuumState.IDLE:
+                self._set_state(
+                    MainVacuumState.IDLE
+                )
+
+        except Exception as error:
+            self._handle_error(error)
+            raise
+
     def _set_safe_outputs(self):
         """Lleva Main Vacuum a su estado seguro."""
 

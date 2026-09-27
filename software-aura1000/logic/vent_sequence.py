@@ -139,6 +139,22 @@ class VentSequence(QObject):
         except Exception as error:
             self._handle_error(error)
 
+    def shutdown(self):
+        """
+        Cancela cualquier venteo y cierra la válvula.
+        """
+        self._stabilization_timer.stop()
+        try:
+            self._set_safe_outputs()
+
+            if self._state != VentState.IDLE:
+                self._set_state(
+                    VentState.IDLE
+                )
+        except Exception as error:
+            self._handle_error(error)
+            raise
+
     def update_atmospheric_state(
         self,
         is_atmospheric,

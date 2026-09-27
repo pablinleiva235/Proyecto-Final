@@ -27,7 +27,7 @@ else:
     from services.hardware import Hardware
 
 
-from logic.pre_encendido import StartupSequence
+from logic.startup_sequence import StartupSequence
 
 from controllers.startup_controller import StartupController
 from controllers.application_controller import ApplicationController

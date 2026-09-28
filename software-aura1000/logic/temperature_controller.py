@@ -28,7 +28,6 @@ class TempController:
 
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
-        self.ramp_stage = 1  # 1: L1+L2+L3 (100%), 2: L1+L2 (Transición)
 
         # Listas para graficar temperatura en función del tiempo
         self._log_time = []  # timestamps en segundos
@@ -136,7 +135,6 @@ class TempController:
         self.target_temp = target_temp
         self.auto_control_enabled = True
         self.in_preheat_ramp = True
-        self.ramp_stage = 1  # Reseteo indispensable de secuencia de rampa para cada inicio de control
 
         print(f"[TEMP] Lazo de Temperatura ACTIVADO. Setpoint: {self.target_temp:.1f} °C")
 
@@ -202,39 +200,37 @@ class TempController:
                 self._log_temp.append(current_temp)
                 self._log_setpoint.append(self.target_temp)
 
-            # 2. FASE DE RAMPA INICIAL EN 2 ETAPAS (Escalonada)
+            # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
             if self.in_preheat_ramp:
-                # Etapa 1: Llegar al 92% del setpoint con las 3 Lámparas
-                if self.ramp_stage == 1:
-                    if current_temp >= (self.target_temp * 0.92):
-                        print(f"[TEMP] Rampa Etapa 1 (92%). Apagando Lámpara 3. Transición con L1 + L2.")
-                        self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-                        self.ramp_stage = 2
-                    return
+                preheat_threshold = self.target_temp * 1.05
+                if current_temp >= preheat_threshold:
+                    print(
+                        f"[TEMP] Rampa completada ({current_temp:.1f} °C). Apagando Lámparas 1 y 3. "
+                        f"Mantenimiento exclusivo con Lámpara Central."
+                    )
+                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                    self.win.state_lamps13_pulsing = False
+                    self.in_preheat_ramp = False
 
-                # Etapa 2: Llegar al 100% del setpoint con 2 Lámparas (L1 + L2)
-                elif self.ramp_stage == 2:
-                    if current_temp >= self.target_temp:
-                        print(f"[TEMP] Setpoint alcanzado ({current_temp:.1f} °C). Apagando Lámpara 1.")
-                        self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                        self.win.state_lamps13_pulsing = False
-                        self.in_preheat_ramp = False
-                        # Inicializar mantenimiento con L2 sola al 100%
-                        self.duty_cycle = 1.0
-                        self._window_start_time = time.time()
+                    # Impulso inicial al 100% para mitigar la caída de temperatura por apagar L1 y L3
+                    self.duty_cycle = 1.0
+                    self._window_start_time = time.time()  # Reiniciar ventana PWM
+                else:
+                    # Durante la rampa, las 3 lámparas quedan al 100% encendidas
                     return
             else:
-                # 3. FASE DE MANTENIMIENTO (Lámpara Central sola al 100%)
+                # 3. FASE DE MANTENIMIENTO: Lámpara Central sola
                 error = self.target_temp - current_temp
 
                 if error > -2.0:
-                    self.duty_cycle = 1.0  # 100% ON mientras falte o esté pegado
+                    self.duty_cycle = 1.0  # 100% ON hasta estar +2°C sobre el setpoint
                 elif error > -5.0:
-                    self.duty_cycle = 0.9
+                    self.duty_cycle = 0.9  # 80% ON para sobrepasos leves (+2°C a +5°C)
                 elif error > -10.0:
-                    self.duty_cycle = 0.8
+                    self.duty_cycle = 0.8  # 50% ON para frenar subidas continuas
                 else:
-                    self.duty_cycle = 0.7
+                    self.duty_cycle = 0.7  # OFF solo con sobrepaso > 10°C
 
             # 4. Modulación PWM en ventana de CONTROL_PERIOD_MS (Recomendado: 1000 ms)
             now = time.time()

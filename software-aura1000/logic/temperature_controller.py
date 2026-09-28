@@ -220,17 +220,15 @@ class TempController:
                     # Durante la rampa, las 3 lámparas quedan al 100% encendidas
                     return
             else:
-                # 3. FASE DE MANTENIMIENTO: Lámpara Central sola
+                # 3. FASE DE MANTENIMIENTO: Escala ajustada para evitar la deriva en caliente
                 error = self.target_temp - current_temp
 
                 if error > -2.0:
-                    self.duty_cycle = 1.0  # 100% ON hasta estar +2°C sobre el setpoint
-                elif error > -5.0:
-                    self.duty_cycle = 0.9  # 80% ON para sobrepasos leves (+2°C a +5°C)
-                elif error > -10.0:
-                    self.duty_cycle = 0.8  # 50% ON para frenar subidas continuas
+                    self.duty_cycle = 1.0  # 100% ON mientras falte temperatura (T < 150 °C)
+                elif error > -3.0:
+                    self.duty_cycle = 0.5  # 50% ON para sobrepaso leve (150 °C - 153 °C)
                 else:
-                    self.duty_cycle = 0.7  # OFF solo con sobrepaso > 10°C
+                    self.duty_cycle = 0.0  # OFF total si la temperatura supera los 157 °C (> +7 °C)
 
             # 4. Modulación PWM en ventana de CONTROL_PERIOD_MS (Recomendado: 1000 ms)
             now = time.time()
@@ -242,7 +240,7 @@ class TempController:
                 elapsed_ms = 0.0
 
             # Tiempo ON correspondiente dentro de la ventana
-            print(f"duty cycle: {self.duty_cycle}")
+            #print(f"duty cycle: {self.duty_cycle}")
             on_time_ms = self.CONTROL_PERIOD_MS * self.duty_cycle
 
             # Conmutar SSR2 de Lámpara Central

@@ -1,13 +1,12 @@
 # logic/temperature_controller.py
-import time
 import os
+import time
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMessageBox
 from config.digital_signals import ACTIVE, INACTIVE
 
 
 class TempController:
-
     def __init__(self, main_window):
         self.win = main_window
         self.hw = main_window.hw
@@ -21,10 +20,13 @@ class TempController:
         self.MIN_TEMP_SETPOINT = 130.0
         self.MAX_TEMP_SETPOINT = 200.0
 
-        # Lógica PWM de Ventana Fija (2.0 segundos)
-        self.CONTROL_PERIOD_MS = 500
-        self.TIMER_INTERVAL_MS = 50
-        self.duty_cycle = 0.0  # 0.0 a 1.0
+        # Parámetros del Control por Histéresis (°C)
+        self.HYSTERESIS_LOW = 5.0  # Encender L2 si T <= target - 5.0 °C
+        self.HYSTERESIS_HIGH = 5.0  # Apagar L2 si T >= target + 5.0 °C
+
+        # Filtro de media móvil para suavizar lectura de termocupla
+        self._temp_buffer = []
+        self._TEMP_BUFFER_SIZE = 5  # Promedio de las últimas 5 lecturas (500ms)
 
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
@@ -35,10 +37,10 @@ class TempController:
         self._log_setpoint = []  # setpoint objetivo
         self._log_start_time = None
 
-        # Timer dedicado a la modulación PWM y actualización del lazo
-        self.pwm_timer = QtCore.QTimer()
-        self.pwm_timer.timeout.connect(self._update_temperature_loop)
-        self._window_start_time = 0.0
+        # Timer dedicado al sondeo del lazo y evaluación de la histéresis (100 ms)
+        self.temp_timer = QtCore.QTimer()
+        self.temp_timer.timeout.connect(self._update_temperature_loop)
+        self.TIMER_INTERVAL_MS = 100
 
         # Conectar botones de la UI
         self._connect_ui_signals()
@@ -46,23 +48,25 @@ class TempController:
     def _connect_ui_signals(self):
         """Conecta los botones del Menú de Temperatura a los handlers."""
         if hasattr(self.ui, "MenuPrincipal_btn_temp_set"):
-            self.ui.MenuPrincipal_btn_temp_set.clicked.connect(self.on_start_auto_control)
+            self.ui.MenuPrincipal_btn_temp_set.clicked.connect(
+                self.on_start_auto_control
+            )
         if hasattr(self.ui, "MenuPrincipal_btn_temp_stop"):
-            self.ui.MenuPrincipal_btn_temp_stop.clicked.connect(self.stop_auto_control)
+            self.ui.MenuPrincipal_btn_temp_stop.clicked.connect(
+                self.stop_auto_control
+            )
 
     # =============================================================================
     #        METODO PARA GENERAR EL PLOT Y GUARDARLO EN logic/logs
-    # =============================================================================  
+    # =============================================================================
     def _generate_temperature_plot(self):
         if len(self._log_time) < 2:
             print("[TEMP] Sin datos suficientes para graficar.")
             return
 
-        import os
         from datetime import datetime
         import matplotlib.pyplot as plt
 
-        # Carpeta logs/ al lado de temperature_controller.py
         base_dir = os.path.dirname(os.path.abspath(__file__))
         logs_dir = os.path.join(base_dir, "logs")
         os.makedirs(logs_dir, exist_ok=True)
@@ -90,7 +94,7 @@ class TempController:
 
         ax.set_xlabel("Tiempo (s)")
         ax.set_ylabel("Temperatura (°C)")
-        ax.set_title(f"Control de Temperatura — Setpoint: {self.target_temp:.1f} °C")
+        ax.set_title(f"Control de Temperatura (Histéresis) — Setpoint: {self.target_temp:.1f} °C")
         ax.legend(loc="upper left")
         ax.grid(True, alpha=0.3)
 
@@ -106,7 +110,7 @@ class TempController:
     def on_start_auto_control(self):
         """Handler del botón de encendido de control automático de temperatura."""
         try:
-            text_val = self.ui.MenuPrincipal_temp_setpoint.text().replace(",", ".")
+            text_val = (self.ui.MenuPrincipal_temp_setpoint.text().replace(",", "."))
             target = float(text_val)
 
             if (
@@ -131,12 +135,13 @@ class TempController:
             )
 
     def start_auto_control(self, target_temp: float):
-        """Inicia la rampa con las 3 lámparas y activa el temporizador PWM."""
+        """Inicia la rampa con las 3 lámparas y activa el temporizador del lazo."""
         self.target_temp = target_temp
         self.auto_control_enabled = True
         self.in_preheat_ramp = True
+        self._temp_buffer = []
 
-        print(f"[TEMP] Lazo de Temperatura ACTIVADO. Setpoint: {self.target_temp:.1f} °C")
+        print(f"[TEMP] Lazo por Histéresis ACTIVADO. Setpoint: {self.target_temp:.1f} °C")
 
         # 1. Rampa Inicial: Encendemos Lámparas 1, 2 y 3 juntas
         self.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
@@ -145,7 +150,7 @@ class TempController:
         self.win.state_lamps13_pulsing = True
         self.win.lamp2_on = True
 
-        # 2. Bloquear controles manuales de lámparas
+        # 2. Bloquear controles manuales de UI
         self._update_ui_interlocks(running=True)
 
         # 3. Reiniciar búferes de logueo
@@ -154,17 +159,17 @@ class TempController:
         self._log_setpoint = []
         self._log_start_time = time.time()
 
-        # 4. Arrancar timer del lazo PWM (evaluación rápida cada 50 ms)
-        self.pwm_timer.start(self.TIMER_INTERVAL_MS)
+        # 4. Arrancar timer del lazo de control (100 ms)
+        self.temp_timer.start(self.TIMER_INTERVAL_MS)
 
     def stop_auto_control(self):
-        """Apaga el lazo automático, desactiva comandos y libera los botones manuales."""
+        """Apaga el lazo automático, desactiva comandos y libera la UI."""
         print("[TEMP] Lazo de Temperatura DESACTIVADO.")
         self.auto_control_enabled = False
         self.in_preheat_ramp = False
 
-        if self.pwm_timer.isActive():
-            self.pwm_timer.stop()
+        if self.temp_timer.isActive():
+            self.temp_timer.stop()
 
         # Apagado de seguridad de las 3 lámparas
         self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
@@ -181,78 +186,80 @@ class TempController:
         self._update_ui_interlocks(running=False)
 
     # =============================================================================
-    #                     LAZO CERRADO Y MODULACIÓN PWM
+    #                   LAZO CERRADO Y CONTROL POR HISTÉRESIS
     # =============================================================================
     def _update_temperature_loop(self):
-            """Calcula el Duty Cycle y conmuta el SSR2 (Lámpara Central) con PWM de alta frecuencia."""
-            if not self.auto_control_enabled:
-                return
+        """Monitorea la temperatura y conmuta la Lámpara Central (SSR2) según histéresis."""
+        if not self.auto_control_enabled:
+            return
 
-            # 1. Lectura de temperatura actual
-            current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
-            if current_temp is None:
-                return
+        # 1. Lectura de temperatura actual
+        current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
+        if current_temp is None:
+            return
 
-            # ── REGISTRO DE DATOS PARA EL GRÁFICO ──
-            if self._log_start_time is not None:
-                elapsed = time.time() - self._log_start_time
-                self._log_time.append(elapsed)
-                self._log_temp.append(current_temp)
-                self._log_setpoint.append(self.target_temp)
+        # 2. Filtro de media móvil para suavizar ruido de termocupla
+        self._temp_buffer.append(current_temp)
+        if len(self._temp_buffer) > self._TEMP_BUFFER_SIZE:
+            self._temp_buffer.pop(0)
+        filtered_temp = sum(self._temp_buffer) / len(self._temp_buffer)
 
-            # 2. FASE DE RAMPA INICIAL: Chequear si alcanzamos el 90% del Setpoint
-            if self.in_preheat_ramp:
-                preheat_threshold = self.target_temp * 1.05
-                if current_temp >= preheat_threshold:
-                    print(
-                        f"[TEMP] Rampa completada ({current_temp:.1f} °C). Apagando Lámparas 1 y 3. "
-                        f"Mantenimiento exclusivo con Lámpara Central."
-                    )
-                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-                    self.win.state_lamps13_pulsing = False
-                    self.in_preheat_ramp = False
+        # ── REGISTRO DE DATOS PARA EL GRÁFICO (temperatura real) ──
+        if self._log_start_time is not None:
+            elapsed = time.time() - self._log_start_time
+            self._log_time.append(elapsed)
+            self._log_temp.append(current_temp)
+            self._log_setpoint.append(self.target_temp)
 
-                    # Impulso inicial al 100% para mitigar la caída de temperatura por apagar L1 y L3
-                    self.duty_cycle = 1.0
-                    self._window_start_time = time.time()  # Reiniciar ventana PWM
-                else:
-                    # Durante la rampa, las 3 lámparas quedan al 100% encendidas
-                    return
-            else:
-                # 3. FASE DE MANTENIMIENTO: Escala ajustada para evitar la deriva en caliente
-                error = self.target_temp - current_temp
+        # 3. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
+        if self.in_preheat_ramp:
+            preheat_threshold = self.target_temp * 1.01  # Corta al tocar el Setpoint (+1%)
+            if filtered_temp >= preheat_threshold:
+                print(
+                    f"[TEMP] Rampa completada ({filtered_temp:.1f} °C). Apagando Lámparas 1 y 3. "
+                    f"Pasando a Mantenimiento por Histéresis con L2."
+                )
+                self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                self.win.state_lamps13_pulsing = False
+                self.in_preheat_ramp = False
 
-                if error > -2.0:
-                    self.duty_cycle = 1.0  # 100% ON mientras falte temperatura (T < 150 °C)
-                elif error > -3.0:
-                    self.duty_cycle = 0.5  # 50% ON para sobrepaso leve (150 °C - 153 °C)
-                else:
-                    self.duty_cycle = 0.0  # OFF total si la temperatura supera los 157 °C (> +7 °C)
-
-            # 4. Modulación PWM en ventana de CONTROL_PERIOD_MS (Recomendado: 1000 ms)
-            now = time.time()
-            elapsed_ms = (now - self._window_start_time) * 1000.0
-
-            # Reiniciar ventana PWM si se cumplió el período
-            if elapsed_ms >= self.CONTROL_PERIOD_MS:
-                self._window_start_time = now
-                elapsed_ms = 0.0
-
-            # Tiempo ON correspondiente dentro de la ventana
-            #print(f"duty cycle: {self.duty_cycle}")
-            on_time_ms = self.CONTROL_PERIOD_MS * self.duty_cycle
-
-            # Conmutar SSR2 de Lámpara Central
-            if elapsed_ms < on_time_ms:
+                # L2 se mantiene activa para el inicio del mantenimiento
                 self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
                 self.win.lamp2_on = True
             else:
-                self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
-                self.win.lamp2_on = False
+                return
+
+        else:
+            # 4. FASE DE MANTENIMIENTO: Histéresis pura sin PWM ni parpadeo
+            low_threshold = self.target_temp - self.HYSTERESIS_LOW
+            high_threshold = self.target_temp + self.HYSTERESIS_HIGH
+
+            if filtered_temp <= low_threshold:
+                # Temperatura por debajo de la franja -> Encender L2 Fija
+                if not self.win.lamp2_on:
+                    self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+                    self.win.lamp2_on = True
+                    print(
+                        f"[TEMP] T_filt={filtered_temp:.1f}°C <= {low_threshold:.1f}°C. "
+                        f"Encendiendo Lámpara Central."
+                    )
+
+            elif filtered_temp >= high_threshold:
+                # Temperatura por encima de la franja -> Apagar L2 Fija
+                if self.win.lamp2_on:
+                    self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+                    self.win.lamp2_on = False
+                    print(
+                        f"[TEMP] T_filt={filtered_temp:.1f}°C >= {high_threshold:.1f}°C. "
+                        f"Apagando Lámpara Central."
+                    )
+
+            # Nota: Si filtered_temp está entre low_threshold y high_threshold,
+            # no se ejecuta ningún digital_set y la Lámpara 2 mantiene su estado anterior.
 
     # =============================================================================
-    #                          INTERLOCKS DE INTERFAZ
+    #                           INTERLOCKS DE INTERFAZ
     # =============================================================================
     def _update_ui_interlocks(self, running: bool):
         """Maneja la exclusión mutua entre el control automático y los botones manuales de lámparas."""
@@ -272,7 +279,6 @@ class TempController:
                 btn_l2.setEnabled(False)
             if entry_l13:
                 entry_l13.setEnabled(False)
-            # Automaticos tambien asi no se cambia el setpoint mientras ajusta
             if entry_temp:
                 entry_temp.setEnabled(False)
             if btn_temp_set:
@@ -281,7 +287,11 @@ class TempController:
                 btn_temp_stop.setEnabled(True)
         else:
             # Habilitar controles manuales si estamos en vacío
-            is_vacuum = (getattr(self.win.ui, "MenuPrincipal_btn_main_vacuum", None) and self.win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off")
+            is_vacuum = (
+                getattr(self.win.ui, "MenuPrincipal_btn_main_vacuum", None)
+                and self.win.ui.MenuPrincipal_btn_main_vacuum.text()
+                == "Main Vacuum Off"
+            )
 
             if btn_l13:
                 btn_l13.setEnabled(is_vacuum)

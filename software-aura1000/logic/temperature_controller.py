@@ -30,6 +30,7 @@ class TempController:
 
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
+        self.waiting_first_dip = False  # Bandera de amortiguación post-rampa
 
         # Listas para graficar temperatura en función del tiempo
         self._log_time = []  # timestamps en segundos
@@ -167,6 +168,7 @@ class TempController:
         print("[TEMP] Lazo de Temperatura DESACTIVADO.")
         self.auto_control_enabled = False
         self.in_preheat_ramp = False
+        self.waiting_first_dip = False
 
         if self.temp_timer.isActive():
             self.temp_timer.stop()
@@ -193,8 +195,8 @@ class TempController:
         if not self.auto_control_enabled:
             return
 
-        # 1. Lectura de temperatura actual
-        current_temp = self.hw.analog_read_temperature("CHAMBER_TEMP")
+        # 1. Lectura de temperatura actual, que se guarda en last_chamber_temp en la funcion de lectura de termocupla de analog_update
+        current_temp = getattr(self.win, "last_chamber_temp", None)
         if current_temp is None:
             return
 
@@ -223,6 +225,7 @@ class TempController:
                 self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
                 self.win.state_lamps13_pulsing = False
                 self.in_preheat_ramp = False
+                self.waiting_first_dip = True # Flag para no apagar lampara 2 apenas termina la rampa  
 
                 # L2 se mantiene activa para el inicio del mantenimiento
                 self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
@@ -231,28 +234,37 @@ class TempController:
                 return
 
         else:
-            # 4. FASE DE MANTENIMIENTO: Histéresis pura sin PWM ni parpadeo
+            # 4. FASE DE MANTENIMIENTO CON AMORTIGUACIÓN POST-RAMPA
             low_threshold = self.target_temp - self.HYSTERESIS_LOW
             high_threshold = self.target_temp + self.HYSTERESIS_HIGH
 
+            # Amortiguación post-rampa: L2 ya viene encendida de la rampa.
+            # Simplemente esperamos a que la inercia inicial disipe y la temp caiga a high_threshold.
+            if self.waiting_first_dip:
+                if filtered_temp <= high_threshold:
+                    print(
+                        f"[TEMP] Inercia de rampa disipada ({filtered_temp:.1f} °C). "
+                        f"Activando control por histéresis estándar."
+                    )
+                    self.waiting_first_dip = False
+                else:
+                    return  # Mantiene L2 encendida tal como venía, ignorando el corte por sobretemperatura inicial.
+
+            # ── LÓGICA DE HISTÉRESIS ESTÁNDAR ──
             if filtered_temp <= low_threshold:
-                # Temperatura por debajo de la franja -> Encender L2 Fija
                 if not self.win.lamp2_on:
                     self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
                     self.win.lamp2_on = True
                     print(
-                        f"[TEMP] T_filt={filtered_temp:.1f}°C <= {low_threshold:.1f}°C. "
-                        f"Encendiendo Lámpara Central."
+                        f"[TEMP] T_filt={filtered_temp:.1f}°C <= {low_threshold:.1f}°C. Encendiendo L2."
                     )
 
             elif filtered_temp >= high_threshold:
-                # Temperatura por encima de la franja -> Apagar L2 Fija
                 if self.win.lamp2_on:
                     self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
                     self.win.lamp2_on = False
                     print(
-                        f"[TEMP] T_filt={filtered_temp:.1f}°C >= {high_threshold:.1f}°C. "
-                        f"Apagando Lámpara Central."
+                        f"[TEMP] T_filt={filtered_temp:.1f}°C >= {high_threshold:.1f}°C. Apagando L2."
                     )
 
             # Nota: Si filtered_temp está entre low_threshold y high_threshold,

@@ -28,6 +28,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lamp2_on = False
         self.rf_on = False
 
+        # Variable donde se almacena la ultima medicion de temperatura para el control de la lampara 2
+        self.last_chamber_temp = None
+
         # Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera
         self.is_in_vacuum = False
 

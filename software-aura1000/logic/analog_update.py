@@ -78,16 +78,19 @@ def update_pressure_display(win) -> bool:
 # LECTURA DE TEMPERATURA DE OBLEA / CÁMARA
 # ===================================================================
 def update_temp_display(win):
-    """Lee la termocupla de temperatura de la cámara y actualiza el QLCDNumber."""
+    """Lee la termocupla de la cámara, actualiza el QLCDNumber y guarda la lectura centralizada."""
     try:
         temp_c = win.hw.analog_read_temperature("CHAMBER_TEMP")
 
         if temp_c is not None:
+            win.last_chamber_temp = temp_c  # Guardamos la lectura para el lazo
             win.ui.MenuPrincipal_chamber_temp.display(f"{temp_c:.1f}")
         else:
+            win.last_chamber_temp = None
             win.ui.MenuPrincipal_chamber_temp.display("---")
     except Exception as e:
         print(f"[ERROR] Error al leer la temperatura de la cámara: {e}")
+        win.last_chamber_temp = None
         win.ui.MenuPrincipal_chamber_temp.display("ERR")
 
 

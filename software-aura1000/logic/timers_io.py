@@ -58,7 +58,7 @@ class timersIOManager:
                     self.win.ui.MenuPrincipal_btn_vent_chamber.setText("Presión ATM alcanzada...")
                     print("ATM Detectado. Iniciando temporización extra de seguridad...")
                     import logic.maintenance_process as mp
-                    QtCore.QTimer.singleShot(4000, lambda: mp.finish_vent_sequence(self.win))
+                    QtCore.QTimer.singleShot(5000, lambda: mp.finish_vent_sequence(self.win))
 
             # 5.1 Monitoreo de fallas de hardware (Lámparas, Plasma, Magnetrón)
             faults.check_process_faults(self.win, self.hw)

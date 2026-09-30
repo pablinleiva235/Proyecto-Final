@@ -31,6 +31,10 @@ class TempController:
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
         self.waiting_first_dip = False  # Bandera de amortiguación post-rampa
+        self.waiting_assist_peak = False  # Bandera para ciclo post-asistencia
+        self._assist_peak_reached = False  # Indica que ya cruzamos el high threshold al dar el pulso de asistencia
+        self.ASSIST_DELTA = 10 # °C por debajo del setpoint para dar un pulso de lamparas 1 y 3 si la temperatura cae 
+        self.ASSIST_PULSE_TIME_MS = 800 # tiempo en ms de la duracion del pulso de asistencia de lamparas 1 y 3
 
         # Listas para graficar temperatura en función del tiempo
         self._log_time = []  # timestamps en segundos
@@ -176,6 +180,8 @@ class TempController:
         self.auto_control_enabled = False
         self.in_preheat_ramp = False
         self.waiting_first_dip = False
+        self.waiting_assist_peak = False
+        self._assist_peak_reached = False
 
         if self.temp_timer.isActive():
             self.temp_timer.stop()
@@ -222,7 +228,7 @@ class TempController:
 
         # 3. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
         if self.in_preheat_ramp:
-            preheat_threshold = self.target_temp * 1.01  # Corta al tocar el Setpoint (+1%)
+            preheat_threshold = self.target_temp * 1.05  # Corta al tocar el Setpoint (+1%)
             if filtered_temp >= preheat_threshold:
                 print(
                     f"[TEMP] Rampa completada ({filtered_temp:.1f} °C). Apagando Lámparas 1 y 3. "
@@ -241,32 +247,55 @@ class TempController:
                 return
 
         else:
-            # 4. FASE DE MANTENIMIENTO CON ASISTENCIA SIMÉTRICA L1/L3
+            # 4. FASE DE MANTENIMIENTO CON CONTROL DE INERCIA DE ASISTENCIA
             low_threshold = self.target_temp - self.HYSTERESIS_LOW
             high_threshold = self.target_temp + self.HYSTERESIS_HIGH
 
-            # Limite critico para re-encender L1 y L3 en pulso corto de auxilio
-            ASSIST_THRESHOLD = self.target_temp - 10.0  # Ej: 190 °C para setpoint de 200 °C
+            # ── A. AMORTIGUACIÓN POST-RAMPA INICIAL ──
+            if self.waiting_first_dip:
+                if filtered_temp <= high_threshold:
+                    print(f"[TEMP] Inercia de rampa disipada ({filtered_temp:.1f} °C). Histéresis activa.")
+                    self.waiting_first_dip = False
+                else:
+                    return
 
-            if filtered_temp <= ASSIST_THRESHOLD and not self.win.state_lamps13_pulsing:
-                print(f"[TEMP] Caída crítica ({filtered_temp:.1f} °C). Disparando pulso de asistencia L1+L3.")
-                # Activa el pulso de L1 y L3 por unos segundos (ej: 4 segundos)
+            # ── B. AMORTIGUACIÓN POST-PULSO DE ASISTENCIA ──
+            if self.waiting_assist_peak:
+                # Paso 1: Esperar a que la inercia del pulso empuje la lectura sobre high_threshold
+                if filtered_temp >= high_threshold:
+                    self._assist_peak_reached = True
+
+                # Paso 2: Solo si YA tocó la parte alta, esperamos a que vuelva a caer a high_threshold para liberar
+                if self._assist_peak_reached and filtered_temp <= high_threshold:
+                    print(f"[TEMP] Pico de asistencia absorbido ({filtered_temp:.1f} °C). Reanudando histéresis.")
+                    self.waiting_assist_peak = False
+                    self._assist_peak_reached = False
+                else: # Si no llego 
+                    return
+
+            # ── C. DISPARO DE PULSO DE ASISTENCIA SIMÉTRICO L1 + L3 ──
+            assist_threshold = self.target_temp - self.ASSIST_DELTA
+
+            if filtered_temp <= assist_threshold and not self.win.state_lamps13_pulsing:
+                print(f"[TEMP] Caída crítica ({filtered_temp:.1f} °C). Disparando pulso L1+L3.")
                 self.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
                 self.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
                 self.win.state_lamps13_pulsing = True
-                
-                # Timer de apagado automático del pulso
-                QtCore.QTimer.singleShot(800, self._stop_assist_pulse)
 
-            # Control normal de Lámpara Central (L2)
+                QtCore.QTimer.singleShot(self.ASSIST_PULSE_TIME_MS, self._stop_assist_pulse)
+
+            # ── D. CONTROL POR HISTÉRESIS ESTÁNDAR (LÁMPARA CENTRAL L2) ──
             if filtered_temp <= low_threshold:
                 if not self.win.lamp2_on:
                     self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
                     self.win.lamp2_on = True
+                    print(f"[TEMP] T_filt={filtered_temp:.1f}°C <= {low_threshold:.1f}°C. Encendiendo L2.")
+
             elif filtered_temp >= high_threshold:
                 if self.win.lamp2_on:
                     self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
                     self.win.lamp2_on = False
+                    print(f"[TEMP] T_filt={filtered_temp:.1f}°C <= {low_threshold:.1f}°C. Apagando L2.")
 
     def _stop_assist_pulse(self):
         """Apaga el pulso de auxilio de las lámparas externas."""
@@ -274,6 +303,8 @@ class TempController:
             self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
             self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
             self.win.state_lamps13_pulsing = False
+            self.waiting_assist_peak = True
+            self._assist_peak_reached = False
             print("[TEMP] Pulso de asistencia L1+L3 completado.")
 
             # Nota: Si filtered_temp está entre low_threshold y high_threshold,

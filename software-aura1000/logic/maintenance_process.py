@@ -508,7 +508,7 @@ def set_mfc1_flow(win):
         if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
             slm_equiv_n2 = slm_target / MFC1_CONVERSION_FACTOR # Conversion con el FACTOR del MFC de O2 
             voltage = (slm_equiv_n2 / MFC1_MAX_SLM) * MFC1_MAX_VOLT
-            win.hw.analog_write("MFC1_SETPOINT", voltage-0.14)
+            win.hw.analog_write("MFC1_SETPOINT", voltage)
             # Guardar target y limpiar historial para nuevo promedio
             win.mfc1_target_slm = slm_target
             win.mfc1_flow_history.clear()

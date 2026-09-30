@@ -32,7 +32,7 @@ class ThrottleController:
 
         # Parámetros de Control de Presión 
         self.target_pressure = 0.0  # Setpoint en Torr
-        self.deadband = 0.015  # Tolerancia (+/- Torr)
+        self.deadband = 0.035  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW
@@ -98,13 +98,7 @@ class ThrottleController:
             return
 
         # 1.  Crear y mostrar la ventana para dar aviso al usuario que espere hasta que la throttle llegue
-        self._rest_dialog = QProgressDialog(
-            "Espere... Moviendo Throttle a posición inicial",
-            None,
-            0,
-            0,
-            self.win,
-        )
+        self._rest_dialog = QProgressDialog("Espere... Moviendo Throttle a posición inicial", None, 0, 0, self.win,)
         self._rest_dialog.setWindowTitle("Posicionando Throttle")
         self._rest_dialog.setCancelButton(None)  # Quitar botón de cancelar
         self._rest_dialog.setRange(0, 0)  # Animación de espera activa
@@ -183,7 +177,7 @@ class ThrottleController:
         self.target_pressure = max(0.0, target_torr)
         self.auto_control_enabled = True
         self.set_enable(ACTIVE)  # Aseguramos driver habilitado
-        self._update_ui_interlocks(running=True)  
+        self._update_ui_interlocks(running=True)
 
         # Inicializar log
         self._log_time     = []
@@ -207,16 +201,15 @@ class ThrottleController:
             return
 
         error = self.target_pressure - current_pressure
-        abs_error = abs(error)
 
-        # 1. Registrar lectura para generar grafico
+        # Registrar lectura para generar grafico
         if self._log_start_time is not None:
             elapsed = time.time() - self._log_start_time
             self._log_time.append(elapsed)
             self._log_pressure.append(current_pressure)
             self._log_setpoint.append(self.target_pressure)
 
-        # 2. Zona muerta (Tolerancia alcanzada)
+        # 1. Zona muerta
         if abs(error) <= self.deadband:
             if self.step_timer.isActive():
                 self.step_timer.stop()
@@ -225,37 +218,23 @@ class ThrottleController:
                 print("[THROTTLE] Presión dentro de tolerancia. Motor pausado.")
             return
 
-        # 3. Cálculo de Error Relativo Normalizado respecto al Setpoint (%)
-        if self.target_pressure > 0:
-            rel_error_pct = (abs_error / self.target_pressure) * 100.0
-        else:
-            rel_error_pct = 100.0  # Para setpoint 0, cualquier error es 100%
-
-        # 4. Asignación de Velocidad y Modo de Paso (Perfil dinámico para sobrepico controlado)
+        # 2. Velocidad y modo según magnitud y signo del error (A 250 Hz)
         if error > 0:
-            # Subiendo hacia el Setpoint (Cerrando Válvula)
-            if rel_error_pct > 8.0:
-                # > 8% de error: Cierre rápido a Full Step para ganar inercia
-                speed_ms = self.SPEED_MS
+            if error > 0.3:
+                speed_ms = self.SPEED_MS       # 250 Hz - Full Step
                 use_half = False
-            elif rel_error_pct > 3.0:
-                # 3% a 8%: Velocidad media a Full Step (mantiene el empuje)
-                speed_ms = self.SPEED_MS * 2
-                use_half = False
+            elif error > 0.15:
+                speed_ms = self.SPEED_MS * 2   # 125 Hz - Full Step
+                use_half = True
+            elif error > 0.05:
+                speed_ms = self.SPEED_MS * 3   # 83 Hz - Half Step
+                use_half = True
             else:
-                # < 3%: Frenado y ajuste fino a Half Step cerca del setpoint
-                speed_ms = self.SPEED_MS * 4
+                speed_ms = self.SPEED_MS * 5   # 50 Hz - Half Step
                 use_half = True
         else:
-            # Sobrepaso / Presión por encima del Setpoint (Abrir Válvula)
-            if rel_error_pct > 5.0:
-                # Si el sobrepico supera el 5%, abrimos rápido en Full Step para corregir
-                speed_ms = self.SPEED_MS * 2
-                use_half = False
-            else:
-                # Retorno suave de Half Step para asentar sobre la línea roja
-                speed_ms = self.SPEED_MS * 3
-                use_half = True
+            speed_ms = self.SPEED_MS * 5       # 50 Hz - Half Step (más suave al abrir)
+            use_half = True
 
         # 3. Cambiar modo de paso si es necesario (con motor detenido momentáneamente)
         if use_half != self._is_half_step:
@@ -303,7 +282,7 @@ class ThrottleController:
                 QMessageBox.warning(
                     self.win,
                     "Límite Excedido",
-                    f"El setpoint ingresado ({target:.2f} Torr) supera el límite máximo de seguridad ({self.MAX_PRESSURE_LIMIT:.1f} Torr).",
+                    f"El setpoint ingresado ({target:.2f} Torr) supera el límite máximo de seguridad ({MAX_PRESSURE_LIMIT:.1f} Torr).",
                     QMessageBox.Ok
                 )
                 print(f"[THROTTLE] Setpoint ({target}) excede el límite máximo del sistema.")
@@ -641,3 +620,5 @@ class ThrottleController:
         else:
             lbl_open.setText("Abierta: —")
             lbl_open.setStyleSheet("")
+
+        

@@ -93,6 +93,13 @@ class TempController:
             linestyle="--",
         )
 
+        # Banda muerta
+        ax.axhline(self.target_temp + self.HYSTERESIS_HIGH,
+                color="orange", linewidth=0.8,
+                linestyle=":", label=f"Deadband (±{self.HYSTERESIS_HIGH} Torr)")
+        ax.axhline(self.target_temp - self.HYSTERESIS_LOW,
+                color="orange", linewidth=0.8, linestyle=":")
+
         ax.set_xlabel("Tiempo (s)")
         ax.set_ylabel("Temperatura (°C)")
         ax.set_title(f"Control de Temperatura (Histéresis) — Setpoint: {self.target_temp:.1f} °C")

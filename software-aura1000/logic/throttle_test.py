@@ -32,7 +32,7 @@ class ThrottleController:
 
         # Parámetros de Control de Presión 
         self.target_pressure = 0.0  # Setpoint en Torr
-        self.deadband = 0.035  # Tolerancia (+/- Torr)
+        self.deadband = 0.02  # Tolerancia (+/- Torr)
         self.auto_control_enabled = False
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW

@@ -14,6 +14,7 @@ MFC2_MAX_VOLT = 5
 MFC1_MAX_PROCESS_SLM = 6.5
 MFC2_MAX_PROCESS_SLM = 0.65
 
+MFC1_ZERO_OFFSET_SLM = 0.16  # Offset físico de flujo al abrir la válvula (SLPM de O2)
 MFC1_CONVERSION_FACTOR = 0.981 # Factor de conversion del MFC de O2 dado por el fabricante por haber sido calibrado con N2
 
 # =============================================================================
@@ -497,38 +498,55 @@ def toggle_mfc2_valve(win):
         btn_shutoff.setStyleSheet("")
         btn_set.setStyleSheet("")
         
+# Constante configurable al inicio del módulo
+MFC1_ZERO_OFFSET_SLM = 0.16  # Offset físico de flujo al abrir la válvula (SLPM de O2)
+
+
 def set_mfc1_flow(win):
-    """ Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 """
+    """Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 (compensando offset de cero)."""
     text_val = win.ui.MenuPrincipal_mfc1_setpoint.text().replace(',', '.')
     btn_set = win.ui.MenuPrincipal_btn_mfc1_set
     btn_plasma = win.ui.MenuPrincipal_btn_plasma
 
     try:
         slm_target = float(text_val)
-        if 1 <= slm_target <= MFC1_MAX_PROCESS_SLM:
-            slm_equiv_n2 = slm_target / MFC1_CONVERSION_FACTOR # Conversion con el FACTOR del MFC de O2 
+        if 0 <= slm_target <= MFC1_MAX_PROCESS_SLM:
+            # ── COMPENSACIÓN DE OFFSET ──
+            # Restamos el paso/fuga base del MFC antes de escalar a voltaje
+            slm_target_compensated = max(0.0, slm_target - MFC1_ZERO_OFFSET_SLM)
+
+            slm_equiv_n2 = (slm_target_compensated / MFC1_CONVERSION_FACTOR)  # Conversión con el FACTOR de O2
             voltage = (slm_equiv_n2 / MFC1_MAX_SLM) * MFC1_MAX_VOLT
+
+            # Escribir voltaje compensado en la DAQ
             win.hw.analog_write("MFC1_SETPOINT", voltage)
-            # Guardar target y limpiar historial para nuevo promedio
+
+            # Guardar el target nominal para la UI y limpiar historial
             win.mfc1_target_slm = slm_target
             win.mfc1_flow_history.clear()
-            print(f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM ({voltage:.2f} V)")
+
+            print(
+                f"[MFC1 O2] Setpoint cargado: {slm_target:.2f} SLM "
+                f"(Compensado: {slm_target_compensated:.2f} SLM -> {voltage:.3f} V)"
+            )
             btn_set.setStyleSheet("background-color: #4CAF50; color: white;")
+
             # ── HABILITACIÓN DE PLASMA TRAS SETEAR O2 ──
-            # Si la válvula de O2 ya se encuentra abierta, habilitar inmediatamente el botón de Plasma
             if is_mfc1_o2_active(win):
                 btn_plasma.setEnabled(True)
         else:
             btn_set.setStyleSheet("background-color: #f44336; color: white;")
             QMessageBox.warning(
-                win, "Rango Inválido",
-                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM."
+                win,
+                "Rango Inválido",
+                f"El caudal de O2 debe estar entre 1 y {MFC1_MAX_PROCESS_SLM} SLM.",
             )
     except ValueError:
         btn_set.setStyleSheet("background-color: #f44336; color: white;")
         QMessageBox.warning(
-            win, "Entrada Inválida",
-            "Por favor ingrese un número válido para el setpoint de O2."
+            win,
+            "Entrada Inválida",
+            "Por favor ingrese un número válido para el setpoint de O2.",
         )
 
 def set_mfc2_flow(win):

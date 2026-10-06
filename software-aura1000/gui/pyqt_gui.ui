@@ -1087,7 +1087,7 @@
          </font>
         </property>
         <property name="text">
-         <string>130 - 200</string>
+         <string>130 - 190</string>
         </property>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_celsius_lbl_2">

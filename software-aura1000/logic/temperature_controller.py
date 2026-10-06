@@ -19,25 +19,26 @@ class TempController:
 
         # Rangos permitidos de receta
         self.MIN_TEMP_SETPOINT = 130.0
-        self.MAX_TEMP_SETPOINT = 200.0
+        self.MAX_TEMP_SETPOINT = 190.0
 
         # Parámetros del Control por Histéresis (°C)
-        self.HYSTERESIS_LOW = 3.0   # Encender L2 si T <= target - 5.0 °C
-        self.HYSTERESIS_HIGH = 3.0  # Apagar L2 si T >= target + 5.0 °C
-
-        # Offset para anticipar el corte de la rampa debido a la alta inercia térmica (3 lámparas)
-        self.RAMP_CUTOFF_OFFSET = 8.0  # Corta las 3 lámparas a (target - 8.0 °C)
+        self.HYSTERESIS_LOW = 3.0   # Encender L2 si T <= target - 3.0 °C
+        self.HYSTERESIS_HIGH = 3.0  # Apagar L2 si T >= target + 3.0 °C
 
         # Filtro de media móvil para suavizar lectura de termocupla
         self._temp_buffer = []
-        self._TEMP_BUFFER_SIZE = 11  # Promedio de las últimas 5 lecturas (500ms)
+        self._TEMP_BUFFER_SIZE = 11  # Mediana de las últimas 11 lecturas 
 
         # Estado interno de la Rampa Inicial
         self.in_preheat_ramp = False
+        self.waiting_first_dip = False
+
+        # Umbral para cambio de estrategia de rango (Bajo: 130-160 °C, Alto: 160-190 °C)
+        self.HIGH_TEMP_CUTOFF = 160.0
 
         # Parámetros de Asistencia de Lámparas 1 y 3 para caída crítica
-        #self.ASSIST_DELTA = 10.0  # °C por debajo del setpoint para disparar auxilio
-        #self.ASSIST_PULSE_TIME_MS = 350  # Pulso corto (350 ms) para evitar sobrepicos bruscos
+        self.ASSIST_DELTA = 10.0  # °C por debajo del setpoint para disparar auxilio
+        self.ASSIST_PULSE_TIME_MS = 250  # Pulso corto (350 ms) para evitar sobrepicos bruscos
 
         # Listas para graficar temperatura en función del tiempo
         self._log_time = []      # timestamps en segundos
@@ -156,6 +157,10 @@ class TempController:
         self.in_preheat_ramp = True
         self._temp_buffer = []
 
+        # Capturar la temperatura inicial real de la cámara
+        initial_temp = getattr(self.win, "last_chamber_temp", 35.0)
+        self.start_temp = initial_temp if initial_temp is not None else 35.0
+
         print(f"[TEMP] Lazo por Histéresis ACTIVADO. Setpoint: {self.target_temp:.1f} °C")
 
         # 1. Rampa Inicial: Encendemos Lámparas 1, 2 y 3 juntas
@@ -182,6 +187,7 @@ class TempController:
         print("[TEMP] Lazo de Temperatura DESACTIVADO.")
         self.auto_control_enabled = False
         self.in_preheat_ramp = False
+        self.waiting_first_dip = False
 
         if self.temp_timer.isActive():
             self.temp_timer.stop()
@@ -204,62 +210,93 @@ class TempController:
     #                   LAZO CERRADO Y CONTROL POR HISTÉRESIS
     # =============================================================================
     def _update_temperature_loop(self):
-        """Monitorea la temperatura y conmuta la Lámpara Central (SSR2) según histéresis."""
         if not self.auto_control_enabled:
             return
 
-        # 1. Lectura de temperatura actual
         current_temp = getattr(self.win, "last_chamber_temp", None)
         if current_temp is None:
             return
 
-        # 2. Filtro de Mediana Móvil para eliminar picos esporádicos/glitches de ADC
+        # 1. Filtro de Mediana Móvil
         self._temp_buffer.append(current_temp)
-        if len(self._temp_buffer) > self._TEMP_BUFFER_SIZE:  # Sugerido: _TEMP_BUFFER_SIZE = 9 o 11 (número impar)
+        if len(self._temp_buffer) > self._TEMP_BUFFER_SIZE:
             self._temp_buffer.pop(0)
         filtered_temp = statistics.median(self._temp_buffer)
 
-        # ── REGISTRO DE DATOS PARA EL GRÁFICO ──
+        # Grafuco de temperatura
         if self._log_start_time is not None:
             elapsed = time.time() - self._log_start_time
             self._log_time.append(elapsed)
             self._log_temp.append(filtered_temp)
             self._log_setpoint.append(self.target_temp)
 
-        # 3. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
+        # 2. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
         if self.in_preheat_ramp:
-            preheat_threshold = self.target_temp - self.RAMP_CUTOFF_OFFSET
+            # A) Offset base según setpoint objetivo
+            base_offset = 5.0 + 0.15 * (self.target_temp - self.MIN_TEMP_SETPOINT)
+            # B) Compensación por precalentamiento de cámara
+            # Si arranca a más de 35 °C, agregamos offset extra (corta antes)
+            start_correction = max(0.0, 0.15 * (self.start_temp - 35.0))
+            ramp_offset = base_offset + start_correction
+            preheat_threshold = self.target_temp - ramp_offset
+
             if filtered_temp >= preheat_threshold:
-                print(
-                    f"[TEMP] Rampa completada ({filtered_temp:.1f} °C). Apagando TODAS las lámparas para absorber inercia. "
-                    f"Pasando a Mantenimiento por Histéresis."
-                )
-                # Apagamos las 3 lámparas para dejar subir por inercia
-                self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                #self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
-                self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-                
-                self.win.state_lamps13_pulsing = False
-                #self.win.lamp2_on = False
                 self.in_preheat_ramp = False
+
+                # RANGO BAJO (130.0 °C a 160.0 °C): Apagar las 3 lámparas para absorber inercia
+                if self.target_temp <= self.HIGH_TEMP_CUTOFF:
+                    print(
+                        f"[TEMP] Rampa completada ({filtered_temp:.1f} °C) [Rango Bajo]. "
+                        f"Apagando L1, L2 y L3 (Offset: {ramp_offset:.1f} °C)."
+                    )
+                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+
+                    self.win.state_lamps13_pulsing = False
+                    self.win.lamp2_on = False
+                    self.waiting_first_dip = False
+
+                # RANGO ALTO (160.0 °C a 190.0 °C): Apagar L1/L3 y retener L2 encendida hasta el dip
+                else:
+                    print(
+                        f"[TEMP] Rampa completada ({filtered_temp:.1f} °C) [Rango Alto]. "
+                        f"Apagando L1 y L3. Manteniendo L2 encendida (esperando caída a high_threshold)."
+                    )
+                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                    self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+
+                    self.win.state_lamps13_pulsing = False
+                    self.win.lamp2_on = True
+                    self.waiting_first_dip = True  # Bloquea el apague inmediato por histéresis
+
             return
 
-        # 4. FASE DE MANTENIMIENTO: Histéresis + Asistencia L1/L3
+        # 3. FASE DE MANTENIMIENTO
         low_threshold = self.target_temp - self.HYSTERESIS_LOW
         high_threshold = self.target_temp + self.HYSTERESIS_HIGH
 
-        # ── A. PULSO DE ASISTENCIA SIMÉTRICO L1 + L3 (Caída crítica) ──
-        #assist_threshold = self.target_temp - self.ASSIST_DELTA
+        # ── A. AMORTIGUACIÓN POST-RAMPA PARA RANGO ALTO ──
+        # Mantiene L2 encendida en la cresta del sobrepico hasta que T cae por debajo de high_threshold
+        if self.waiting_first_dip:
+            if filtered_temp <= high_threshold:
+                print(f"[TEMP] Caída post-rampa detectada ({filtered_temp:.1f} °C <= {high_threshold:.1f} °C). Histéresis liberada.")
+                self.waiting_first_dip = False
+            else:
+                return  # Retiene L2 encendida omitiendo la evaluación de apagado
 
-        '''if (filtered_temp <= assist_threshold and not self.win.state_lamps13_pulsing):
-            print(f"[TEMP] Caída crítica ({filtered_temp:.1f} °C). Disparando pulso de asistencia L1+L3.")
+        # ── B. PULSO DE ASISTENCIA L1+L3 (SOLO PARA RANGO ALTO >= 160.0 °C) ──
+        assist_threshold = self.target_temp - self.ASSIST_DELTA  # ej. target - 8.0 °C
+
+        if (self.target_temp >= self.HIGH_TEMP_CUTOFF and filtered_temp <= assist_threshold and not self.win.state_lamps13_pulsing):
+            print(f"[TEMP] Caída crítica en alta temperatura ({filtered_temp:.1f} °C). Disparando pulso L1+L3.")
             self.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
             self.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
             self.win.state_lamps13_pulsing = True
+            QtCore.QTimer.singleShot(250, self._stop_assist_pulse)
 
-            QtCore.QTimer.singleShot(self.ASSIST_PULSE_TIME_MS, self._stop_assist_pulse)'''
-
-        # ── B. CONTROL POR HISTÉRESIS ESTÁNDAR (LÁMPARA CENTRAL L2) ──
+        # ── C. CONTROL POR HISTÉRESIS ESTÁNDAR (LÁMPARA CENTRAL L2) ──
         if filtered_temp <= low_threshold:
             if not self.win.lamp2_on:
                 self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
@@ -272,13 +309,13 @@ class TempController:
                 self.win.lamp2_on = False
                 print(f"[TEMP] T_filt={filtered_temp:.1f}°C >= {high_threshold:.1f}°C. Apagando L2.")
 
-    '''def _stop_assist_pulse(self):
+    def _stop_assist_pulse(self):
         """Apaga el pulso de auxilio de las lámparas externas."""
         if self.auto_control_enabled:
             self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
             self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
             self.win.state_lamps13_pulsing = False
-            print("[TEMP] Pulso de asistencia L1+L3 completado.")'''
+            print("[TEMP] Pulso de asistencia L1+L3 completado.")
 
     # =============================================================================
     #                           INTERLOCKS DE INTERFAZ

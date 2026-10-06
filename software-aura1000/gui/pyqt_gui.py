@@ -737,7 +737,7 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_lamps_auto_lbl.setText(_translate("MainWindow", "Automatico"))
         self.MenuPrincipal_btn_temp_set.setText(_translate("MainWindow", "Ajustar Temperatura"))
         self.MenuPrincipal_btn_temp_stop.setText(_translate("MainWindow", "Detener"))
-        self.MenuPrincipal_temp_setpoint.setText(_translate("MainWindow", "130 - 200"))
+        self.MenuPrincipal_temp_setpoint.setText(_translate("MainWindow", "130 - 190"))
         self.MenuPrincipal_celsius_lbl_2.setText(_translate("MainWindow", "°C"))
         self.ThrottleMenu_label.setText(_translate("MainWindow", "Throttle Menu"))
         self.ThrottleMenu_btn_back.setText(_translate("MainWindow", "Menu Principal"))

@@ -1,5 +1,6 @@
 # logic/throttle_controller.py
 import time
+import statistics
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox, QProgressDialog
 from config.digital_signals import ACTIVE, INACTIVE
@@ -37,6 +38,10 @@ class ThrottleController:
         self.THROTTLE_STEP_FREQUENCY = 250 # Pulsos por segundo
         self.SPEED_MS = int(1000 / self.THROTTLE_STEP_FREQUENCY / 2) # x1000 para ms y divido por 2 porque cada SPEED_MS togglea de HIGH a LOW
         self.MAX_PRESSURE_LIMIT = 3 # Torr
+
+        # Buffer de 7 muestras para mediana movil para filtrar ruidos de la lectura
+        self._pressure_buffer = []
+        self._PRESSURE_BUFFER_SIZE = 7  # Ventana de 7 muestras (~700 ms a 100ms interval)
 
         # Listas para graficar ajuste de presion en funcion del tiempo
         self._log_time     = []   # timestamps en segundos
@@ -200,7 +205,14 @@ class ThrottleController:
         if not self.auto_control_enabled:
             return
 
-        error = self.target_pressure - current_pressure
+        # 0. Filtro de Mediana Móvil para eliminar glitches de lectura del Baratron
+        if not hasattr(self, "_pressure_buffer"):
+            self._pressure_buffer = []
+        self._pressure_buffer.append(current_pressure)
+        if len(self._pressure_buffer) > self._PRESSURE_BUFFER_SIZE:
+            self._pressure_buffer.pop(0)
+        filtered_pressure = statistics.median(self._pressure_buffer)
+        error = self.target_pressure - filtered_pressure
 
         # Registrar lectura para generar grafico
         if self._log_start_time is not None:

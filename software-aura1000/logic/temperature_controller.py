@@ -232,10 +232,12 @@ class TempController:
 
         # 2. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
         if self.in_preheat_ramp:
-            # A) Offset base según setpoint objetivo
-            base_offset = 5.0 + 0.15 * (self.target_temp - self.MIN_TEMP_SETPOINT)
-            # B) Compensación por precalentamiento de cámara
-            # Si arranca a más de 35 °C, agregamos offset extra (corta antes)
+            # A) Offset base con margen extra para absorber la energía del plasma
+            # Para setpoints bajos (130-150 °C), el plasma aporta entre 20°C y 30°C extra
+            if self.target_temp <= self.HIGH_TEMP_CUTOFF:
+                base_offset = 12.0 + 0.10 * (self.target_temp - self.MIN_TEMP_SETPOINT)
+            else:
+                base_offset = 5.0 + 0.15 * (self.target_temp - self.HIGH_TEMP_CUTOFF)
             start_correction = max(0.0, 0.15 * (self.start_temp - 35.0))
             ramp_offset = base_offset + start_correction
             preheat_threshold = self.target_temp - ramp_offset

@@ -232,12 +232,12 @@ class TempController:
 
         # 2. FASE DE RAMPA INICIAL (3 Lámparas al 100%)
         if self.in_preheat_ramp:
-            # A) Offset base con margen extra para absorber la energía del plasma
-            # Para setpoints bajos (130-150 °C), el plasma aporta entre 20°C y 30°C extra
+            # A) Offset base según setpoint objetivo
             if self.target_temp <= self.HIGH_TEMP_CUTOFF:
-                base_offset = 12.0 + 0.10 * (self.target_temp - self.MIN_TEMP_SETPOINT)
+                base_offset = 5.0 + 0.15 * (self.target_temp - self.MIN_TEMP_SETPOINT)
             else:
                 base_offset = 5.0 + 0.15 * (self.target_temp - self.HIGH_TEMP_CUTOFF)
+
             start_correction = max(0.0, 0.15 * (self.start_temp - 35.0))
             ramp_offset = base_offset + start_correction
             preheat_threshold = self.target_temp - ramp_offset
@@ -245,33 +245,17 @@ class TempController:
             if filtered_temp >= preheat_threshold:
                 self.in_preheat_ramp = False
 
-                # RANGO BAJO (130.0 °C a 160.0 °C): Apagar las 3 lámparas para absorber inercia
-                if self.target_temp <= self.HIGH_TEMP_CUTOFF:
-                    print(
-                        f"[TEMP] Rampa completada ({filtered_temp:.1f} °C) [Rango Bajo]. "
-                        f"Apagando L1, L2 y L3 (Offset: {ramp_offset:.1f} °C)."
-                    )
-                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                    self.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
-                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                print(
+                    f"[TEMP] Rampa completada ({filtered_temp:.1f} °C). "
+                    f"Apagando L1 y L3. Manteniendo L2 encendida hasta caer a high_threshold (Offset: {ramp_offset:.1f} °C)."
+                )
+                self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+                self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+                self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
 
-                    self.win.state_lamps13_pulsing = False
-                    self.win.lamp2_on = False
-                    self.waiting_first_dip = False
-
-                # RANGO ALTO (160.0 °C a 190.0 °C): Apagar L1/L3 y retener L2 encendida hasta el dip
-                else:
-                    print(
-                        f"[TEMP] Rampa completada ({filtered_temp:.1f} °C) [Rango Alto]. "
-                        f"Apagando L1 y L3. Manteniendo L2 encendida (esperando caída a high_threshold)."
-                    )
-                    self.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
-                    self.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
-                    self.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
-
-                    self.win.state_lamps13_pulsing = False
-                    self.win.lamp2_on = True
-                    self.waiting_first_dip = True  # Bloquea el apague inmediato por histéresis
+                self.win.state_lamps13_pulsing = False
+                self.win.lamp2_on = True
+                self.waiting_first_dip = True  # Retiene L2 encendida hasta que T <= target + HYSTERESIS_HIGH
 
             return
 

@@ -10,31 +10,32 @@ Este es el arbol de proyecto con las carpetas y archivos críticos del sistema:
 
 ```text
 SOFTWARE-AURA1000/
-├── config/                  # Archivos de configuración de hardware y constantes
-│   ├── analog_signals.py       # Mapeo de canales y rangos del DAC/ADC y termocupla (USB-2527)
-│   └── digital_signals.py      # Mapeo de señales digitales (USBDIO96H)
-├── docs/                    # Archivos fuente de esta documentación (Markdown)
-├── drivers/                 # Capa de abstracción de hardware (Bajo nivel) usando APIs de la UL 'cbw32.dll'
-│   ├── analog_driver.py        # Traducción de APIs de USB-2527 a Python mediante ctypes 
-│   └── dio_driver.py           # Traducción de APIs de USBDIO96H a Python mediante ctypes
-├── gui/                     # Archivos de la interfaz gráfica de usuario (Vista pura)
-│   ├── main_window.py          # Coordinador de la GUI, eventos de cierre y máquina de estados principal
-│   ├── pyqt_gui.py             # Código Python auto-generado por pyuic5
-│   └── pyqt_gui.ui             # Archivo de diseño original de Qt Designer
-├── logic/                   # Capa de lógica intermedia y procesos secuenciales
-│   ├── pre_encendido.py        # Secuencia de arranque del equipo (barra de progreso y estados iniciales)
-│   ├── maintenance_process.py  # Menu para pruebas de proceso de forma modular secuencial
-│   ├── throttle_test.py        # Control de valvula throttle de forma manual y automatica
-│   ├── timers_io.py            # Administrador central de Timers y lazo de lectura de entradas (100ms)
-│   ├── analog_update.py        # Actualizacion en GUI de lecturas analogicas
-│   └── process_faults.py       # Chequeo de fallas de proceso (MFCs, lamparas y plasma)
-├── services/                # Servicios de hardware de alto nivel
-│   ├── hardware.py             # Clase principal de abstracción y control integrado de placas
-│   └── system_state.py         # Definición de la enumeración de estados del equipo (Enum)
-├── .gitignore               # Archivos excluidos del control de versiones (ej: site/, __pycache__/)
-├── main.py                  # Punto de entrada de la aplicación (Instanciación y arranque)
-├── mkdocs.yml               # Archivo de configuración principal de MkDocs
-└── requirements.txt         # Dependencias del proyecto (PyQt5, etc.)
+├── config/                     # Archivos de configuración de hardware y constantes
+│   ├── analog_signals.py           # Mapeo de canales y rangos del DAC/ADC y termocupla (USB-2527)
+│   └── digital_signals.py          # Mapeo de señales digitales (USBDIO96H)
+├── docs/                       # Archivos fuente de esta documentación (Markdown)
+├── drivers/                    # Capa de abstracción de hardware (Bajo nivel) usando APIs de la UL 'cbw32.dll'
+│   ├── analog_driver.py            # Traducción de APIs de USB-2527 a Python mediante ctypes 
+│   └── dio_driver.py               # Traducción de APIs de USBDIO96H a Python mediante ctypes
+├── gui/                        # Archivos de la interfaz gráfica de usuario (Vista pura)
+│   ├── main_window.py              # Coordinador de la GUI, eventos de cierre y máquina de estados principal
+│   ├── pyqt_gui.py                 # Código Python auto-generado por pyuic5
+│   └── pyqt_gui.ui                 # Archivo de diseño original de Qt Designer
+├── logic/                      # Capa de lógica intermedia y procesos secuenciales
+│   ├── pre_encendido.py            # Secuencia de arranque del equipo (barra de progreso y estados iniciales)
+│   ├── maintenance_process.py      # Menu para pruebas de proceso de forma modular secuencial
+│   ├── throttle_test.py            # Control de valvula throttle de forma manual y automatica
+│   ├── temperature_controller.py   # Control de valvula throttle de forma manual y automatica
+│   ├── timers_io.py                # Administrador central de Timers y lazo de lectura de entradas (100ms)
+│   ├── analog_update.py            # Actualizacion en GUI de lecturas analogicas
+│   └── process_faults.py           # Chequeo de fallas de proceso (MFCs, lamparas y plasma)
+├── services/                   # Servicios de hardware de alto nivel
+│   ├── hardware.py                 # Clase principal de abstracción y control integrado de placas
+│   └── system_state.py             # Definición de la enumeración de estados del equipo (Enum)
+├── .gitignore                  # Archivos excluidos del control de versiones (ej: site/, __pycache__/)
+├── main.py                     # Punto de entrada de la aplicación (Instanciación y arranque)
+├── mkdocs.yml                  # Archivo de configuración principal de MkDocs
+└── requirements.txt            # Dependencias del proyecto (PyQt5, etc.)
 ```
 
 ---
@@ -58,7 +59,8 @@ Para entender el flujo de trabajo del software, cada directorio cumple un rol es
     * El modulo **`timers_io.py`** que es el administrador central de tiempos , encargado de orquestar todos los timers
     * El modulo **`pre_encendido.py`** encargado de gestionar el encendido del equipo antes de pasar al menu principal
     * El modulo **`maintenance_process.py`**, el cual expone rutinas y código específico para probar de forma secuencial los distintos módulos y actuadores utilizados durante un proceso. Estos módulos interactúan en paralelo tanto con la capa de hardware como con los elementos visuales de la interfaz gráfica. 
-    * El modulo **`throttle_test.py`** con la clase `ThrottleController` ubicada en con metodos para controlar mediante el Menu Throttle dicha valvula para el control de la presion. 
+    * El modulo **`throttle_test.py`** con la clase `ThrottleController` que posee los metodos para controlar mediante el Menu Throttle dicha valvula para el control de la presion.
+    * El modulo **`temperature_controller.py`** con la clase `TempController` que posee los metodos para controlar la temperatura de la camara durante el proceso a traves de las 3 lamparas.  
     * El modulo **`analog_update`** que se encarga de actualizar en la pantalla las lecturas analogicas
     * El modulo **`process_faults.py`** que se encarga de comprobar si ocurrio alguna falla de lamparas o plasma durante un proceso y abortar de forma segura
 

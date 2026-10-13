@@ -1024,6 +1024,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clase con metodos para control de valvula throttle (throttle_test.py)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="throttle_test.html" class="md-nav__link md-nav__link--active">
         
   
@@ -1040,6 +1058,91 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#estructura-de-la-clase-throttlecontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura de la Clase ThrottleController
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secuencias-de-calibracion-y-posicionamiento-homing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secuencias de Calibración y Posicionamiento (Homing)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-automatico-de-presion-en-lazo-cerrado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control Automático de Presión en Lazo Cerrado
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-de-hardware-y-control-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos de Hardware y Control Manual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manejo-de-interlocks-y-handlers-de-la-interfaz-visual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manejo de Interlocks y Handlers de la Interfaz Visual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoreo-de-sensores-de-limite-y-antirrebote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoreo de Sensores de Límite y Antirrebote
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1300,6 +1403,80 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#estructura-de-la-clase-throttlecontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura de la Clase ThrottleController
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secuencias-de-calibracion-y-posicionamiento-homing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secuencias de Calibración y Posicionamiento (Homing)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-automatico-de-presion-en-lazo-cerrado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Control Automático de Presión en Lazo Cerrado
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metodos-de-hardware-y-control-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Métodos de Hardware y Control Manual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manejo-de-interlocks-y-handlers-de-la-interfaz-visual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manejo de Interlocks y Handlers de la Interfaz Visual
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoreo-de-sensores-de-limite-y-antirrebote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoreo de Sensores de Límite y Antirrebote
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1318,6 +1495,595 @@
 <h1 id="throttle_testpy"><code>throttle_test.py</code></h1>
 <p>El módulo <code>throttle_test.py</code> tiene la clase ThrottleController con metodos integrados en el Menu Throttle de la UI para poder controlar la misma de forma manual, girando el motor paso a paso continuamente, en full o half step, en ambas direcciones, moverlo de a cantidad de pasos deseados y ajustar el setpoint de presion mediante el sistema de control</p>
 <hr />
+<h2 id="estructura-de-la-clase-throttlecontroller"><span style="color: #4CAF50;">Estructura de la Clase <code>ThrottleController</code></span></h2>
+<details class="note">
+<summary>Constructor e Inicialización: <code>__init__(self, main_window)</code></summary>
+<p>Almacena las referencias de la interfaz de usuario y del hardware. Vincula la generación de pulsos del motor directamente al temporizador <code>stepper_pulse</code> registrado en el gestor central de tiempo (<code>timer_manager</code>). Inicializa los parámetros de movimiento por pasos (Full/Half step), contadores de posición, frecuencias de trabajo <code>250HZ</code>, constantes de zona muerta <code>+-0.015Torr</code>, buffers de filtrado por mediana móvil para el sensor Baratron, e impone el enclavamiento inicial de seguridad para los controles de presión.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main_window</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">win</span> <span class="o">=</span> <span class="n">main_window</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span> <span class="o">=</span> <span class="n">main_window</span><span class="o">.</span><span class="n">hw</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="n">main_window</span><span class="o">.</span><span class="n">ui</span>
+
+    <span class="c1"># Apuntamos directamente al timer en el manager central</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span> <span class="o">=</span> <span class="n">main_window</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">timers</span><span class="p">[</span><span class="s2">&quot;stepper_pulse&quot;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">=</span> <span class="n">INACTIVE</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="o">=</span> <span class="kc">False</span>      <span class="c1"># True = Cierra, False = Abre</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_half_step</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># False = Full step, True = Half step</span>
+
+    <span class="c1"># Variables para antirrebote en switches de límites</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span>   <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span>   <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1"># Contador de posición absoluta y control de ráfaga de pasos</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">=</span> <span class="s2">&quot;CONTINUOUS&quot;</span>
+
+    <span class="c1"># Parámetros de Control de Presión </span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">target_pressure</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">deadband</span> <span class="o">=</span> <span class="mf">0.015</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_STEP_FREQUENCY</span> <span class="o">=</span> <span class="mi">250</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1000</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_STEP_FREQUENCY</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MAX_PRESSURE_LIMIT</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Torr</span>
+
+    <span class="c1"># Buffer para filtro de mediana móvil (Baratron)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_PRESSURE_BUFFER_SIZE</span> <span class="o">=</span> <span class="mi">7</span>
+
+    <span class="c1"># Listas de registro de datos para graficación</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_time</span>     <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_pressure</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_setpoint</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_start_time</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Posición de reposo para evitar zona muerta</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_position_reached</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span> <span class="o">=</span> <span class="mi">400</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_connect_ui_signals</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_update_step_display</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Conexión de Señales e Interfaz: <code>_connect_ui_signals(self)</code></summary>
+<p>Enlaza los eventos de clic de los botones del panel de control de la Throttle en la interfaz de usuario con sus respectivos métodos manejadores en la lógica de control. Aplica el bloqueo inicial de seguridad desactivando los controles de ajuste automático de presión al arrancar el módulo.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_connect_ui_signals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conecta los botones del menú de la Throttle a sus manejadores internos.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_enable</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_enable_toggled</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_step</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_step_toggled</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_dir</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_dir_toggled</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_run</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_run_toggled</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_step_set</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_step_set_clicked</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_set</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">on_start_auto_control</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_stop</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stop_auto_control</span><span class="p">)</span>
+
+    <span class="c1"># Bloqueo de seguridad inicial al arrancar</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="secuencias-de-calibracion-y-posicionamiento-homing"><span style="color: #4CAF50;">Secuencias de Calibración y Posicionamiento (<em>Homing</em>)</span></h2>
+<details class="note">
+<summary>Búsqueda del Límite de Apertura (<em>Homing</em> de Inicio): <code>home_on_startup(self)</code></summary>
+<p>Establece la dirección del motor hacia apertura plena, activa la corriente en las bobinas del driver e inicia la marcha continua para buscar el switch de fin de carrera físico. Esta rutina se ejecuta al arrancar el software para referenciar la escala y calibrar el punto cero de conteo de pasos.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">home_on_startup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Busca el límite físico de apertura al arrancar el software para calibrar el paso 0.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[THROTTLE] Iniciando secuencia de Homing...&quot;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>  <span class="c1"># Apertura</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_enable</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>       <span class="c1"># Mantiene corriente en las bobinas</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>  <span class="c1"># Full step para homing</span>
+
+    <span class="n">btn_enable</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_btn_toggle_enable&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btn_enable</span><span class="p">:</span>
+        <span class="n">btn_enable</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Deshabilitar Driver&quot;</span><span class="p">)</span>
+        <span class="n">btn_enable</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Posicionamiento en Zona de Reposo: <code>go_to_rest_position(self)</code></summary>
+<p>Mueve la válvula a una posición prestablecida de reposo <code>400 pasos</code> desde la apertura total. Su objetivo es saltar la zona muerta mecánica previa a la restricción efectiva de flujo. Mientras se realiza el desplazamiento, despliega un cuadro de diálogo modal e ineludible (<code>QProgressDialog</code>) para notificar al usuario.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">go_to_rest_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mueve la válvula a la posición de reposo para superar zona muerta.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[THROTTLE] Ya en posición de reposo (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span><span class="si">}</span><span class="s2"> pasos). Sin movimiento.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span> <span class="o">=</span> <span class="n">QProgressDialog</span><span class="p">(</span><span class="s2">&quot;Espere... Moviendo Throttle a posición inicial&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Posicionando Throttle&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">setCancelButton</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">setRange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">setMinimumDuration</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span><span class="p">:</span>
+        <span class="n">steps_needed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>    <span class="c1"># Cerrar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>  <span class="c1"># Full step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">steps_needed</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">steps_needed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">THROTTLE_REST_POSITION</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>  <span class="c1"># Abrir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>  <span class="c1"># Full step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">steps_needed</span><span class="p">))</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="control-automatico-de-presion-en-lazo-cerrado"><span style="color: #4CAF50;">Control Automático de Presión en Lazo Cerrado</span></h2>
+<details class="note">
+<summary>Activación y Parada del Control Automático: <code>start_auto_control</code> y <code>stop_auto_control</code></summary>
+<ul>
+<li><strong><code>start_auto_control(self, target_torr)</code></strong>: Asigna la consigna de presión deseada, habilita la bandera de lazo cerrado, asegura la alimentación del driver, aplica los enclavamientos de la UI e inicia el logueo de datos temporales.</li>
+<li><strong><code>stop_auto_control(self)</code></strong>: Desactiva la regulación automática, detiene el movimiento del motor, envía la válvula a su posición de reposo y genera automáticamente la gráfica de respuesta temporal en la carpeta <code>logic/logs</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">start_auto_control</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_torr</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Activa la regulación automática con el setpoint ingresado.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">target_pressure</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">target_torr</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">set_enable</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_update_ui_interlocks</span><span class="p">(</span><span class="n">running</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_time</span>     <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_pressure</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_setpoint</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_log_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[THROTTLE] Control de presión ACTIVADO. Target: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_pressure</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> Torr&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">)</span>  
+
+<span class="k">def</span><span class="w"> </span><span class="nf">stop_auto_control</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Desactiva la regulación automática y detiene el motor.&quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[THROTTLE] Control de presión DESACTIVADO manualmente.&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">go_to_rest_position</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_generate_pressure_plot</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Lazo de Control y Modulación Dinámica: <code>update_pressure_loop(self, current_pressure)</code></summary>
+<p>Ejecuta el algoritmo de control adaptativo de presión en la cámara de vacío:</p>
+<ul>
+<li><strong>Filtrado de Lectura</strong>: Aplica un filtro de mediana móvil con un búfer de 7 muestras para erradicar el ruido o picos en la señal analógica del sensor Baratron.</li>
+<li><strong>Evaluación de Banda Muerta</strong>: Si el error error = self.target_pressure - filtered_pressure se encuentra dentro de la tolerancia de +-0.015 Torr, apaga temporalmente los pulsos del motor para evitar oscilaciones (<em>hunting</em>).</li>
+<li><strong>Perfilado Adaptativo de Velocidad</strong>: Escala de forma proporcional la frecuencia de paso y el tipo de resolución (Full Step / Half Step) según la magnitud del error, permitiendo aproximaciones rápidas a grandes desviaciones y ajustes de alta precisión (hasta 50 Hz en Half Step) al aproximarse al punto de consigna.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_pressure_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_pressure</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c1"># 0. Filtro de Mediana Móvil</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_pressure_buffer&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_pressure</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PRESSURE_BUFFER_SIZE</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">filtered_pressure</span> <span class="o">=</span> <span class="n">statistics</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pressure_buffer</span><span class="p">)</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_pressure</span> <span class="o">-</span> <span class="n">filtered_pressure</span>
+
+    <span class="c1"># Registrar lectura para generar gráfico</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_start_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_start_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elapsed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_pressure</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_pressure</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_setpoint</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_pressure</span><span class="p">)</span>
+
+    <span class="c1"># 1. Zona muerta</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deadband</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">isActive</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">=</span> <span class="n">INACTIVE</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_STEP&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[THROTTLE] Presión dentro de tolerancia. Motor pausado.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># 2. Velocidad y modo según magnitud y signo del error</span>
+    <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">error</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>
+            <span class="n">speed_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span>       <span class="c1"># 250 Hz - Full Step</span>
+            <span class="n">use_half</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">error</span> <span class="o">&gt;</span> <span class="mf">0.15</span><span class="p">:</span>
+            <span class="n">speed_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span> <span class="o">*</span> <span class="mi">2</span>   <span class="c1"># 125 Hz - Full Step</span>
+            <span class="n">use_half</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">error</span> <span class="o">&gt;</span> <span class="mf">0.05</span><span class="p">:</span>
+            <span class="n">speed_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span> <span class="o">*</span> <span class="mi">3</span>   <span class="c1"># 83 Hz - Half Step</span>
+            <span class="n">use_half</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">speed_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span> <span class="o">*</span> <span class="mi">5</span>   <span class="c1"># 50 Hz - Half Step</span>
+            <span class="n">use_half</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">speed_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span> <span class="o">*</span> <span class="mi">5</span>       <span class="c1"># 50 Hz - Half Step (Apertura suave)</span>
+        <span class="n">use_half</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># 3. Transición de resolución de paso</span>
+    <span class="k">if</span> <span class="n">use_half</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_half_step</span><span class="p">:</span>
+        <span class="n">was_active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">isActive</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">was_active</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_STEP&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">use_half</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">was_active</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">speed_ms</span><span class="p">)</span>
+
+    <span class="c1"># 4. Asignación de sentido de giro</span>
+    <span class="n">should_close</span> <span class="o">=</span> <span class="n">error</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="o">!=</span> <span class="n">should_close</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">should_close</span><span class="p">)</span>
+
+    <span class="c1"># 5. Modulación del temporizador</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">isActive</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="n">speed_ms</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">interval</span><span class="p">()</span> <span class="o">!=</span> <span class="n">speed_ms</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">setInterval</span><span class="p">(</span><span class="n">speed_ms</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Validación e Inicio de Lazo Automático: <code>on_start_auto_control(self)</code></summary>
+<p>Manejador invocado al presionar el botón de consigna de presión en la interfaz. Compara la consigna deseada con la presión base actual del sistema (medida en tiempo real) e impone dos enclavamientos de seguridad: prohíbe <em>setpoints</em> inalcanzables (menores a la presión base en alto vacío) y bloquea valores superiores al límite máximo de presion de trabajo de 3.0 Torr.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_start_auto_control</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handler del botón Ajustar Presión (ThrottleMenu_pressure_set).&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">val_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_entry</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_text</span><span class="p">)</span>
+
+        <span class="n">current_p</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">analog_read</span><span class="p">(</span><span class="s2">&quot;BARATRON&quot;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">target</span> <span class="o">&lt;</span> <span class="n">current_p</span><span class="p">:</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Setpoint Inalcanzable&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;El setpoint ingresado (</span><span class="si">{</span><span class="n">target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Torr) es menor a la presión base actual (</span><span class="si">{</span><span class="n">current_p</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Torr).</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;La Throttle Valve solo puede aumentar la presión restringiendo el flujo. &quot;</span>
+                <span class="s2">&quot;Elija un setpoint mayor a la presión actual o reduzca el caudal de los MFC.&quot;</span><span class="p">,</span>
+                <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">target</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_PRESSURE_LIMIT</span><span class="p">:</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Límite Excedido&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;El setpoint ingresado (</span><span class="si">{</span><span class="n">target</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Torr) supera el límite máximo de seguridad (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">MAX_PRESSURE_LIMIT</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Torr).&quot;</span><span class="p">,</span>
+                <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_auto_control</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+            <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Ingrese un valor numérico válido para el setpoint de presión.&quot;</span><span class="p">,</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+        <span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="metodos-de-hardware-y-control-manual"><span style="color: #4CAF50;">Métodos de Hardware y Control Manual</span></h2>
+<details class="note">
+<summary>Control Digital de Señales de Salida: <code>set_enable</code>, <code>set_half_step</code> y <code>set_direction</code></summary>
+<p>Métodos de abstracción de bajo nivel encargados de enviar las órdenes digitales correspondientes a las líneas físicas del driver del motor paso a paso (<code>STEPPER_OUTPUT_ENABLE</code>, <code>STEPPER_HALF_STEP</code> y <code>STEPPER_DIR</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_enable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_OUTPUT_ENABLE&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_half_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_half</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_half_step</span> <span class="o">=</span> <span class="n">use_half</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_HALF_STEP&quot;</span><span class="p">,</span> <span class="n">use_half</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">set_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">close_direction</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="o">=</span> <span class="n">close_direction</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_DIR&quot;</span><span class="p">,</span> <span class="n">close_direction</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Gestión de Movimiento del Temporizador: <code>start_movement</code> y <code>stop_movement</code></summary>
+<ul>
+<li><strong><code>start_movement(self, speed_ms, steps=0)</code></strong>: Inicia el temporizador <code>stepper_pulse</code>. Si se especifica <code>steps &gt; 0</code>, configura el modo ráfaga (<code>BURST</code>), deteniendo el movimiento al alcanzar el conteo. Si <code>steps == 0</code>, opera en modo continuo (<code>CONTINUOUS</code>).</li>
+<li><strong><code>stop_movement(self)</code></strong>: Detiene el temporizador del motor paso a paso, fuerza la línea <code>STEPPER_STEP</code> al estado inactivo (<code>INACTIVE</code>), limpia la bandera de control automático y restablece la interfaz gráfica.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speed_ms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">isActive</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">=</span> <span class="n">INACTIVE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_STEP&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">=</span> <span class="s2">&quot;BURST&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">=</span> <span class="n">steps</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">=</span> <span class="s2">&quot;CONTINUOUS&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_toggle_step</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">speed_ms</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_ui_interlocks</span><span class="p">(</span><span class="n">running</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[THROTTLE] Movimiento INICIADO (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span><span class="si">}</span><span class="s2">) -&gt; Timer activo cada </span><span class="si">{</span><span class="n">speed_ms</span><span class="si">}</span><span class="s2"> ms.&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">stop_movement</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">step_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">=</span> <span class="n">INACTIVE</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_STEP&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">=</span> <span class="s2">&quot;CONTINUOUS&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_update_ui_interlocks</span><span class="p">(</span><span class="n">running</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">reset_run_button</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[THROTTLE] Movimiento DETENIDO y pin STEP llevado a INACTIVE.&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Generación del Pulso Físico: <code>_toggle_step(self)</code></summary>
+<p>Manejador conectado a la señal <code>.timeout</code> del temporizador de pasos (<code>stepper_pulse</code>). Verifica primero los estados de los límites físicos; de no estar bloqueado, conmuta de forma alternada la línea digital <code>STEPPER_STEP</code> entre <code>ACTIVE</code> e <code>INACTIVE</code>. Acumula o descuenta de la posición actual de forma fraccionaria (0.5 en Half Step, 1.0 en Full Step) y decrementa el contador en desplazamientos por ráfaga (<em>BURST</em>).</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_toggle_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_limits</span><span class="p">():</span>
+        <span class="k">return</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;STEPPER_STEP&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_state</span> <span class="o">==</span> <span class="n">ACTIVE</span><span class="p">:</span>
+        <span class="n">step_increment</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_half_step</span> <span class="k">else</span> <span class="mf">1.0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">+=</span> <span class="n">step_increment</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">-=</span> <span class="n">step_increment</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_step_display</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">==</span> <span class="s2">&quot;BURST&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_steps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[THROTTLE] Ráfaga inicial completada con éxito.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_rest_dialog&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_rest_dialog</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">=</span> <span class="s2">&quot;CONTINUOUS&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Actualización del Indicador de Pasos: <code>_update_step_display(self)</code></summary>
+<p>Refresca el display numérico de tipo LCD (<code>ThrottleMenu_step_counter</code>) en la interfaz gráfica, mostrando la posición acumulada actual con resolución de un decimal.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_update_step_display</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Actualiza el display LCD con la posición actual fijando 1 decimal.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_step_counter&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_step_counter</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_step</span><span class="p">)</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="manejo-de-interlocks-y-handlers-de-la-interfaz-visual"><span style="color: #4CAF50;">Manejo de Interlocks y Handlers de la Interfaz Visual</span></h2>
+<details class="note">
+<summary>Gestión de Exclusión Mutua en la UI: <code>_update_ui_interlocks</code> y <code>update_vacuum_interlocks</code></summary>
+<ul>
+<li><strong><code>_update_ui_interlocks(self, running)</code></strong>: Bloquea o habilita los controles manuales o automáticos según el estado actual de operación del motor (detenido, movimiento manual o regulación en lazo cerrado) para prevenir conflictos de comandos.</li>
+<li><strong><code>update_vacuum_interlocks(self)</code></strong>: Bloquea de forma obligatoria los campos de consigna de presión cuando la cámara se encuentra a presión atmosférica, habilitándolos únicamente al detectarse la condición de alto vacío (<code>is_in_vacuum</code>).</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_update_ui_interlocks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">running</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+    <span class="n">btn_run</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_btn_toggle_run&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">btn_step_set</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_step_set&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">entry_step</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_step_entry&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">p_entry</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_entry&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">p_set</span>   <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_set&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">p_stop</span>  <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_stop&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">is_vacuum</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;is_in_vacuum&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">btn_run</span><span class="p">:</span>      <span class="n">btn_run</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">btn_step_set</span><span class="p">:</span> <span class="n">btn_step_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">entry_step</span><span class="p">:</span>   <span class="n">entry_step</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span>      <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>        <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>       <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span> <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>   <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>  <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">==</span> <span class="s2">&quot;CONTINUOUS&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">btn_step_set</span><span class="p">:</span> <span class="n">btn_step_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry_step</span><span class="p">:</span>   <span class="n">entry_step</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_mode</span> <span class="o">==</span> <span class="s2">&quot;BURST&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">btn_run</span><span class="p">:</span>      <span class="n">btn_run</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">btn_step_set</span><span class="p">:</span> <span class="n">btn_step_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry_step</span><span class="p">:</span>   <span class="n">entry_step</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">btn_run</span><span class="p">:</span>      <span class="n">btn_run</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">btn_step_set</span><span class="p">:</span> <span class="n">btn_step_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">entry_step</span><span class="p">:</span>   <span class="n">entry_step</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_vacuum</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span> <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>   <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>  <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span> <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>   <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>  <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_vacuum_interlocks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Habilita o deshabilita los controles de presión según si el sistema está en vacío o en atmósfera.&quot;&quot;&quot;</span>
+    <span class="n">is_vacuum</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;is_in_vacuum&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">p_entry</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_entry&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">p_set</span>   <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_set&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">p_stop</span>  <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="p">,</span> <span class="s2">&quot;ThrottleMenu_pressure_stop&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_vacuum</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span> <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>   <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>  <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p_entry</span><span class="p">:</span> <span class="n">p_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p_set</span><span class="p">:</span>   <span class="n">p_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p_stop</span><span class="p">:</span>  <span class="n">p_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Handlers de Botones Manuales: <code>on_enable_toggled</code>, <code>on_step_toggled</code>, <code>on_dir_toggled</code>, <code>on_run_toggled</code> y <code>on_step_set_clicked</code></summary>
+<p>Conjunto de métodos asociados a los botones de la interfaz gráfica para conmutar el estado del driver, la resolución de paso (Full/Half), la dirección de giro (Apertura/Cierre), el encendido/apagado manual del motor y el ajuste por número de pasos en ráfaga (validando un rango de 1 a 1400 pasos.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">on_enable_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_enable</span>
+    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Habilitar Driver&quot;</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_enable</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Deshabilitar Driver&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #f44336; color: white;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_enable</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Habilitar Driver&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_step_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_step</span>
+    <span class="k">if</span> <span class="s2">&quot;Full Step&quot;</span> <span class="ow">in</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Modo: Half Step&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Modo: Full Step&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_dir_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_dir</span>
+    <span class="k">if</span> <span class="s2">&quot;Apertura&quot;</span> <span class="ow">in</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Dirección: Cierre&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Dirección: Apertura&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_run_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_run</span>
+    <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Girar Motor&quot;</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_time</span>     <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_pressure</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_setpoint</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_logging</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dir_str</span> <span class="o">=</span> <span class="s2">&quot;Cierre&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="k">else</span> <span class="s2">&quot;Apertura&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_title</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Movimiento Manual Throttle — Dirección: </span><span class="si">{</span><span class="n">dir_str</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Detener Motor&quot;</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #ff9800; color: black; font-weight: bold;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_step_set_clicked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handler para el botón &#39;Ajustar posicion&#39;.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">val_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_step_entry</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val_text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">steps</span> <span class="o">&lt;=</span> <span class="mi">1400</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_movement</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_MS</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Rango Inválido&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Ingrese un número de pasos entre 1 y 1400.&quot;</span><span class="p">,</span>
+                <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+            <span class="s2">&quot;Entrada Inválida&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Ingrese un valor numérico entero para los pasos.&quot;</span><span class="p">,</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">reset_run_button</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_run</span>
+    <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Girar Motor&quot;</span><span class="p">)</span>
+    <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="monitoreo-de-sensores-de-limite-y-antirrebote"><span style="color: #4CAF50;">Monitoreo de Sensores de Límite y Antirrebote</span></h2>
+<details class="note">
+<summary>Lectura y Filtrado por Software de Finales de Carrera: <code>update_limit_switch_status</code> y <code>_check_limits</code></summary>
+<ul>
+<li><strong><code>is_fully_closed(self)</code> / <code>is_fully_open(self)</code></strong>: Consultan las líneas digitales de entrada física de los finales de carrera (<code>THROTTLE_CLOSED</code> y <code>THROTTLE_OPEN</code>).</li>
+<li><strong><code>_check_limits(self)</code></strong>: Verifica si la válvula alcanzó un fin de carrera confirmado en el sentido de movimiento actual. Al detectar apertura completa, fuerza la calibración del contador a 0 pasos y detiene la marcha.</li>
+<li><strong><code>update_limit_switch_status(self)</code></strong>: Función de sondeo continuo ejecutada periódicamente desde el lazo central de entrada/salida. Implementa un filtro antirrebote por software que exige N=3 lecturas consecutivas idénticas en los optoacopladores o switches mecánicos antes de confirmar el estado límite y actualizar las etiquetas visuales en la GUI.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_fully_closed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;THROTTLE_CLOSED&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">is_fully_open</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;THROTTLE_OPEN&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_limits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[LÍMITE] Válvula Throttle completamente CERRADA.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closing</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[LÍMITE] Válvula Throttle completamente ABIERTA.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_step</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_step_display</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_limit_switch_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">closed_raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fully_closed</span><span class="p">()</span>
+    <span class="n">open_raw</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fully_open</span><span class="p">()</span>
+
+    <span class="c1"># Antirrebote para Cierre</span>
+    <span class="k">if</span> <span class="n">closed_raw</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Antirrebote para Apertura</span>
+    <span class="k">if</span> <span class="n">open_raw</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">closed_confirmed</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_closed_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">)</span>
+    <span class="n">open_confirmed</span>   <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_count</span>   <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DEBOUNCE_N</span><span class="p">)</span>
+
+    <span class="n">lbl_closed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">lbl_throttle_closed</span>
+    <span class="n">lbl_open</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">lbl_throttle_open</span>
+
+    <span class="k">if</span> <span class="n">closed_confirmed</span><span class="p">:</span>
+        <span class="n">lbl_closed</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;CERRADA ✓&quot;</span><span class="p">)</span>
+        <span class="n">lbl_closed</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;color: red; font-weight: bold; font-size: 48px;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lbl_closed</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Cerrada: —&quot;</span><span class="p">)</span>
+        <span class="n">lbl_closed</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">open_confirmed</span><span class="p">:</span>
+        <span class="n">lbl_open</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;ABIERTA ✓&quot;</span><span class="p">)</span>
+        <span class="n">lbl_open</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;color: green; font-weight: bold; font-size: 48px;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_home_dialog&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_home_dialog</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_home_dialog</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_home_dialog</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lbl_open</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Abierta: —&quot;</span><span class="p">)</span>
+        <span class="n">lbl_open</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</code></pre></div>
+</details>
 
 
 

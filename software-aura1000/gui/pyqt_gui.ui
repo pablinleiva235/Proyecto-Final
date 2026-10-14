@@ -681,24 +681,6 @@ QPushButton:hover {
 }</string>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_eop_lbl">
-        <property name="geometry">
-         <rect>
-          <x>780</x>
-          <y>700</y>
-          <width>131</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>20</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>EOP Signal</string>
-        </property>
-       </widget>
        <widget class="QLabel" name="MenuPrincipal_eop_voltage_lbl">
         <property name="geometry">
          <rect>
@@ -1532,6 +1514,27 @@ QPushButton:hover {
         <property name="frameShadow">
          <enum>QFrame::Raised</enum>
         </property>
+        <widget class="QLabel" name="MenuPrincipal_eop_lbl">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>90</y>
+           <width>131</width>
+           <height>41</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift SemiBold Condensed</family>
+           <pointsize>24</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#767676;&quot;&gt;EOP Signal&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_lbl_mfc2">
         <property name="geometry">
@@ -1625,7 +1628,6 @@ QPushButton:hover {
        <zorder>line_3</zorder>
        <zorder>MenuPrincipal_btn_plasma</zorder>
        <zorder>MenuPrincipal_eop_voltage</zorder>
-       <zorder>MenuPrincipal_eop_lbl</zorder>
        <zorder>MenuPrincipal_eop_voltage_lbl</zorder>
        <zorder>MenuPrincipal_outerLamps_pulseTime</zorder>
        <zorder>MenuPrincipal_mfc1_setpoint_lbl_4</zorder>

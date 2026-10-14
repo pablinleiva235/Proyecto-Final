@@ -26,35 +26,9 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
-       <widget class="QLabel" name="MenuPrincipal_label">
-        <property name="geometry">
-         <rect>
-          <x>220</x>
-          <y>0</y>
-          <width>501</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>48</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>Menu Principal</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
        <widget class="QPushButton" name="MenuPrincipal_btn_enable_driver">
         <property name="geometry">
          <rect>
@@ -68,6 +42,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Habilitar Drivers</string>
@@ -87,6 +73,18 @@
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+        </property>
         <property name="text">
          <string>Abrir Puerta</string>
         </property>
@@ -104,6 +102,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Soft Vacuum On</string>
@@ -123,6 +133,18 @@
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+        </property>
         <property name="text">
          <string>Main Vacuum On</string>
         </property>
@@ -140,6 +162,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Vent Chamber On</string>
@@ -161,7 +195,7 @@
         </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
-    color: rgb(0, 0, 255);   
+    color: rgb(0, 100, 255);   
 }</string>
         </property>
         <property name="digitCount">
@@ -173,47 +207,30 @@
          <rect>
           <x>670</x>
           <y>200</y>
-          <width>121</width>
+          <width>101</width>
           <height>81</height>
          </rect>
         </property>
         <property name="font">
          <font>
+          <family>Bahnschrift SemiCondensed</family>
           <pointsize>48</pointsize>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true"> color: rgb(0, 0, 255);   </string>
+         <string notr="true"> color: rgb(0, 100, 255);   </string>
         </property>
         <property name="text">
          <string>Torr</string>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_lbl_status_atm">
-        <property name="geometry">
-         <rect>
-          <x>260</x>
-          <y>300</y>
-          <width>401</width>
-          <height>61</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
        <widget class="Line" name="MenuPrincipal_line">
         <property name="geometry">
          <rect>
-          <x>10</x>
+          <x>0</x>
           <y>370</y>
-          <width>921</width>
-          <height>16</height>
+          <width>941</width>
+          <height>21</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -226,23 +243,23 @@
        <widget class="QLCDNumber" name="MenuPrincipal_mfc1_readout">
         <property name="geometry">
          <rect>
-          <x>100</x>
-          <y>500</y>
+          <x>220</x>
+          <y>440</y>
           <width>141</width>
           <height>51</height>
          </rect>
         </property>
         <property name="styleSheet">
          <string notr="true">QLCDNumber{
-    color: rgb(0, 0, 255);   
+    color: rgb(0, 100, 255);   
 }</string>
         </property>
        </widget>
        <widget class="QLCDNumber" name="MenuPrincipal_mfc2_readout">
         <property name="geometry">
          <rect>
-          <x>570</x>
-          <y>500</y>
+          <x>680</x>
+          <y>440</y>
           <width>141</width>
           <height>51</height>
          </rect>
@@ -256,10 +273,10 @@
        <widget class="Line" name="line">
         <property name="geometry">
          <rect>
-          <x>470</x>
+          <x>466</x>
           <y>380</y>
-          <width>16</width>
-          <height>181</height>
+          <width>20</width>
+          <height>191</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -272,16 +289,28 @@
        <widget class="QPushButton" name="MenuPrincipal_btn_mfc1_open">
         <property name="geometry">
          <rect>
-          <x>270</x>
-          <y>390</y>
+          <x>20</x>
+          <y>440</y>
           <width>181</width>
-          <height>41</height>
+          <height>51</height>
          </rect>
         </property>
         <property name="font">
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Abrir Valvula MFC1: O2</string>
@@ -290,16 +319,28 @@
        <widget class="QPushButton" name="MenuPrincipal_btn_mfc2_open">
         <property name="geometry">
          <rect>
-          <x>740</x>
-          <y>390</y>
+          <x>490</x>
+          <y>440</y>
           <width>181</width>
-          <height>41</height>
+          <height>51</height>
          </rect>
         </property>
         <property name="font">
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Abrir Valvula MFC2: N2</string>
@@ -308,121 +349,45 @@
        <widget class="QLabel" name="MenuPrincipal_lbl_mfc1">
         <property name="geometry">
          <rect>
-          <x>10</x>
-          <y>390</y>
+          <x>150</x>
+          <y>380</y>
           <width>191</width>
-          <height>41</height>
+          <height>51</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>28</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
+          <family>Bahnschrift SemiCondensed</family>
+          <pointsize>30</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
          </font>
         </property>
         <property name="text">
-         <string>MFC1: O2</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#e7e7e7;&quot;&gt;MFC1: &lt;/span&gt;&lt;span style=&quot; color:#ffffff;&quot;&gt;O&lt;/span&gt;&lt;span style=&quot; color:#ffffff; vertical-align:sub;&quot;&gt;2&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
-        </property>
-       </widget>
-       <widget class="QLabel" name="MenuPrincipal_lbl_mfc2">
-        <property name="geometry">
-         <rect>
-          <x>490</x>
-          <y>390</y>
-          <width>191</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>28</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>MFC2: N2</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="MenuPrincipal_mfc1_setpoint">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>440</y>
-          <width>121</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>18</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>1.0 - 6.5 </string>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="MenuPrincipal_mfc2_setpoint">
-        <property name="geometry">
-         <rect>
-          <x>500</x>
-          <y>440</y>
-          <width>111</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>18</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>0.1 - 0.65</string>
         </property>
        </widget>
        <widget class="QLabel" name="MenuPrincipal_mfc1_setpoint_lbl">
         <property name="geometry">
          <rect>
-          <x>150</x>
-          <y>450</y>
+          <x>180</x>
+          <y>510</y>
           <width>71</width>
           <height>31</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>20</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>SLPM</string>
-        </property>
-       </widget>
-       <widget class="QLabel" name="MenuPrincipal_mfc2_setpoint_lbl">
-        <property name="geometry">
-         <rect>
-          <x>620</x>
-          <y>450</y>
-          <width>71</width>
-          <height>31</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>20</pointsize>
+          <family>Bahnschrift SemiBold Condensed</family>
+          <pointsize>26</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="text">
@@ -432,8 +397,8 @@
        <widget class="QPushButton" name="MenuPrincipal_btn_mfc1_set">
         <property name="geometry">
          <rect>
-          <x>320</x>
-          <y>440</y>
+          <x>350</x>
+          <y>500</y>
           <width>81</width>
           <height>51</height>
          </rect>
@@ -444,47 +409,42 @@
           <weight>75</weight>
           <bold>true</bold>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Set O2</string>
         </property>
        </widget>
-       <widget class="QPushButton" name="MenuPrincipal_btn_mfc2_set">
-        <property name="geometry">
-         <rect>
-          <x>790</x>
-          <y>440</y>
-          <width>81</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>Set N2</string>
-        </property>
-       </widget>
        <widget class="QLabel" name="MenuPrincipal_mfc1_readout_lbl">
         <property name="geometry">
          <rect>
-          <x>250</x>
-          <y>500</y>
+          <x>370</x>
+          <y>440</y>
           <width>91</width>
           <height>51</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>28</pointsize>
+          <family>Bahnschrift SemiBold Condensed</family>
+          <pointsize>32</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true"> color: rgb(0, 0, 255);   </string>
+         <string notr="true"> color: rgb(0, 100, 255);   </string>
         </property>
         <property name="text">
          <string>SLPM</string>
@@ -493,19 +453,22 @@
        <widget class="QLabel" name="MenuPrincipal_mfc2_readout_lbl">
         <property name="geometry">
          <rect>
-          <x>720</x>
-          <y>500</y>
+          <x>830</x>
+          <y>440</y>
           <width>91</width>
           <height>51</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>28</pointsize>
+          <family>Bahnschrift SemiBold Condensed</family>
+          <pointsize>32</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true"> color: rgb(0, 0, 255);   </string>
+         <string notr="true"> color: rgb(0, 100, 255);   </string>
         </property>
         <property name="text">
          <string>SLPM</string>
@@ -514,10 +477,10 @@
        <widget class="Line" name="MenuPrincipal_line_2">
         <property name="geometry">
          <rect>
-          <x>10</x>
+          <x>0</x>
           <y>550</y>
-          <width>921</width>
-          <height>21</height>
+          <width>941</width>
+          <height>41</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -527,39 +490,25 @@
          <enum>Qt::Horizontal</enum>
         </property>
        </widget>
-       <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>680</y>
-          <width>131</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QLCDNumber{
-    color: rgb(255, 130, 0);   
-}</string>
-        </property>
-       </widget>
        <widget class="QLabel" name="MenuPrincipal_temp_lbl">
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>570</y>
-          <width>201</width>
-          <height>61</height>
+          <y>580</y>
+          <width>211</width>
+          <height>81</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>22</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
+          <family>Bahnschrift SemiCondensed</family>
+          <pointsize>26</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
          </font>
         </property>
         <property name="text">
-         <string>Temperatura de camara</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e7e7e7;&quot;&gt;Temperatura de camara&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -568,48 +517,25 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>680</y>
-          <width>61</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Nachlieli CLM</family>
-          <pointsize>36</pointsize>
-          <weight>50</weight>
-          <bold>false</bold>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color: rgb(255, 130, 0); </string>
-        </property>
-        <property name="text">
-         <string>°C</string>
-        </property>
-       </widget>
        <widget class="QLabel" name="MenuPrincipal_lamps_menu_lbl">
         <property name="geometry">
          <rect>
           <x>340</x>
           <y>560</y>
           <width>311</width>
-          <height>41</height>
+          <height>61</height>
          </rect>
         </property>
         <property name="font">
          <font>
-          <pointsize>22</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
+          <family>Bahnschrift SemiCondensed</family>
+          <pointsize>26</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
          </font>
         </property>
         <property name="text">
-         <string>Control de Lamparas</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e7e7e7;&quot;&gt;Control de Lamparas&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -621,9 +547,9 @@
        <widget class="QPushButton" name="MenuPrincipal_btn_outerLamps">
         <property name="geometry">
          <rect>
-          <x>370</x>
+          <x>380</x>
           <y>660</y>
-          <width>131</width>
+          <width>121</width>
           <height>51</height>
          </rect>
         </property>
@@ -631,6 +557,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Lamps 1 y 3 On</string>
@@ -650,6 +588,18 @@
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+        </property>
         <property name="text">
          <string>Lamp 2 On</string>
         </property>
@@ -658,9 +608,9 @@
         <property name="geometry">
          <rect>
           <x>220</x>
-          <y>560</y>
-          <width>20</width>
-          <height>271</height>
+          <y>570</y>
+          <width>31</width>
+          <height>261</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -674,9 +624,9 @@
         <property name="geometry">
          <rect>
           <x>730</x>
-          <y>560</y>
-          <width>20</width>
-          <height>261</height>
+          <y>570</y>
+          <width>31</width>
+          <height>251</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -686,37 +636,11 @@
          <enum>Qt::Vertical</enum>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_plasma_menu_lbl">
-        <property name="geometry">
-         <rect>
-          <x>770</x>
-          <y>570</y>
-          <width>131</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>22</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>Plasma</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
        <widget class="QPushButton" name="MenuPrincipal_btn_plasma">
         <property name="geometry">
          <rect>
-          <x>770</x>
-          <y>620</y>
+          <x>780</x>
+          <y>630</y>
           <width>131</width>
           <height>51</height>
          </rect>
@@ -726,6 +650,18 @@
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+        </property>
         <property name="text">
          <string>Plasma On</string>
         </property>
@@ -733,8 +669,8 @@
        <widget class="QLCDNumber" name="MenuPrincipal_eop_voltage">
         <property name="geometry">
          <rect>
-          <x>750</x>
-          <y>730</y>
+          <x>760</x>
+          <y>740</y>
           <width>131</width>
           <height>61</height>
          </rect>
@@ -748,8 +684,8 @@
        <widget class="QLabel" name="MenuPrincipal_eop_lbl">
         <property name="geometry">
          <rect>
-          <x>770</x>
-          <y>680</y>
+          <x>780</x>
+          <y>700</y>
           <width>131</width>
           <height>41</height>
          </rect>
@@ -766,8 +702,8 @@
        <widget class="QLabel" name="MenuPrincipal_eop_voltage_lbl">
         <property name="geometry">
          <rect>
-          <x>890</x>
-          <y>740</y>
+          <x>900</x>
+          <y>750</y>
           <width>31</width>
           <height>41</height>
          </rect>
@@ -820,50 +756,12 @@
          <string>s</string>
         </property>
        </widget>
-       <widget class="QLabel" name="arrow1">
-        <property name="geometry">
-         <rect>
-          <x>230</x>
-          <y>440</y>
-          <width>71</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
-       <widget class="QLabel" name="arrow2">
-        <property name="geometry">
-         <rect>
-          <x>700</x>
-          <y>440</y>
-          <width>71</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap>../../../../../Downloads/arrow2.jpg</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
        <widget class="Line" name="line_4">
         <property name="geometry">
          <rect>
-          <x>720</x>
+          <x>719</x>
           <y>0</y>
-          <width>20</width>
+          <width>21</width>
           <height>81</height>
          </rect>
         </property>
@@ -878,9 +776,9 @@
         <property name="geometry">
          <rect>
           <x>740</x>
-          <y>0</y>
+          <y>10</y>
           <width>191</width>
-          <height>71</height>
+          <height>61</height>
          </rect>
         </property>
         <property name="font">
@@ -901,9 +799,9 @@
        <widget class="Line" name="line_5">
         <property name="geometry">
          <rect>
-          <x>10</x>
+          <x>0</x>
           <y>60</y>
-          <width>921</width>
+          <width>931</width>
           <height>41</height>
          </rect>
         </property>
@@ -917,8 +815,8 @@
        <widget class="QLabel" name="label_2">
         <property name="geometry">
          <rect>
-          <x>220</x>
-          <y>440</y>
+          <x>250</x>
+          <y>500</y>
           <width>91</width>
           <height>51</height>
          </rect>
@@ -927,26 +825,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="resources.qrc">:/images/arrow2.jpg</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
-       <widget class="QLabel" name="label_3">
-        <property name="geometry">
-         <rect>
-          <x>690</x>
-          <y>440</y>
-          <width>91</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap resource="resources.qrc">:/images/arrow2.jpg</pixmap>
+         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -956,16 +835,16 @@
         <property name="geometry">
          <rect>
           <x>330</x>
-          <y>670</y>
+          <y>660</y>
           <width>41</width>
-          <height>41</height>
+          <height>51</height>
          </rect>
         </property>
         <property name="text">
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="resources.qrc">:/images/arrow2.jpg</pixmap>
+         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -974,11 +853,14 @@
        <widget class="Line" name="line_11">
         <property name="geometry">
          <rect>
-          <x>230</x>
-          <y>600</y>
-          <width>511</width>
-          <height>16</height>
+          <x>240</x>
+          <y>590</y>
+          <width>501</width>
+          <height>41</height>
          </rect>
+        </property>
+        <property name="lineWidth">
+         <number>2</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -988,26 +870,29 @@
         <property name="geometry">
          <rect>
           <x>330</x>
-          <y>620</y>
+          <y>610</y>
           <width>91</width>
-          <height>21</height>
+          <height>41</height>
          </rect>
         </property>
         <property name="font">
          <font>
+          <family>Bahnschrift SemiBold</family>
           <pointsize>20</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="text">
-         <string>Manual</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e8e8e8;&quot;&gt;Manual&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
        <widget class="Line" name="line_12">
         <property name="geometry">
          <rect>
-          <x>500</x>
+          <x>495</x>
           <y>610</y>
-          <width>16</width>
+          <width>21</width>
           <height>211</height>
          </rect>
         </property>
@@ -1022,18 +907,21 @@
         <property name="geometry">
          <rect>
           <x>560</x>
-          <y>620</y>
+          <y>610</y>
           <width>141</width>
-          <height>21</height>
+          <height>41</height>
          </rect>
         </property>
         <property name="font">
          <font>
+          <family>Bahnschrift SemiBold</family>
           <pointsize>20</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
          </font>
         </property>
         <property name="text">
-         <string>Automatico</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e8e8e8;&quot;&gt;Automatico&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
        <widget class="QPushButton" name="MenuPrincipal_btn_temp_set">
@@ -1049,6 +937,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Ajustar Temperatura</string>
@@ -1067,6 +967,18 @@
          <font>
           <pointsize>12</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
         </property>
         <property name="text">
          <string>Detener</string>
@@ -1114,6 +1026,632 @@
          <string>°C</string>
         </property>
        </widget>
+       <widget class="QFrame" name="frame_3">
+        <property name="geometry">
+         <rect>
+          <x>-1</x>
+          <y>0</y>
+          <width>731</width>
+          <height>80</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(43, 43, 43);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="MenuPrincipal_label">
+         <property name="geometry">
+          <rect>
+           <x>60</x>
+           <y>0</y>
+           <width>601</width>
+           <height>71</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift SemiCondensed</family>
+           <pointsize>48</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e7e7e7;&quot;&gt;Modo Mantenimiento&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QFrame" name="frame_4">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>80</y>
+          <width>961</width>
+          <height>301</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="MenuPrincipal_lbl_status_atm">
+         <property name="geometry">
+          <rect>
+           <x>260</x>
+           <y>220</y>
+           <width>401</width>
+           <height>61</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QLineEdit" name="MenuPrincipal_mfc2_setpoint">
+        <property name="geometry">
+         <rect>
+          <x>520</x>
+          <y>500</y>
+          <width>111</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>18</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>0.1 - 0.65</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="MenuPrincipal_btn_mfc2_set">
+        <property name="geometry">
+         <rect>
+          <x>810</x>
+          <y>500</y>
+          <width>81</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+        </property>
+        <property name="text">
+         <string>Set N2</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_mfc2_setpoint_lbl">
+        <property name="geometry">
+         <rect>
+          <x>640</x>
+          <y>510</y>
+          <width>71</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Bahnschrift SemiBold Condensed</family>
+          <pointsize>26</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>SLPM</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_3">
+        <property name="geometry">
+         <rect>
+          <x>710</x>
+          <y>500</y>
+          <width>91</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="Line" name="MenuPrincipal_line_3">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>420</y>
+          <width>471</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="lineWidth">
+         <number>2</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="Line" name="MenuPrincipal_line_4">
+        <property name="geometry">
+         <rect>
+          <x>480</x>
+          <y>420</y>
+          <width>471</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Bahnschrift SemiCondensed</family>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="lineWidth">
+         <number>2</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_5">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>380</y>
+          <width>941</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(43, 43, 43);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_7">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>430</y>
+          <width>481</width>
+          <height>141</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLineEdit" name="MenuPrincipal_mfc1_setpoint">
+         <property name="geometry">
+          <rect>
+           <x>60</x>
+           <y>70</y>
+           <width>111</width>
+           <height>51</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>18</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>1.0 - 6.5 </string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QFrame" name="frame_8">
+        <property name="geometry">
+         <rect>
+          <x>480</x>
+          <y>430</y>
+          <width>461</width>
+          <height>141</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_9">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>670</y>
+          <width>231</width>
+          <height>151</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="Line" name="line_14">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>-10</y>
+           <width>231</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="lineWidth">
+          <number>2</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+        <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
+         <property name="geometry">
+          <rect>
+           <x>160</x>
+           <y>20</y>
+           <width>61</width>
+           <height>91</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift SemiCondensed</family>
+           <pointsize>42</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 130, 0); </string>
+         </property>
+         <property name="text">
+          <string>°C</string>
+         </property>
+        </widget>
+        <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>20</y>
+           <width>141</width>
+           <height>91</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLCDNumber{
+    color: rgb(255, 130, 0);   
+}</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QFrame" name="frame_10">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>570</y>
+          <width>231</width>
+          <height>101</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(43, 43, 43);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="Line" name="line_15">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>630</y>
+          <width>501</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="Line" name="line_17">
+        <property name="geometry">
+         <rect>
+          <x>750</x>
+          <y>590</y>
+          <width>191</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="lineWidth">
+         <number>2</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_11">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>570</y>
+          <width>711</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(43, 43, 43);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_12">
+        <property name="geometry">
+         <rect>
+          <x>240</x>
+          <y>610</y>
+          <width>501</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(120, 120, 120);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_13">
+        <property name="geometry">
+         <rect>
+          <x>230</x>
+          <y>649</y>
+          <width>511</width>
+          <height>171</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_15">
+        <property name="geometry">
+         <rect>
+          <x>740</x>
+          <y>609</y>
+          <width>201</width>
+          <height>211</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_lbl_mfc2">
+        <property name="geometry">
+         <rect>
+          <x>610</x>
+          <y>380</y>
+          <width>191</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Bahnschrift SemiCondensed</family>
+          <pointsize>30</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#e7e7e7;&quot;&gt;MFC2: &lt;/span&gt;&lt;span style=&quot; color:#e7e7e7;&quot;/&gt;&lt;span style=&quot; color:#f4fffe;&quot;&gt;N&lt;/span&gt;&lt;span style=&quot; color:#f4fffe; vertical-align:sub;&quot;&gt;2&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QLabel" name="MenuPrincipal_plasma_menu_lbl">
+        <property name="geometry">
+         <rect>
+          <x>780</x>
+          <y>570</y>
+          <width>131</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <family>Bahnschrift SemiCondensed</family>
+          <pointsize>26</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#e7e7e7;&quot;&gt;Plasma&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <zorder>frame_15</zorder>
+       <zorder>frame_13</zorder>
+       <zorder>frame_12</zorder>
+       <zorder>frame_11</zorder>
+       <zorder>frame_10</zorder>
+       <zorder>frame_9</zorder>
+       <zorder>frame_8</zorder>
+       <zorder>frame_7</zorder>
+       <zorder>frame_5</zorder>
+       <zorder>frame_4</zorder>
+       <zorder>frame_3</zorder>
+       <zorder>MenuPrincipal_btn_enable_driver</zorder>
+       <zorder>MenuPrincipal_btn_open_door</zorder>
+       <zorder>MenuPrincipal_btn_soft_vacuum</zorder>
+       <zorder>MenuPrincipal_btn_main_vacuum</zorder>
+       <zorder>MenuPrincipal_btn_vent_chamber</zorder>
+       <zorder>MenuPrincipal_chamber_pressure</zorder>
+       <zorder>MenuPrincipal_pressureUnit_lbl</zorder>
+       <zorder>MenuPrincipal_line</zorder>
+       <zorder>MenuPrincipal_mfc1_readout</zorder>
+       <zorder>MenuPrincipal_mfc2_readout</zorder>
+       <zorder>line</zorder>
+       <zorder>MenuPrincipal_btn_mfc1_open</zorder>
+       <zorder>MenuPrincipal_btn_mfc2_open</zorder>
+       <zorder>MenuPrincipal_lbl_mfc1</zorder>
+       <zorder>MenuPrincipal_mfc1_setpoint_lbl</zorder>
+       <zorder>MenuPrincipal_btn_mfc1_set</zorder>
+       <zorder>MenuPrincipal_mfc1_readout_lbl</zorder>
+       <zorder>MenuPrincipal_mfc2_readout_lbl</zorder>
+       <zorder>MenuPrincipal_line_2</zorder>
+       <zorder>MenuPrincipal_temp_lbl</zorder>
+       <zorder>MenuPrincipal_lamps_menu_lbl</zorder>
+       <zorder>MenuPrincipal_btn_outerLamps</zorder>
+       <zorder>MenuPrincipal_btn_centralLamp</zorder>
+       <zorder>line_2</zorder>
+       <zorder>line_3</zorder>
+       <zorder>MenuPrincipal_btn_plasma</zorder>
+       <zorder>MenuPrincipal_eop_voltage</zorder>
+       <zorder>MenuPrincipal_eop_lbl</zorder>
+       <zorder>MenuPrincipal_eop_voltage_lbl</zorder>
+       <zorder>MenuPrincipal_outerLamps_pulseTime</zorder>
+       <zorder>MenuPrincipal_mfc1_setpoint_lbl_4</zorder>
+       <zorder>line_4</zorder>
+       <zorder>MenuPrincipal_btn_go_to_throttle</zorder>
+       <zorder>line_5</zorder>
+       <zorder>label_2</zorder>
+       <zorder>label_4</zorder>
+       <zorder>line_11</zorder>
+       <zorder>MenuPrincipal_lamps_manual_lbl</zorder>
+       <zorder>line_12</zorder>
+       <zorder>MenuPrincipal_lamps_auto_lbl</zorder>
+       <zorder>MenuPrincipal_btn_temp_set</zorder>
+       <zorder>MenuPrincipal_btn_temp_stop</zorder>
+       <zorder>MenuPrincipal_temp_setpoint</zorder>
+       <zorder>MenuPrincipal_celsius_lbl_2</zorder>
+       <zorder>MenuPrincipal_mfc2_setpoint</zorder>
+       <zorder>MenuPrincipal_btn_mfc2_set</zorder>
+       <zorder>MenuPrincipal_mfc2_setpoint_lbl</zorder>
+       <zorder>label_3</zorder>
+       <zorder>MenuPrincipal_line_3</zorder>
+       <zorder>MenuPrincipal_line_4</zorder>
+       <zorder>line_15</zorder>
+       <zorder>line_17</zorder>
+       <zorder>MenuPrincipal_lbl_mfc2</zorder>
+       <zorder>MenuPrincipal_plasma_menu_lbl</zorder>
       </widget>
       <widget class="QWidget" name="ThrottleMenu">
        <widget class="QLabel" name="ThrottleMenu_label">
@@ -1418,7 +1956,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap>../images/arrow2.jpg</pixmap>
+         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -1473,7 +2011,7 @@
          <rect>
           <x>0</x>
           <y>610</y>
-          <width>161</width>
+          <width>151</width>
           <height>71</height>
          </rect>
         </property>
@@ -1526,7 +2064,7 @@
        <widget class="QLabel" name="ThrottleMenu_setpoint_pressure_unit_lbl">
         <property name="geometry">
          <rect>
-          <x>170</x>
+          <x>160</x>
           <y>600</y>
           <width>91</width>
           <height>91</height>
@@ -1620,9 +2158,9 @@
        <widget class="QLabel" name="label_5">
         <property name="geometry">
          <rect>
-          <x>270</x>
+          <x>260</x>
           <y>620</y>
-          <width>41</width>
+          <width>51</width>
           <height>61</height>
          </rect>
         </property>
@@ -1630,7 +2168,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="resources.qrc">:/images/arrow2.jpg</pixmap>
+         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
         </property>
         <property name="scaledContents">
          <bool>true</bool>
@@ -1641,16 +2179,21 @@
        <widget class="QLabel" name="PreEncendido_label2">
         <property name="geometry">
          <rect>
-          <x>0</x>
-          <y>220</y>
-          <width>941</width>
-          <height>231</height>
+          <x>10</x>
+          <y>410</y>
+          <width>901</width>
+          <height>81</height>
          </rect>
         </property>
         <property name="font">
          <font>
+          <family>Franklin Gothic Medium</family>
           <pointsize>26</pointsize>
+          <italic>true</italic>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">color: rgb(100, 100, 100)</string>
         </property>
         <property name="text">
          <string>Para acceder al Menu Principal, encienda el equipo con el pulsador de ON</string>
@@ -1665,10 +2208,10 @@
        <widget class="QLabel" name="PreEncendido_label1">
         <property name="geometry">
          <rect>
-          <x>250</x>
-          <y>180</y>
-          <width>431</width>
-          <height>71</height>
+          <x>140</x>
+          <y>200</y>
+          <width>621</width>
+          <height>151</height>
          </rect>
         </property>
         <property name="palette">
@@ -1791,10 +2334,10 @@
         </property>
         <property name="font">
          <font>
-          <family>Calibri</family>
-          <pointsize>60</pointsize>
+          <family>Rubik</family>
+          <pointsize>72</pointsize>
           <weight>75</weight>
-          <italic>true</italic>
+          <italic>false</italic>
           <bold>true</bold>
          </font>
         </property>
@@ -1804,20 +2347,39 @@
         <property name="text">
          <string>¡Bienvenido!</string>
         </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
        </widget>
        <widget class="QProgressBar" name="PreEncendido_progressBar">
         <property name="geometry">
          <rect>
-          <x>280</x>
-          <y>480</y>
-          <width>401</width>
-          <height>41</height>
+          <x>120</x>
+          <y>570</y>
+          <width>691</width>
+          <height>61</height>
          </rect>
         </property>
         <property name="font">
          <font>
           <pointsize>24</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">/* Color de fondo de la barra completa */
+QProgressBar {
+    background-color: #FFFFF;
+	border: 1px solid #949292;
+    border-radius: 10px;
+    text-align: center;
+    color: black; /* Color del texto del porcentaje */
+}
+
+/* Color de la parte que se llena (chunk) */
+QProgressBar::chunk {
+    background-color: #24AAE3;
+    border-radius: 3px;
+}</string>
         </property>
         <property name="value">
          <number>0</number>
@@ -1869,10 +2431,63 @@
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">color: rgb(255, 255, 255)</string>
+        </property>
         <property name="text">
          <string>Version 1.0</string>
         </property>
        </widget>
+       <widget class="QFrame" name="frame">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>941</width>
+          <height>141</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(43, 43, 43);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame_2">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>140</y>
+          <width>951</width>
+          <height>691</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgb(220, 220, 220);
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+       </widget>
+       <zorder>frame_2</zorder>
+       <zorder>frame</zorder>
+       <zorder>PreEncendido_label2</zorder>
+       <zorder>PreEncendido_label1</zorder>
+       <zorder>PreEncendido_progressBar</zorder>
+       <zorder>line_13</zorder>
+       <zorder>label_6</zorder>
+       <zorder>label_7</zorder>
       </widget>
      </widget>
     </item>

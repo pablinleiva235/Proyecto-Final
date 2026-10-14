@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/images">
-        <file>arrow2.jpg</file>
+        <file>arrow.png</file>
         <file>logo.png</file>
     </qresource>
 </RCC>

@@ -1,5 +1,3 @@
-
-#from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -8,53 +6,69 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QDialog,
 )
-from PyQt5.QtCore import Qt
-#from gui.pyqt_gui import Ui_MainWindow
-#from services.system_state import systemState
-#from logic.timers_io import timersIOManager
-
-#import logic.pre_encendido as preEncendido
-#import logic.maintenance_process as maintenanceProcess
-#from logic.throttle_test import ThrottleController
-from config.digital_signals import ACTIVE, INACTIVE
+from PyQt5.QtCore import pyqtSignal
 
 from config_gui.strings import (APP_TITLE,EXIT_CONFIRMATION_TITLE,EXIT_CONFIRMATION_MESSAGE)
-from config_gui.constants import (WELCOME_SCREEN,MAINTAINER_SCREEN,STATISTICS_SCREEN)
+from config_gui.constants import (WELCOME_SCREEN,MAINTAINER_SCREEN,STATISTICS_SCREEN,NORMAL_OPERATION_SCREEN)
 from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_SIGNALS)
 
 from controllers.navigation_controller import NavigationController
 from controllers.signal_controller import SignalController
 from controllers.interlock_controller import InterlockController
-from controllers.shutdown_controller import ShutdownController
+from controllers.analog_signal_controller import AnalogSignalController
+from controllers.mfc_controller import MFCController
+from controllers.throttle_controller import ThrottleController
+from controllers.process_controller import ProcessController
+from PyQt5.QtCore import QTimer
+from logic.door_sequence import DoorState
 
 from gui.widgets.top_bar_widget import TopBarWidget
 from gui.welcome_screen import WelcomeScreen
 from gui.maintainer_screen import MaintainerScreen
 from gui.statistics_screen import StatisticsScreen
+from gui.normal_operation_screen import NormalOperationScreen
 from gui.login_dialog import LoginDialog
+from gui.settings_dialog import SettingsDialog
+from gui.widgets.localization import translate_widget_tree
+import config_gui.strings as strings
 
-#from services.hardware import Hardware
-#from tests.mockScripts.mock_hardware import MockHardware
-
-from logic.door_sequence import (DoorSequence, DoorState)
+from logic.door_sequence import DoorSequence
 from logic.soft_vacuum_sequence import (SoftVacuumSequence, SoftVacuumState)
 from logic.main_vacuum_sequence import (MainVacuumSequence, MainVacuumState)
 from logic.vent_sequence import (VentSequence, VentState)
-from logic.vent_sequence import (VentSequence,VentState)
 
 # gui-developement
 class MainWindow(QMainWindow):
 
-    def __init__(self, hardware):
+    exit_requested = pyqtSignal()
+
+    def __init__(
+        self,
+        hardware,
+        door_sequence,
+        soft_vacuum_sequence,
+        main_vacuum_sequence,
+        vent_sequence,
+        settings_manager=None,
+    ):
         super().__init__()
 
         self.hardware = hardware
 
+        self.door_sequence = door_sequence
+        self.soft_vacuum_sequence = soft_vacuum_sequence
+        self.main_vacuum_sequence = main_vacuum_sequence
+        self.vent_sequence = vent_sequence
+        self.settings_manager = settings_manager
+
+
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
+        self.update_texts()
 
         self._show_welcome_screen()
+
 
     def create_widgets(self):
         # Configura la ventana principal
@@ -69,6 +83,7 @@ class MainWindow(QMainWindow):
         self.welcome_screen = WelcomeScreen()
         self.maintainer_screen = MaintainerScreen()
         self.statistics_screen = StatisticsScreen()
+        self.normal_operation_screen = NormalOperationScreen()
 
         # Controlador de navegación
         self.navigation_controller = NavigationController(self.stack)
@@ -86,6 +101,10 @@ class MainWindow(QMainWindow):
             STATISTICS_SCREEN,
             self.statistics_screen,
         )
+        self.navigation_controller.register_screen(
+            NORMAL_OPERATION_SCREEN,
+            self.normal_operation_screen,
+        )
 
         # Inicializa la interfaz real con el hardware del Plasma Asher.
         # Controlador encargado del monitoreo y control de señales digitales.
@@ -94,28 +113,7 @@ class MainWindow(QMainWindow):
             monitored_signals=MAINTAINER_SIGNALS,
             output_signals=MAINTAINER_OUTPUT_SIGNALS,
             poll_interval_ms=100,
-        )
-
-        #Secuencias funcionales
-        self.door_sequence = DoorSequence(
-            hardware=self.hardware,
-        )
-        self.soft_vacuum_sequence = SoftVacuumSequence(
-            hardware=self.hardware,
-        )      
-        self.main_vacuum_sequence = MainVacuumSequence(
-            hardware=self.hardware,
-        )
-        self.vent_sequence = VentSequence(
-            hardware=self.hardware,
-        )
-
-        # Controlador de apagado seguro del equipo - Coordina la detención de secuencias y el estado seguro del hardware
-        self.shutdown_controller = ShutdownController(
-            hardware=self.hardware,
-            soft_vacuum_sequence=self.soft_vacuum_sequence,
-            main_vacuum_sequence=self.main_vacuum_sequence,
-            vent_sequence=self.vent_sequence,
+            can_toggle=self._can_toggle_manual_output,
         )
 
         # Controlador de interlocks - Determina el uso seguro de las secuencias según el estado del equipo
@@ -123,8 +121,37 @@ class MainWindow(QMainWindow):
             door_sequence=self.door_sequence,
             soft_vacuum_sequence=self.soft_vacuum_sequence,
             main_vacuum_sequence=self.main_vacuum_sequence,
-            vent_sequence=self.vent_sequence,   
+            vent_sequence=self.vent_sequence,
         )
+
+        self.analog_controller = AnalogSignalController(
+            hardware=self.hardware,
+            monitored_signals=(
+                "BARATRON", "CHAMBER_TEMP", "MFC1_FLOW", "MFC2_FLOW",
+                "MFC3_FLOW", "MFC4_FLOW", "EOP",
+            ),
+            poll_interval_ms=250,
+            parent=self,
+        )
+        self.mfc_controller = MFCController(
+            hardware=self.hardware,
+            can_operate=self._can_control_process_modules,
+            parent=self,
+        )
+        self.throttle_controller = ThrottleController(
+            hardware=self.hardware,
+            can_operate=self._can_control_process_modules,
+            parent=self,
+        )
+        self.process_controller = ProcessController(
+            hardware=self.hardware,
+            can_operate=self._can_control_process_modules,
+            parent=self,
+        )
+        self.module_monitor_timer = QTimer(self)
+        self.module_monitor_timer.setInterval(100)
+        self.module_monitor_timer.timeout.connect(self._monitor_migrated_modules)
+        self._module_access = False
 
         self.door_sequence.set_can_open(
             self.interlock_controller.can_open_door
@@ -163,6 +190,9 @@ class MainWindow(QMainWindow):
         self.welcome_screen.statistics_requested.connect(
             self._show_statistics_screen
         )
+        self.welcome_screen.normal_operation_requested.connect(
+            self._show_normal_operation_screen
+        )
 
         # Navegación hacia la pantalla de bienvenida
         self.maintainer_screen.back_requested.connect(
@@ -171,24 +201,18 @@ class MainWindow(QMainWindow):
         self.statistics_screen.back_requested.connect(
             self._show_welcome_screen
         )
+        self.normal_operation_screen.back_requested.connect(
+            self._show_welcome_screen
+        )
 
         # Solicitud global de salida
         self.top_bar.exit_requested.connect(
-            self._confirm_exit
+            self.exit_requested.emit
         )
+        self.top_bar.settings_requested.connect(self._open_settings_dialog)
+        if self.settings_manager is not None:
+            self.settings_manager.language_changed.connect(self.update_texts)
 
-        # ===================================================================================
-        # Conexión con ShutdownController - (control de apagado seguro del equipo)
-        # ===================================================================================
-        self.shutdown_controller.shutdown_started.connect(
-            self._handle_shutdown_started
-        )
-        self.shutdown_controller.shutdown_completed.connect(
-            self._handle_shutdown_completed
-        )
-        self.shutdown_controller.shutdown_error.connect(
-            self._handle_shutdown_error
-        )
 
         # ===================================================================================
         # Conexión con SignalController - (control de señales digitales en mantainer_screen)
@@ -262,6 +286,34 @@ class MainWindow(QMainWindow):
             self._handle_vent_sequence_error
         )
 
+        # Lecturas analógicas de mantenimiento.
+        self.analog_controller.signal_value_changed.connect(
+            self.maintainer_screen.set_analog_value
+        )
+        self.analog_controller.signal_error.connect(
+            self.maintainer_screen.set_analog_error
+        )
+
+        # Controles de MFC, throttle, lámparas y plasma.
+        self.maintainer_screen.mfc_flow_requested.connect(self.mfc_controller.set_flow)
+        self.maintainer_screen.mfc_valve_requested.connect(self.mfc_controller.set_valve)
+        self.mfc_controller.flow_applied.connect(self.maintainer_screen.set_mfc_flow)
+        self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
+        self.mfc_controller.operation_error.connect(self._handle_module_error)
+        self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
+        self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
+        self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
+        self.throttle_controller.operation_error.connect(self._handle_throttle_error)
+        self.maintainer_screen.lamps13_requested.connect(self.process_controller.start_lamps13)
+        self.maintainer_screen.lamp2_requested.connect(self.process_controller.set_lamp2)
+        self.maintainer_screen.plasma_requested.connect(self.process_controller.set_plasma)
+        self.process_controller.state_changed.connect(self.maintainer_screen.set_process_state)
+        self.process_controller.operation_error.connect(self._handle_module_error)
+        self.process_controller.alarm_raised.connect(self._handle_process_alarm)
+        self.process_controller.warning_raised.connect(self._handle_process_warning)
+        self.module_monitor_timer.start()
+        self.maintainer_screen.set_module_controls_enabled(False)
+
         # =========================================================
         # Estado inicial de las secuencias
         # =========================================================
@@ -271,26 +323,22 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_vent_state(self.vent_sequence.state )
         self._update_sequence_permissions()
 
-        # ====================
-        # TEST sequencias borrar
-        # ====================
-        self.maintainer_screen.soft_vacuum_sequence_requested.connect(
-            lambda: print("[Maintainer] Soft Vacuum")
-        )
-        self.maintainer_screen.main_vacuum_sequence_requested.connect(
-            lambda: print("[Maintainer] Main Vacuum")
-        )
-        self.maintainer_screen.vent_chamber_sequence_requested.connect(
-            lambda: print("[Maintainer] Vanteo de Cámara")
-        )        
-        # ====================
-        # Fin TEST sequencias
-        # ====================
+    def _open_settings_dialog(self):
+        if self.settings_manager is None:
+            return
+        dialog = SettingsDialog(self.settings_manager, self)
+        dialog.exec_()
+
+    def update_texts(self, *_):
+        translate_widget_tree(self)
+        self.setWindowTitle(strings.tr(APP_TITLE))
+
 
 
     def _show_welcome_screen(self):
     # Muestra la pantalla de bienvenida
         self.signal_controller.stop_monitoring()
+        self.analog_controller.stop_monitoring()
         self.navigation_controller.show_screen(
             WELCOME_SCREEN
         )
@@ -301,16 +349,27 @@ class MainWindow(QMainWindow):
             MAINTAINER_SCREEN
         )
         self.signal_controller.start_monitoring()
+        self.analog_controller.start_monitoring()
+        self._sync_module_permissions()
 
     def _show_statistics_screen(self):
     # Muestra la pantalla de estadísticas
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
         )
+        self.analog_controller.stop_monitoring()
+
+    def _show_normal_operation_screen(self):
+        """Muestra el prototipo de operación normal en modo simulado."""
+        self.navigation_controller.show_screen(
+            NORMAL_OPERATION_SCREEN
+        )
+        self.analog_controller.stop_monitoring()
 
     def _request_maintainer_access(self):
     # Solicita autenticación antes de ingresar al modo de mantenimiento
         login_dialog = LoginDialog(self)
+        login_dialog.update_texts()
 
         result = login_dialog.exec_()
 
@@ -322,11 +381,23 @@ class MainWindow(QMainWindow):
         signal_name: str,
         message: str,
     ) -> None:
-        """Muestra temporalmente errores del controlador en consola."""
+        """Muestra el error en la señal y lo registra en consola."""
+
+        self.maintainer_screen.set_signal_error(signal_name, message)
 
         print(
             f"[SignalController] ERROR {signal_name}: {message}"
         )
+
+    def _can_toggle_manual_output(self, signal_name, requested_state):
+        """Aplica los permisos existentes a las salidas manuales asociadas."""
+        if (
+            signal_name in ("MFC3_OPEN", "MFC4_OPEN")
+            and requested_state
+            and not self._can_control_process_modules()
+        ):
+            raise RuntimeError(strings.tr(strings.MFC_VALVE_INTERLOCK_ERROR))
+        return True
 
     def _handle_digital_signal_changed(
         self,
@@ -337,16 +408,18 @@ class MainWindow(QMainWindow):
             self.vent_sequence.update_atmospheric_state(
                 active
             )
-            
+        if signal_name in ("DOOR_OPEN", "DOOR_CLOSE"):
+            self._sync_module_permissions()
+    """
     def _confirm_exit(self):
     # Confirma con el usuario antes de cerrar la aplicación
         response = QMessageBox.question(
         self,
-        EXIT_CONFIRMATION_TITLE,
-        EXIT_CONFIRMATION_MESSAGE,
+        strings.tr(EXIT_CONFIRMATION_TITLE),
+        strings.tr(EXIT_CONFIRMATION_MESSAGE),
         QMessageBox.Yes | QMessageBox.No,
         QMessageBox.No,
-            )
+        )
         print(
             "[topBar] "
             "Cierre del programa."
@@ -358,7 +431,7 @@ class MainWindow(QMainWindow):
             )
             return
         self.shutdown_controller.start()
-        
+    """
     def _update_sequence_permissions(self):
         """
         Actualiza visualmente los permisos de las
@@ -373,33 +446,8 @@ class MainWindow(QMainWindow):
                 sequence_name,
                 enabled,
             )
-    # ============================================================
-    # Manejo de eventos de ShutdownController
-    # ============================================================
-    def _handle_shutdown_started(self):
-        print(
-            "[ShutdownController] "
-            "Apagado iniciado."
-        )
-    def _handle_shutdown_completed(self):
-        print(
-            "[ShutdownController] "
-            "Apagado completado correctamente."
-        )
-        self.close()
-        
-    def _handle_shutdown_error(self,message):
-        print(
-            "[ShutdownController] "
-            f"ERROR: {message}"
-        )
-        QMessageBox.critical(self,"Error de apagado",
-            (
-                "No fue posible completar correctamente "
-                "el apagado del equipo.\n\n"
-                f"{message}"
-            ),
-        )
+
+
     # ============================================================
     # Secuencias funcionales - Manejo de eventos
     # ============================================================
@@ -414,6 +462,7 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_door_state(
             state
         )
+        self._sync_module_permissions()
         self._update_sequence_permissions()
 
     def _handle_door_sequence_error(self, message):
@@ -421,18 +470,7 @@ class MainWindow(QMainWindow):
             f"[DoorSequence] ERROR: {message}"
         )
 
-    def _can_open_door(self):
-        #La puerta solo puede abrirse si las valvulas de vacio estan detenidas.
-        return (
-            self.soft_vacuum_sequence.state
-            == SoftVacuumState.IDLE
-        )
-
 # Soft Vacumm
-    def _can_start_soft_vacuum(self):
-        #Soft Vacuum solo puede iniciarse con la puerta cerrada.
-        return ( self.door_sequence.state == DoorState.CLOSED )
-
     def _handle_soft_vacuum_state_changed(self,state):
         print(
             "[SoftVacuumSequence] "
@@ -456,6 +494,7 @@ class MainWindow(QMainWindow):
             f"Estado: {state.value}"
         )
         self.maintainer_screen.set_main_vacuum_state(state)
+        self._sync_module_permissions()
         if state == MainVacuumState.RUNNING:
             self.interlock_controller.vacuum_started()
             self._handle_main_vacuum_started()
@@ -478,6 +517,7 @@ class MainWindow(QMainWindow):
             f"Estado: {state.value}"
         )
         self.maintainer_screen.set_vent_state(state)
+        self._sync_module_permissions()
         if state == VentState.RUNNING:
             atm_active = (
                 self.signal_controller.get_last_state("ATM_SWITCH")
@@ -498,5 +538,62 @@ class MainWindow(QMainWindow):
         print(
             "[VentSequence] "
             f"ERROR: {message}"
+        )
+
+    def _can_control_process_modules(self):
+        door_is_closed = (
+            self.door_sequence.state == DoorState.CLOSED
+            and self.signal_controller.get_last_state("DOOR_CLOSE") is True
+            and self.signal_controller.get_last_state("DOOR_OPEN") is False
+        )
+        return (
+            self.main_vacuum_sequence.state == MainVacuumState.RUNNING
+            and door_is_closed
+            and self.vent_sequence.state == VentState.IDLE
+        )
+
+    def _sync_module_permissions(self):
+        allowed = self._can_control_process_modules()
+        self.maintainer_screen.set_module_controls_enabled(allowed)
+        if allowed == self._module_access:
+            return
+        self._module_access = allowed
+        if not allowed:
+            self.throttle_controller.stop()
+            self.mfc_controller.shutdown()
+            try:
+                self.process_controller.stop_all()
+            except Exception as error:
+                self._handle_module_error("Apagado seguro", str(error))
+
+    def _monitor_migrated_modules(self):
+        self.throttle_controller.stop_if_limit_reached()
+        self.process_controller.check_faults()
+
+    def _handle_module_error(self, module_name, message):
+        if module_name in ("lamp2", "plasma"):
+            self.maintainer_screen.set_process_state(module_name, False)
+        self.maintainer_screen.set_operation_message(
+            f"{module_name}: {message}", is_error=True
+        )
+
+    def _handle_throttle_error(self, message):
+        self.maintainer_screen.set_throttle_moving(False, "detenido")
+        self._handle_module_error("Throttle", message)
+
+    def _handle_process_alarm(self, message):
+        QMessageBox.warning(
+            self,
+            strings.tr("Alarma de seguridad"),
+            strings.tr("Se detuvieron lámparas y plasma por una falla:\n\n" + message),
+            QMessageBox.Ok,
+        )
+
+    def _handle_process_warning(self, message):
+        QMessageBox.warning(
+            self,
+            strings.tr("Advertencia del magnetrón"),
+            strings.tr(message),
+            QMessageBox.Ok,
         )
 

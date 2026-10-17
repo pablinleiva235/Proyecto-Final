@@ -1,12 +1,13 @@
 """
-Controlador de apagado ordenado del equipo.
+Controlador del proceso de apagado del equipo.
 
 Responsabilidades:
-- Coordinar la detención de las secuencias funcionales.
-- Llevar el hardware al estado seguro final.
-- Informar la finalización o error del apagado.
+- Iniciar la secuencia de apagado.
+- Evitar múltiples solicitudes simultáneas.
+- Mantener el estado general del proceso.
+- Propagar finalización y errores.
 
-No modifica widgets directamente.
+No accede directamente al hardware.
 """
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -20,74 +21,38 @@ class ShutdownController(QObject):
 
     def __init__(
         self,
-        hardware,
-        soft_vacuum_sequence,
-        main_vacuum_sequence,
-        vent_sequence,
+        shutdown_sequence,
         parent=None,
     ):
         super().__init__(parent)
 
-        self._hardware = hardware
-
-        self._soft_vacuum_sequence = (soft_vacuum_sequence)
-        self._main_vacuum_sequence = (main_vacuum_sequence)
-        self._vent_sequence = (vent_sequence)
+        self._shutdown_sequence = shutdown_sequence
 
         self._is_shutting_down = False
+
+        self._shutdown_sequence.sequence_completed.connect(
+            self._handle_sequence_completed
+        )
+        self._shutdown_sequence.sequence_error.connect(
+            self._handle_sequence_error
+        )
 
     @property
     def is_shutting_down(self):
         return self._is_shutting_down
 
     def start(self):
+        # Inicia la secuencia de apagado del equipo.
         if self._is_shutting_down:
             return
 
         self._is_shutting_down = True
         self.shutdown_started.emit()
-        errors = self._shutdown_sequences()
-        try:
-            self._hardware.shutdown_state()
-
-        except Exception as error:
-            errors.append(f"Hardware safe state: {error}")
-
-        if errors:
-            self.shutdown_error.emit(" | ".join(errors))
-            return
-        self.shutdown_completed.emit()
+        self._shutdown_sequence.start()
         
-    def _shutdown_sequences(self):
-        """
-        Intenta detener todas las secuencias funcionales.
+        
+    def _handle_sequence_completed(self):
+        self.shutdown_completed.emit()
 
-        Si una secuencia falla, continúa intentando apagar
-        las restantes y registra el error.
-        """
-
-        errors = []
-
-        sequences = (
-            ("Vent",self._vent_sequence),
-            ("Main Vacuum",self._main_vacuum_sequence),
-            ("Soft Vacuum",self._soft_vacuum_sequence),
-        )
-        for name, sequence in sequences:
-            try:
-                sequence.shutdown()
-
-            except Exception as error:
-                errors.append(
-                    f"{name}: {error}"
-                )
-
-        return errors
-    
-    def _handle_error(
-        self,
-        error,
-    ):
-        self.shutdown_error.emit(
-            str(error)
-        )
+    def _handle_sequence_error(self,message):
+        self.shutdown_error.emit(message)

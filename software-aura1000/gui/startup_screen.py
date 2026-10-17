@@ -32,7 +32,9 @@ from config_gui.strings import (
     STARTUP_RUNNING_MESSAGE,
     STARTUP_TITLE,
     STARTUP_WAITING_MESSAGE,
+    tr,
 )
+from gui.widgets.localization import translate_widget_tree
 
 
 class StartupScreen(QWidget):
@@ -40,6 +42,7 @@ class StartupScreen(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._last_error_message = None
 
         self.create_widgets()
         self.setup_layout()
@@ -116,9 +119,7 @@ class StartupScreen(QWidget):
     def show_waiting_for_power(self):
         """Muestra el estado inicial de espera del botón de encendido."""
 
-        self.message_label.setText(
-            STARTUP_WAITING_MESSAGE
-        )
+        self.message_label.setText(tr(STARTUP_WAITING_MESSAGE))
 
         self.progress_bar.setValue(0)
         self.progress_bar.hide()
@@ -128,9 +129,7 @@ class StartupScreen(QWidget):
     def show_starting(self):
         """Muestra que la secuencia de inicio comenzó."""
 
-        self.message_label.setText(
-            STARTUP_RUNNING_MESSAGE
-        )
+        self.message_label.setText(tr(STARTUP_RUNNING_MESSAGE))
 
         self.progress_bar.setValue(0)
         self.progress_bar.show()
@@ -154,15 +153,19 @@ class StartupScreen(QWidget):
 
     def show_error(self, message=None):
         """Muestra un error ocurrido durante la secuencia de inicio."""
+        self._last_error_message = message
 
         if message:
-            error_text = (
-                f"{STARTUP_ERROR_MESSAGE}\n{message}"
-            )
+            error_text = tr(f"{STARTUP_ERROR_MESSAGE}\n{message}")
         else:
-            error_text = STARTUP_ERROR_MESSAGE
+            error_text = tr(STARTUP_ERROR_MESSAGE)
 
         self.error_label.setText(error_text)
         self.error_label.show()
 
         self.progress_bar.hide()
+
+    def update_texts(self, *_):
+        translate_widget_tree(self)
+        if self.error_label.text():
+            self.show_error(self._last_error_message)

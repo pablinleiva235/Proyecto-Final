@@ -27,19 +27,29 @@ from typing import Dict, List
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
+    QDoubleSpinBox,
+    QGroupBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from config.digital_signals import DIGITALSIGNALS
-from config_gui.maintainer_signals import MAINTAINER_SIGNALS
+from config_gui.maintainer_signals import (
+    MAINTAINER_SIGNALS,
+    MANUALLY_TOGGLABLE_OUTPUT_SIGNALS,
+    SEQUENCE_CONTROLLED_OUTPUT_SIGNALS,
+)
 import config_gui.strings as myStr
 from gui.widgets.signal_widget import SignalWidget
+from gui.widgets.analog_readout_card import AnalogReadoutCard
+from gui.widgets.mfc_control_card import MFCControlCard
+from gui.widgets.localization import set_localized_text
 
 
 class MaintainerScreen(QWidget):
@@ -55,6 +65,13 @@ class MaintainerScreen(QWidget):
     soft_vacuum_sequence_requested = pyqtSignal()
     main_vacuum_sequence_requested = pyqtSignal()
     vent_chamber_sequence_requested = pyqtSignal()
+    mfc_flow_requested = pyqtSignal(str, float)
+    mfc_valve_requested = pyqtSignal(str, bool)
+    throttle_move_requested = pyqtSignal(bool)
+    throttle_stop_requested = pyqtSignal()
+    lamps13_requested = pyqtSignal(float)
+    lamp2_requested = pyqtSignal(bool)
+    plasma_requested = pyqtSignal(bool)
 
     INPUT_DIRECTION = "IN"
     OUTPUT_DIRECTION = "OUT"
@@ -65,6 +82,7 @@ class MaintainerScreen(QWidget):
         self._signal_widgets: Dict[str, SignalWidget] = {}
         self._input_widgets: List[SignalWidget] = []
         self._output_widgets: List[SignalWidget] = []
+        self._analog_values = {}
 
         self.create_widgets()
         self.setup_layout()
@@ -85,6 +103,8 @@ class MaintainerScreen(QWidget):
 
         self.signals_tab = QWidget()
         self.signals_tab.setObjectName("MaintainerSignalsTab")
+        self.analog_tab = QWidget()
+        self.analog_tab.setObjectName("MaintainerAnalogTab")
 
         self.tabs.addTab(
             self.sequences_tab,
@@ -95,6 +115,7 @@ class MaintainerScreen(QWidget):
             self.signals_tab,
             myStr.MAINTAINER_SIGNALS_TAB,
         )
+        self.tabs.addTab(self.analog_tab, myStr.MAINTAINER_ANALOG_TAB)
 
         # ---------------------------------------------------------------------
         # Pestaña de módulos funcionales
@@ -147,6 +168,8 @@ class MaintainerScreen(QWidget):
         )
 
         self._create_signal_widgets()
+        self._create_module_controls()
+        self._create_analog_readouts()
 
         # ---------------------------------------------------------------------
         # Navegación
@@ -158,6 +181,8 @@ class MaintainerScreen(QWidget):
         self.back_button.setObjectName(
             "BackButton"
         )
+        self.operation_status_label = QLabel("")
+        self.operation_status_label.setWordWrap(True)
 
         self._sequence_buttons = {
         "door": self.door_sequence_button,
@@ -201,6 +226,7 @@ class MaintainerScreen(QWidget):
         main_layout.addWidget(
             self.tabs
         )
+        main_layout.addWidget(self.operation_status_label)
 
         main_layout.addLayout(
             navigation_layout
@@ -236,6 +262,18 @@ class MaintainerScreen(QWidget):
                 self._handle_output_toggle_requested
             )
 
+        self.mfc1_card.flow_requested.connect(self.mfc_flow_requested.emit)
+        self.mfc2_card.flow_requested.connect(self.mfc_flow_requested.emit)
+        self.mfc1_card.valve_requested.connect(self.mfc_valve_requested.emit)
+        self.mfc2_card.valve_requested.connect(self.mfc_valve_requested.emit)
+        self.throttle_open_button.pressed.connect(lambda: self.throttle_move_requested.emit(False))
+        self.throttle_close_button.pressed.connect(lambda: self.throttle_move_requested.emit(True))
+        self.throttle_open_button.released.connect(self.throttle_stop_requested.emit)
+        self.throttle_close_button.released.connect(self.throttle_stop_requested.emit)
+        self.lamps13_button.clicked.connect(lambda: self.lamps13_requested.emit(self.lamps13_duration.value()))
+        self.lamp2_button.clicked.connect(lambda checked: self.lamp2_requested.emit(checked))
+        self.plasma_button.clicked.connect(lambda checked: self.plasma_requested.emit(checked))
+
     # =========================================================================
     # Configuración de pestañas
     # =========================================================================
@@ -243,8 +281,12 @@ class MaintainerScreen(QWidget):
     def _setup_sequences_tab(self) -> None:
         """Organiza los controles de secuencias funcionales."""
 
+        # El contenido de mantenimiento puede superar la altura disponible en
+        # fullscreen. Mantenerlo dentro de un scroll area evita que empuje la
+        # navegación, que vive fuera de la pestaña.
+        sequences_content = QWidget()
         sequences_layout = QGridLayout(
-            self.sequences_tab
+            sequences_content
         )
 
         sequences_layout.setContentsMargins(
@@ -281,6 +323,11 @@ class MaintainerScreen(QWidget):
             1,
         )
 
+        sequences_layout.addWidget(self.mfc1_card, 2, 0)
+        sequences_layout.addWidget(self.mfc2_card, 2, 1)
+        sequences_layout.addWidget(self.throttle_group, 3, 0)
+        sequences_layout.addWidget(self.process_group, 3, 1)
+
         sequences_layout.setColumnStretch(
             0,
             1,
@@ -291,59 +338,289 @@ class MaintainerScreen(QWidget):
             1,
         )
 
-        sequences_layout.setRowStretch(
-            0,
-            1,
-        )
+        sequences_layout.setRowStretch(0, 0)
+        sequences_layout.setRowStretch(1, 0)
+        sequences_layout.setRowStretch(2, 0)
+        sequences_layout.setRowStretch(3, 0)
 
-        sequences_layout.setRowStretch(
-            1,
-            1,
+        self.sequences_scroll_area = QScrollArea(self.sequences_tab)
+        self.sequences_scroll_area.setWidgetResizable(True)
+        self.sequences_scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
         )
+        self.sequences_scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )
+        self.sequences_scroll_area.setWidget(sequences_content)
+
+        sequences_tab_layout = QVBoxLayout(self.sequences_tab)
+        sequences_tab_layout.setContentsMargins(0, 0, 0, 0)
+        sequences_tab_layout.addWidget(self.sequences_scroll_area)
 
     def _setup_signals_tab(self) -> None:
-        """Organiza las señales digitales en entradas y salidas."""
+        """Muestra entradas y salidas a la vez, con scroll independiente."""
 
-        inputs_layout = self._create_signal_grid(
+        self.inputs_scroll_area = self._create_signal_scroll_area(
             self._input_widgets
         )
-
-        outputs_layout = self._create_signal_grid(
+        self.outputs_scroll_area = self._create_signal_scroll_area(
             self._output_widgets
         )
 
-        signals_layout = QVBoxLayout(
-            self.signals_tab
+        inputs_column = QWidget()
+        inputs_layout = QVBoxLayout(inputs_column)
+        inputs_layout.setContentsMargins(0, 0, 0, 0)
+        inputs_layout.setSpacing(12)
+        inputs_layout.addWidget(self.inputs_title_label)
+        inputs_layout.addWidget(self.inputs_scroll_area)
+
+        outputs_column = QWidget()
+        outputs_layout = QVBoxLayout(outputs_column)
+        outputs_layout.setContentsMargins(0, 0, 0, 0)
+        outputs_layout.setSpacing(12)
+        outputs_layout.addWidget(self.outputs_title_label)
+        outputs_layout.addWidget(self.outputs_scroll_area)
+
+        columns_layout = QHBoxLayout()
+        columns_layout.setContentsMargins(24, 24, 24, 24)
+        columns_layout.setSpacing(24)
+        columns_layout.addWidget(inputs_column, 1)
+        columns_layout.addWidget(outputs_column, 1)
+        self.signals_tab.setLayout(columns_layout)
+
+    def _create_signal_scroll_area(self, widgets: List[SignalWidget]) -> QScrollArea:
+        """Crea una grilla con viewport para cuatro filas de dos señales."""
+
+        grid_layout = self._create_signal_grid(widgets, columns=2)
+        content = QWidget()
+        content.setLayout(grid_layout)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setWidget(content)
+
+        # Cuatro filas por dos columnas mantienen visibles hasta ocho señales.
+        card_height = max(
+            (widget.sizeHint().height() for widget in widgets),
+            default=0,
+        )
+        margins = grid_layout.contentsMargins()
+        visible_height = (
+            4 * card_height
+            + 3 * grid_layout.verticalSpacing()
+            + margins.top()
+            + margins.bottom()
+            + 2 * scroll_area.frameWidth()
+        )
+        scroll_area.setFixedHeight(visible_height)
+        return scroll_area
+
+    def _create_module_controls(self):
+        self.mfc1_card = MFCControlCard("MFC1", "O₂", 10.0)
+        self.mfc2_card = MFCControlCard("MFC2", "N₂", 1.0)
+        self.mfc1_setpoint = self.mfc1_card.setpoint
+        self.mfc2_setpoint = self.mfc2_card.setpoint
+        self.mfc1_set_button = self.mfc1_card.apply_button
+        self.mfc2_set_button = self.mfc2_card.apply_button
+        self.mfc1_valve_button = self.mfc1_card.valve_button
+        self.mfc2_valve_button = self.mfc2_card.valve_button
+
+        self.throttle_group = QGroupBox(myStr.MAINTAINER_THROTTLE_TITLE)
+        self.throttle_group.setObjectName("MaintainerCardGroup")
+        throttle_layout = QHBoxLayout(self.throttle_group)
+        self.throttle_open_button = QPushButton(myStr.MAINTAINER_THROTTLE_OPEN)
+        self.throttle_close_button = QPushButton(myStr.MAINTAINER_THROTTLE_CLOSE)
+        self.throttle_open_button.setObjectName("MaintenanceActionButton")
+        self.throttle_close_button.setObjectName("MaintenanceActionButton")
+        throttle_layout.addWidget(self.throttle_open_button)
+        throttle_layout.addWidget(self.throttle_close_button)
+        self.throttle_state_label = QLabel("DETENIDO")
+        self.throttle_state_label.setObjectName("MaintenancePill")
+        self.throttle_state_label.setProperty("state", "inactive")
+        throttle_layout.addWidget(self.throttle_state_label)
+
+        self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
+        self.process_group.setObjectName("MaintainerCardGroup")
+        process_layout = QHBoxLayout(self.process_group)
+        self.lamps13_duration = QDoubleSpinBox()
+        self.lamps13_duration.setRange(0.1, 28.0)
+        self.lamps13_duration.setDecimals(1)
+        self.lamps13_duration.setValue(1.0)
+        self.lamps13_duration.setObjectName("MaintenanceSetpointInput")
+        self.lamps13_button = QPushButton(myStr.MAINTAINER_LAMPS_PULSE)
+        self.lamps13_button.setObjectName("MaintenanceActionButton")
+        self.lamps13_state_label = QLabel("LISTAS")
+        self.lamps13_state_label.setObjectName("MaintenancePill")
+        self.lamps13_state_label.setProperty("state", "inactive")
+        self.lamp2_button = QPushButton(myStr.MAINTAINER_LAMP2_ON)
+        self.lamp2_button.setObjectName("MaintenanceActionButton")
+        self.lamp2_button.setCheckable(True)
+        self.lamp2_state_label = QLabel("APAGADA")
+        self.lamp2_state_label.setObjectName("MaintenancePill")
+        self.lamp2_state_label.setProperty("state", "inactive")
+        self.plasma_button = QPushButton(myStr.MAINTAINER_PLASMA_ON)
+        self.plasma_button.setObjectName("MaintenanceActionButton")
+        self.plasma_button.setCheckable(True)
+        self.plasma_state_label = QLabel("APAGADO")
+        self.plasma_state_label.setObjectName("MaintenancePill")
+        self.plasma_state_label.setProperty("state", "inactive")
+        lamps13_column = QWidget()
+        lamps13_layout = QVBoxLayout(lamps13_column)
+        lamps13_layout.setContentsMargins(0, 0, 0, 0)
+        lamps13_layout.addWidget(self.lamps13_state_label)
+        lamps13_layout.addWidget(QLabel(myStr.MAINTAINER_PULSE_SECONDS))
+        lamps13_layout.addWidget(self.lamps13_duration)
+        lamps13_layout.addWidget(self.lamps13_button)
+
+        lamp2_column = QWidget()
+        lamp2_layout = QVBoxLayout(lamp2_column)
+        lamp2_layout.setContentsMargins(0, 0, 0, 0)
+        lamp2_layout.addWidget(self.lamp2_state_label)
+        lamp2_layout.addWidget(self.lamp2_button)
+
+        plasma_column = QWidget()
+        plasma_layout = QVBoxLayout(plasma_column)
+        plasma_layout.setContentsMargins(0, 0, 0, 0)
+        plasma_layout.addWidget(self.plasma_state_label)
+        plasma_layout.addWidget(self.plasma_button)
+
+        process_layout.addWidget(lamps13_column, 2)
+        process_layout.addWidget(lamp2_column, 1)
+        process_layout.addWidget(plasma_column, 1)
+
+    def _create_analog_readouts(self):
+        names = (
+            ("BARATRON", "Baratron · Presión", "Torr", "P"),
+            ("CHAMBER_TEMP", "Temperatura de cámara", "°C", "T"),
+            ("MFC3_FLOW", "MFC3 · Lectura", "V", "M3"),
+            ("MFC4_FLOW", "MFC4 · Lectura", "V", "M4"),
+            ("EOP", "End of Process", "V", "EOP"),
+        )
+        content = QWidget()
+        layout = QGridLayout(content)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setHorizontalSpacing(20)
+        layout.setVerticalSpacing(20)
+        for index, (name, label, unit, icon) in enumerate(names):
+            row, column = divmod(index, 2)
+            card = AnalogReadoutCard(label, unit, icon)
+            layout.addWidget(card, row, column)
+            self._analog_values[name] = card
+
+        self._analog_values["MFC1_FLOW"] = self.mfc1_card
+        self._analog_values["MFC2_FLOW"] = self.mfc2_card
+
+        self.analog_scroll_area = QScrollArea(self.analog_tab)
+        self.analog_scroll_area.setWidgetResizable(True)
+        self.analog_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.analog_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.analog_scroll_area.setWidget(content)
+        analog_layout = QVBoxLayout(self.analog_tab)
+        analog_layout.setContentsMargins(0, 0, 0, 0)
+        analog_layout.addWidget(self.analog_scroll_area)
+
+    def set_analog_value(self, signal_name, value):
+        widget = self._analog_values.get(signal_name)
+        if widget is None:
+            return
+        value = float(value)
+        if signal_name in ("BARATRON", "MFC1_FLOW", "MFC2_FLOW"):
+            value = max(0.0, value)
+        if signal_name in ("MFC1_FLOW", "MFC2_FLOW"):
+            widget.set_measured_flow(value)
+        else:
+            precision = 1 if signal_name == "CHAMBER_TEMP" else 3
+            widget.set_value(value, precision)
+
+    def set_analog_error(self, signal_name, message):
+        widget = self._analog_values.get(signal_name)
+        if widget is not None:
+            if signal_name in ("MFC1_FLOW", "MFC2_FLOW"):
+                widget.set_measurement_error(message)
+            else:
+                widget.set_error(message)
+
+    def set_process_state(self, name, enabled):
+        if name == "lamps13":
+            self._set_pill(
+                self.lamps13_state_label,
+                "PULSO ACTIVO" if enabled else "LISTAS",
+                "active" if enabled else "inactive",
+            )
+        elif name == "lamp2":
+            self.lamp2_button.setChecked(enabled)
+            set_localized_text(
+                self.lamp2_button,
+                myStr.MAINTAINER_LAMP2_OFF if enabled else myStr.MAINTAINER_LAMP2_ON,
+            )
+            self._set_pill(
+                self.lamp2_state_label,
+                "ENCENDIDA" if enabled else "APAGADA",
+                "active" if enabled else "inactive",
+            )
+        elif name == "plasma":
+            self.plasma_button.setChecked(enabled)
+            set_localized_text(
+                self.plasma_button,
+                myStr.MAINTAINER_PLASMA_OFF if enabled else myStr.MAINTAINER_PLASMA_ON,
+            )
+            self._set_pill(
+                self.plasma_state_label,
+                "ACTIVO" if enabled else "APAGADO",
+                "active" if enabled else "inactive",
+            )
+
+    def set_mfc_flow(self, name, flow):
+        card = self.mfc1_card if name == "MFC1" else self.mfc2_card
+        card.set_setpoint(float(flow))
+
+    def set_mfc_valve_state(self, name, opened):
+        card = self.mfc1_card if name == "MFC1" else self.mfc2_card
+        card.set_valve_state(opened)
+
+    def set_throttle_moving(self, moving, direction):
+        state = direction.upper() if moving else "DETENIDO"
+        self._set_pill(
+            self.throttle_state_label,
+            state,
+            "active" if moving else "inactive",
+        )
+        set_localized_text(
+            self.throttle_open_button,
+            myStr.MAINTAINER_THROTTLE_OPEN + (f" ({direction})" if moving and direction == "abriendo" else ""),
+        )
+        set_localized_text(
+            self.throttle_close_button,
+            myStr.MAINTAINER_THROTTLE_CLOSE + (f" ({direction})" if moving and direction == "cerrando" else ""),
         )
 
-        signals_layout.setContentsMargins(
-            24,
-            24,
-            24,
-            24,
+    def set_module_controls_enabled(self, enabled):
+        self.mfc1_card.set_controls_enabled(enabled)
+        self.mfc2_card.set_controls_enabled(enabled)
+        widgets = (
+            self.throttle_open_button, self.throttle_close_button,
+            self.lamps13_duration, self.lamps13_button, self.lamp2_button,
+            self.plasma_button,
         )
+        for widget in widgets:
+            widget.setEnabled(enabled)
 
-        signals_layout.setSpacing(24)
+    @staticmethod
+    def _set_pill(widget, text, state):
+        set_localized_text(widget, text)
+        widget.setProperty("state", state)
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
 
-        signals_layout.addWidget(
-            self.inputs_title_label
+    def set_operation_message(self, message, is_error=False):
+        set_localized_text(self.operation_status_label, message)
+        self.operation_status_label.setProperty("error", bool(is_error))
+        self.operation_status_label.setStyleSheet(
+            "color: #b00020;" if is_error else "color: #2e7d32;"
         )
-
-        signals_layout.addLayout(
-            inputs_layout
-        )
-
-        signals_layout.addSpacing(20)
-
-        signals_layout.addWidget(
-            self.outputs_title_label
-        )
-
-        signals_layout.addLayout(
-            outputs_layout
-        )
-
-        signals_layout.addStretch()
 
     # =========================================================================
     # Interfaz pública para SignalController
@@ -363,6 +640,10 @@ class MaintainerScreen(QWidget):
         widget.set_active(
             active
         )
+
+    def set_signal_error(self, signal_name: str, message: str) -> None:
+        """Muestra el error sobre la tarjeta sin alterar su último estado."""
+        self._get_signal_widget(signal_name).set_error(message)
 
     def set_signal_processing(
         self,
@@ -408,10 +689,19 @@ class MaintainerScreen(QWidget):
                 direction
                 == self.OUTPUT_DIRECTION
             )
+            is_controllable_output = (
+                is_output
+                and signal_name in MANUALLY_TOGGLABLE_OUTPUT_SIGNALS
+            )
+            module_controlled_output = (
+                is_output
+                and signal_name in SEQUENCE_CONTROLLED_OUTPUT_SIGNALS
+            )
 
             widget = SignalWidget(
                 signal_name=signal_name,
-                interactive=is_output,
+                interactive=is_controllable_output,
+                module_controlled=module_controlled_output,
             )
 
             self._signal_widgets[
@@ -551,29 +841,19 @@ class MaintainerScreen(QWidget):
     def set_door_state(self, state):
         #Actualiza el texto del botón de puerta según el estado actual
         if state.value == "opening":
-            self.door_sequence_button.setText(
-                myStr.DOOR_SEQUENCE_OPENING_BUTTON
-            )
+            set_localized_text(self.door_sequence_button, myStr.DOOR_SEQUENCE_OPENING_BUTTON)
 
         elif state.value == "closing":
-            self.door_sequence_button.setText(
-                myStr.DOOR_SEQUENCE_CLOSING_BUTTON
-            )
+            set_localized_text(self.door_sequence_button, myStr.DOOR_SEQUENCE_CLOSING_BUTTON)
 
         elif state.value == "open":
-            self.door_sequence_button.setText(
-                myStr.DOOR_SEQUENCE_CLOSE_BUTTON
-            )
+            set_localized_text(self.door_sequence_button, myStr.DOOR_SEQUENCE_CLOSE_BUTTON)
 
         elif state.value == "closed":
-            self.door_sequence_button.setText(
-                myStr.DOOR_SEQUENCE_OPEN_BUTTON
-            )
+            set_localized_text(self.door_sequence_button, myStr.DOOR_SEQUENCE_OPEN_BUTTON)
 
         elif state.value == "error":
-            self.door_sequence_button.setText(
-                myStr.DOOR_SEQUENCE_ERROR_BUTTON
-            )
+            set_localized_text(self.door_sequence_button, myStr.DOOR_SEQUENCE_ERROR_BUTTON)
     
     # =========================================================================
     # Secuencia Soft Vacuum
@@ -581,29 +861,19 @@ class MaintainerScreen(QWidget):
     def set_soft_vacuum_state(self, state):
         #Actualiza el texto del botón de Soft Vacuum según el estado actual
         if state.value == "starting":
-            self.soft_vacuum_sequence_button.setText(
-                myStr.SOFT_VACUUM_ON_BUTTON
-            )
+            set_localized_text(self.soft_vacuum_sequence_button, myStr.SOFT_VACUUM_ON_BUTTON)
 
         elif state.value == "running":
-            self.soft_vacuum_sequence_button.setText(
-                myStr.SOFT_VACUUM_OFF_BUTTON
-            )
+            set_localized_text(self.soft_vacuum_sequence_button, myStr.SOFT_VACUUM_OFF_BUTTON)
 
         elif state.value == "stopping":
-            self.soft_vacuum_sequence_button.setText(
-                myStr.SOFT_VACUUM_OFF_BUTTON
-            )
+            set_localized_text(self.soft_vacuum_sequence_button, myStr.SOFT_VACUUM_OFF_BUTTON)
 
         elif state.value == "idle":
-            self.soft_vacuum_sequence_button.setText(
-                myStr.SOFT_VACUUM_ON_BUTTON
-            )
+            set_localized_text(self.soft_vacuum_sequence_button, myStr.SOFT_VACUUM_ON_BUTTON)
 
         elif state.value == "error":
-            self.soft_vacuum_sequence_button.setText(
-                myStr.SOFT_VACUUM_ERROR_BUTTON
-            )
+            set_localized_text(self.soft_vacuum_sequence_button, myStr.SOFT_VACUUM_ERROR_BUTTON)
 
     # =========================================================================
     # Secuencia Main Vacuum
@@ -611,29 +881,19 @@ class MaintainerScreen(QWidget):
     def set_main_vacuum_state(self, state):
         #Actualiza el texto del botón de Main Vacuum según el estado actual de la secuencia.
         if state.value == "starting":
-            self.main_vacuum_sequence_button.setText(
-                myStr.MAIN_VACUUM_ON_BUTTON
-            )
+            set_localized_text(self.main_vacuum_sequence_button, myStr.MAIN_VACUUM_ON_BUTTON)
 
         elif state.value == "running":
-            self.main_vacuum_sequence_button.setText(
-                myStr.MAIN_VACUUM_OFF_BUTTON
-            )
+            set_localized_text(self.main_vacuum_sequence_button, myStr.MAIN_VACUUM_OFF_BUTTON)
 
         elif state.value == "stopping":
-            self.main_vacuum_sequence_button.setText(
-                myStr.MAIN_VACUUM_OFF_BUTTON
-            )
+            set_localized_text(self.main_vacuum_sequence_button, myStr.MAIN_VACUUM_OFF_BUTTON)
 
         elif state.value == "idle":
-            self.main_vacuum_sequence_button.setText(
-                myStr.MAIN_VACUUM_ON_BUTTON
-            )
+            set_localized_text(self.main_vacuum_sequence_button, myStr.MAIN_VACUUM_ON_BUTTON)
 
         elif state.value == "error":
-            self.main_vacuum_sequence_button.setText(
-                myStr.MAIN_VACUUM_ERROR_BUTTON
-            )
+            set_localized_text(self.main_vacuum_sequence_button, myStr.MAIN_VACUUM_ERROR_BUTTON)
 
     def set_sequence_enabled(
         self,
@@ -656,22 +916,12 @@ class MaintainerScreen(QWidget):
     def set_vent_state(self,state):
         # modificar el texto del botón de venteo según el estado actual de la secuencia
         if state.value == "starting":
-            self.vent_chamber_sequence_button.setText(
-                myStr.VENT_ON_BUTTON
-            )
+            set_localized_text(self.vent_chamber_sequence_button, myStr.VENT_ON_BUTTON)
         elif state.value == "running":
-            self.vent_chamber_sequence_button.setText(
-                myStr.VENT_OFF_BUTTON
-            )
+            set_localized_text(self.vent_chamber_sequence_button, myStr.VENT_OFF_BUTTON)
         elif state.value == "stopping":
-            self.vent_chamber_sequence_button.setText(
-                myStr.VENT_OFF_BUTTON
-            )
+            set_localized_text(self.vent_chamber_sequence_button, myStr.VENT_OFF_BUTTON)
         elif state.value == "idle":
-            self.vent_chamber_sequence_button.setText(
-                myStr.VENT_ON_BUTTON
-            )
+            set_localized_text(self.vent_chamber_sequence_button, myStr.VENT_ON_BUTTON)
         elif state.value == "error":
-            self.vent_chamber_sequence_button.setText(
-                myStr  .VENT_ERROR_BUTTON
-            )
+            set_localized_text(self.vent_chamber_sequence_button, myStr.VENT_ERROR_BUTTON)

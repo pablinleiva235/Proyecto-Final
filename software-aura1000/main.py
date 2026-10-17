@@ -16,9 +16,8 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from config_gui.theme import APP_STYLE
-
 from config_gui.app_config import USE_MOCK_HARDWARE
+from config_gui.settings_manager import SettingsManager
 
 if USE_MOCK_HARDWARE:
     from tests.mockScripts.mock_hardware import MockHardware
@@ -28,8 +27,15 @@ else:
 
 
 from logic.startup_sequence import StartupSequence
+from logic.door_sequence import DoorSequence
+from logic.soft_vacuum_sequence import SoftVacuumSequence
+from logic.main_vacuum_sequence import MainVacuumSequence
+from logic.vent_sequence import VentSequence
+from logic.shutdown_sequence import ShutdownSequence
 
+from controllers.power_controller import PowerController
 from controllers.startup_controller import StartupController
+from controllers.shutdown_controller import ShutdownController
 from controllers.application_controller import ApplicationController
 
 from gui.startup_screen import StartupScreen
@@ -45,18 +51,16 @@ def main():
 
     app = QApplication(sys.argv)
 
-    app.setStyleSheet(APP_STYLE)
+    settings_manager = SettingsManager(app)
 
     # =========================================================================
     # Hardware
     # =========================================================================
-
     # Se crea una única instancia de Hardware para toda la aplicación.
-    #
-    # Esta misma instancia será utilizada durante:
-    # - La secuencia de pre-encendido.
-    # - La supervisión del arranque.
-    # - El monitoreo y control desde MaintainerScreen.
+    # Esta misma instancia será utilizada por:
+    # - PowerController para monitorear las señales físicas de alimentación.
+    # - StartupSequence para ejecutar el pre-encendido.
+    # - MainWindow y sus controladores/secuencias durante la operación.
     if USE_MOCK_HARDWARE:
         hardware = MockHardware()
     else:
@@ -72,7 +76,15 @@ def main():
         )
 
     # =========================================================================
-    # Secuencia física de pre-encendido
+    # Control de alimentación
+    # =========================================================================
+
+    power_controller = PowerController(
+        hardware=hardware,
+    )
+
+    # =========================================================================
+    # Secuencia de pre-encendido
     # =========================================================================
 
     startup_sequence = StartupSequence(
@@ -84,8 +96,42 @@ def main():
     # =========================================================================
 
     startup_controller = StartupController(
-        hardware=hardware,
         startup_sequence=startup_sequence,
+    )
+
+    # =========================================================================
+    # Secuencias funcionales
+    # =========================================================================
+
+    door_sequence = DoorSequence(
+        hardware=hardware,
+    )
+
+    soft_vacuum_sequence = SoftVacuumSequence(
+        hardware=hardware,
+    )
+
+    main_vacuum_sequence = MainVacuumSequence(
+        hardware=hardware,
+    )
+
+    vent_sequence = VentSequence(
+        hardware=hardware,
+    )
+
+    # =========================================================================
+    # Secuencia de apagado seguro
+    # =========================================================================
+
+    shutdown_sequence = ShutdownSequence(
+        hardware=hardware,
+        soft_vacuum_sequence=soft_vacuum_sequence,
+        main_vacuum_sequence=main_vacuum_sequence,
+        vent_sequence=vent_sequence,
+    )
+
+    shutdown_controller = ShutdownController(
+        shutdown_sequence=shutdown_sequence,
     )
 
     # =========================================================================
@@ -93,9 +139,16 @@ def main():
     # =========================================================================
 
     startup_screen = StartupScreen()
+    startup_screen.update_texts()
+    settings_manager.language_changed.connect(startup_screen.update_texts)
 
     main_window = MainWindow(
         hardware=hardware,
+        door_sequence=door_sequence,
+        soft_vacuum_sequence=soft_vacuum_sequence,
+        main_vacuum_sequence=main_vacuum_sequence,
+        vent_sequence=vent_sequence,
+        settings_manager=settings_manager,
     )
 
     # =========================================================================
@@ -104,6 +157,8 @@ def main():
 
     application_controller = ApplicationController(
         startup_controller=startup_controller,
+        power_controller=power_controller,
+        shutdown_controller=shutdown_controller,
         startup_screen=startup_screen,
         main_window=main_window,
     )
@@ -119,52 +174,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
-#main branch
-'''
-# Handler que lleva las señales a estado seguro ante alguna falla inesperada de la interfaz grafica
-def global_exception_handler(exctype, value, traceback):
-    """
-    Captura cualquier excepción no manejada en el software para forzar
-    el estado seguro del reactor AURA 1000 antes de cerrar la aplicación.
-    """
-    print(f"\n[CRITICAL] Error no manejado detectado: {exctype.__name__}: {value}")
-    
-    try:
-        # Buscamos la instancia de hardware a través de la ventana principal
-        if 'window' in globals() and hasattr(window, 'hw') and window.hw is not None:
-            print("Ejecutando shutdown_state() de emergencia en hardware.py...")
-            window.hw.shutdown_state()
-        else:
-            print("Alerta: No se encontró la instancia de hardware activa para el apagado seguro.")
-    except Exception as hw_err:
-        print(f"Error crítico al intentar forzar el estado seguro: {hw_err}")
-
-    # Mostrar cartel de alerta al operario en el laboratorio
-    try:
-        error_msg = (
-            f"Ocurrió un error inesperado en el sistema.\n\n"
-            f"El hardware se ha llevado a ESTADO SEGURO automáticamente.\n\n"
-            f"Detalle del error:\n{value}"
-        )
-        QtWidgets.QMessageBox.critical(None, "Falla Crítica de Sistema", error_msg)
-    except Exception as gui_err:
-        print(f"No se pudo mostrar el cuadro de diálogo de Qt: {gui_err}")
-
-    # Llamamos al comportamiento por defecto de Python (imprime el traceback en consola)
-    sys.__excepthook__(exctype, value, traceback)
-    
-    # Forzamos la salida inmediata del script para evitar bucles zombis en la GUI
-    sys.exit(1)
-
-if __name__ == "__main__":
-    # app = QtWidgets.QApplication(sys.argv)
-    # hw = Hardware()
-    # #Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
-    # window = MainWindow(hw)
-    # window.show()
-    # sys.exit(app.exec_()) 
-    main()
-
-'''

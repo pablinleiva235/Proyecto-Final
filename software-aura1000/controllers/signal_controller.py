@@ -11,6 +11,7 @@ Responsabilidades:
 - Informar a la GUI cuando cambia el estado de una señal.
 - Informar cuando una salida se encuentra en procesamiento.
 - Capturar errores de lectura o escritura.
+- Consultar una política de permiso antes de cada conmutación manual.
 
 SignalController no:
 - Crea ni modifica widgets directamente.
@@ -51,10 +52,13 @@ class SignalController(QObject):
         output_signals: Iterable[str],
         poll_interval_ms: int = 500,
         parent: Optional[QObject] = None,
+        can_toggle=None,
     ) -> None:
         super().__init__(parent)
 
         self._hardware = hardware
+        # La política depende de interlocks de aplicación, nunca del backend.
+        self._can_toggle = can_toggle or (lambda _name, _active: True)
 
         self._monitored_signals = self._normalize_signals(
             monitored_signals
@@ -164,6 +168,17 @@ class SignalController(QObject):
             return
 
         requested_state = not current_state
+
+        try:
+            permitted = self._can_toggle(signal_name, requested_state)
+            if not permitted:
+                raise RuntimeError("La solicitud está bloqueada por los interlocks actuales.")
+        except Exception as error:
+            self.signal_error.emit(
+                signal_name,
+                f"Solicitud bloqueada: {error}",
+            )
+            return
 
         self._processing_signals.add(signal_name)
 

@@ -19,6 +19,10 @@ class SimulationController(QObject):
                 self._toggle_input("ATM_SWITCH")
                 return True
 
+            if event.key() == Qt.Key_O:
+                self._toggle_input("SYS_POWER")
+                return True
+
         return super().eventFilter(obj,event)
 
     def _toggle_input(self,signal_name):

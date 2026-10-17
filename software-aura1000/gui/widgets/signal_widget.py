@@ -36,7 +36,10 @@ from config_gui.strings import (
     SIGNAL_STATE_ACTIVE,
     SIGNAL_STATE_INACTIVE,
     SIGNAL_STATE_PROCESSING,
+    SIGNAL_OUTPUT_MODULE_CONTROL,
 )
+from config.digital_signals import DIGITALSIGNALS
+from gui.widgets.localization import set_localized_text
 
 
 class SignalVisualState(Enum):
@@ -81,11 +84,13 @@ class SignalWidget(QFrame):
         interactive: bool,
         display_name: Optional[str] = None,
         parent: Optional[QWidget] = None,
+        module_controlled: bool = False,
     ) -> None:
         super().__init__(parent)
 
         self._signal_name = self._validate_signal_name(signal_name)
         self._interactive = self._validate_interactive(interactive)
+        self._module_controlled = bool(module_controlled)
         self._display_name = display_name or self._signal_name
 
         # Estado inicial temporal. El controlador deberá reemplazarlo con
@@ -104,11 +109,11 @@ class SignalWidget(QFrame):
             "interactive",
             "true" if self._interactive else "false",
         )
+        self.setProperty("error", "false")
 
         self._set_visual_state(self._visual_state)
 
     def create_widgets(self) -> None:
-    
         self._name_label = QLabel(self._display_name)
         self._name_label.setObjectName("signalNameLabel")
 
@@ -124,22 +129,42 @@ class SignalWidget(QFrame):
         self._status_label = QLabel()
         self._status_label.setObjectName("signalStatusLabel")
 
-    def setup_layout(self) -> None:
-    
-        status_layout = QHBoxLayout()
-        status_layout.setContentsMargins(0, 0, 0, 0)
-        status_layout.setSpacing(10)
+        self._kind_label = QLabel("DO" if self._signal_is_output() else "DI")
+        self._kind_label.setObjectName("signalKindIcon")
+        self._kind_label.setAlignment(Qt.AlignCenter)
 
-        status_layout.addWidget(self._led_indicator)
-        status_layout.addWidget(self._status_label)
-        status_layout.addStretch()
+        footer_text = (
+            "Salida · tocar para alternar"
+            if self._interactive
+            else SIGNAL_OUTPUT_MODULE_CONTROL
+            if self._signal_is_output() and self._module_controlled
+            else "Salida · solo lectura"
+            if self._signal_is_output()
+            else "Entrada digital"
+        )
+        self._footer_label = QLabel(footer_text)
+        self._footer_label.setObjectName("signalFooterLabel")
+
+    def setup_layout(self) -> None:
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.addWidget(self._name_label)
+        header.addStretch()
+        header.addWidget(self._status_label)
+
+        detail = QHBoxLayout()
+        detail.setContentsMargins(0, 0, 0, 0)
+        detail.setSpacing(12)
+        detail.addWidget(self._kind_label)
+        detail.addWidget(self._led_indicator)
+        detail.addWidget(self._footer_label)
+        detail.addStretch()
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(18, 16, 18, 16)
-        main_layout.setSpacing(14)
-
-        main_layout.addWidget(self._name_label)
-        main_layout.addLayout(status_layout)
+        main_layout.setContentsMargins(16, 14, 16, 14)
+        main_layout.setSpacing(10)
+        main_layout.addLayout(header)
+        main_layout.addLayout(detail)
 
     def connect_signals(self) -> None:
         """Conecta las señales internas del widget.
@@ -201,6 +226,18 @@ class SignalWidget(QFrame):
         )
 
         self._set_visual_state(state)
+        self.clear_error()
+
+    def set_error(self, message: str) -> None:
+        """Marca la tarjeta con un error sin perder el último estado leído."""
+        self.setToolTip(message)
+        self.setProperty("error", "true")
+        self._refresh_style(self)
+
+    def clear_error(self) -> None:
+        self.setToolTip("")
+        self.setProperty("error", "false")
+        self._refresh_style(self)
 
     def set_processing(self) -> None:
         """Muestra que existe una solicitud de cambio en proceso.
@@ -263,9 +300,7 @@ class SignalWidget(QFrame):
 
         self._visual_state = state
 
-        self._status_label.setText(
-            self._STATE_TEXT[state]
-        )
+        set_localized_text(self._status_label, self._STATE_TEXT[state])
 
         self.setProperty(
             "visualState",
@@ -281,6 +316,10 @@ class SignalWidget(QFrame):
             "visualState",
             state.value,
         )
+        self._status_label.setProperty(
+            "pillState",
+            state.value,
+        )
 
         self._update_cursor()
 
@@ -289,6 +328,9 @@ class SignalWidget(QFrame):
         self._refresh_style(self)
         self._refresh_style(self._led_indicator)
         self._refresh_style(self._status_label)
+
+    def _signal_is_output(self) -> bool:
+        return DIGITALSIGNALS.get(self._signal_name, {}).get("dir") == "OUT"
 
     def _can_request_toggle(self) -> bool:
         """Indica si el widget puede emitir una solicitud de cambio."""

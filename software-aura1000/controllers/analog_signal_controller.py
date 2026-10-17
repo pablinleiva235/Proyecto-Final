@@ -52,6 +52,7 @@ class AnalogSignalController(QObject):
         """Inicia el monitoreo de señales analógicas."""
 
         if not self._timer.isActive():
+            self._poll_signals()
             self._timer.start()
 
     def stop_monitoring(self):
@@ -64,9 +65,15 @@ class AnalogSignalController(QObject):
 
         for signal_name in self._monitored_signals:
             try:
-                value = self._hardware.analog_read(
-                    signal_name
-                )
+                if signal_name == "CHAMBER_TEMP":
+                    value = self._hardware.analog_read_temperature(
+                        signal_name
+                    )
+                else:
+                    value = self._hardware.analog_read(signal_name)
+
+                if value is None:
+                    raise ValueError("La lectura no está disponible")
 
                 self.signal_value_changed.emit(
                     signal_name,
@@ -78,4 +85,3 @@ class AnalogSignalController(QObject):
                     signal_name,
                     str(error),
                 )
-                

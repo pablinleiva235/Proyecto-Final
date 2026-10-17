@@ -13,6 +13,7 @@ class Hardware:
         self.ad_board = 1
 
         self.initialize_DIO()
+        self.initialize_AD()
 
     # ===========================================================================================
     #                           FUNCION DE INICIALIZACION PLACA DIGITAL
@@ -67,7 +68,7 @@ class Hardware:
         # 1) Llevar salidas a estado seguro
         self.digital_safe_state()
         self.analog_safe_state() #DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
-        
+
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL
     # ===========================================================================================
@@ -111,6 +112,8 @@ class Hardware:
     # -------- Seteo de salidas digitales --------
     def digital_set(self, signal_name, active):
         signal = DIGITALSIGNALS[signal_name]
+        if signal["dir"] != "OUT":
+            raise ValueError(f"La señal {signal_name} no está configurada como salida.")
         if active:
             value = signal["active_state"]
         else:
@@ -157,4 +160,4 @@ class Hardware:
         return ad.read_temperature(board=self.ad_board, channel=tc["channel"])    
 
 
-    
+

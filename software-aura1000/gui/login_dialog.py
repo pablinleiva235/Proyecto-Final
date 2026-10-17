@@ -23,6 +23,7 @@ from config_gui.strings import (
     CANCEL_BUTTON_TEXT,
     INVALID_CREDENTIALS_MESSAGE,
 )
+from gui.widgets.localization import set_localized_text, translate_widget_tree
 
 
 class LoginDialog(QDialog):
@@ -34,6 +35,7 @@ class LoginDialog(QDialog):
         self.connect_signals()
 
         self._configure_dialog()
+        self.update_texts()
 
     def create_widgets(self):
         # Título del diálogo
@@ -148,5 +150,8 @@ class LoginDialog(QDialog):
         self.error_label.hide()
 
     def _show_error(self, message):
-        self.error_label.setText(message)
+        set_localized_text(self.error_label, message)
         self.error_label.show()
+
+    def update_texts(self, *_):
+        translate_widget_tree(self)

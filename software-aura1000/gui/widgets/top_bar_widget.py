@@ -27,7 +27,9 @@ from PyQt5.QtWidgets import (
 from config_gui.strings import (
     APP_TITLE,
     EXIT_BUTTON_TEXT,
+    SETTINGS_BUTTON_TOOLTIP,
 )
+from gui.widgets.localization import translate_widget_tree
 
 
 class TopBarWidget(QWidget):
@@ -73,7 +75,7 @@ class TopBarWidget(QWidget):
             "SettingsButton"
         )
         self.settings_button.setToolTip(
-            "Configuración"
+            SETTINGS_BUTTON_TOOLTIP
         )
 
         self.exit_button = QPushButton(
@@ -161,3 +163,6 @@ class TopBarWidget(QWidget):
                 self.TIME_FORMAT
             )
         )
+
+    def update_texts(self, *_):
+        translate_widget_tree(self)

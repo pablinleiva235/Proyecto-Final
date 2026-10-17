@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QMessageBox,
 )
 
 from config_gui.strings import (
@@ -13,12 +12,11 @@ from config_gui.strings import (
     NORMAL_OPERATION_BUTTON_TEXT,
     MAINTAINER_BUTTON_TEXT,
     STATISTICS_BUTTON_TEXT,
-    NORMAL_OPERATION_NOT_IMPLEMENTED_TITLE,
-    NORMAL_OPERATION_NOT_IMPLEMENTED_MESSAGE,
 )
 
 
 class WelcomeScreen(QWidget):
+    normal_operation_requested = pyqtSignal()
     maintainer_requested = pyqtSignal()
     statistics_requested = pyqtSignal()
 
@@ -64,7 +62,7 @@ class WelcomeScreen(QWidget):
 
     def connect_signals(self):
         self.normal_button.clicked.connect(
-            self._show_not_implemented_message
+            self.normal_operation_requested.emit
         )
         self.maintainer_button.clicked.connect(
             self.maintainer_requested.emit
@@ -73,9 +71,3 @@ class WelcomeScreen(QWidget):
             self.statistics_requested.emit
         )
 
-    def _show_not_implemented_message(self):
-        QMessageBox.information(
-            self,
-            NORMAL_OPERATION_NOT_IMPLEMENTED_TITLE,
-            NORMAL_OPERATION_NOT_IMPLEMENTED_MESSAGE,
-        )

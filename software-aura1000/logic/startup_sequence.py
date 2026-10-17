@@ -49,10 +49,12 @@ class StartupSequence(QObject):
         self,
         hardware,
         parent=None,
+        initialize_analog=False,
     ):
         super().__init__(parent)
 
         self._hardware = hardware
+        self._initialize_analog = bool(initialize_analog)
 
         self._elapsed_ms = 0
         self._running = False
@@ -89,15 +91,17 @@ class StartupSequence(QObject):
                 ACTIVE,
             )
 
-            # Activa el filamento del magnetrón para iniciar
-            # el período de precalentamiento.
-            self._hardware.digital_set(
-                "FILAMENT_ENABLE",
-                ACTIVE,
-            )
+            # digital_read devuelve el estado lógico normalizado según
+            # active_state, por lo que también funciona con señales activas en bajo.
+            if not self._hardware.digital_read("POWER_ON"):
+                raise RuntimeError(
+                    "La salida POWER_ON no confirmó su activación."
+                )
 
-            # Inicializa la placa analógica USB-2527.
-#            self._hardware.initialize_AD()             #DESCOMENTAR
+            # La placa analógica física se inicializa al comenzar el arranque.
+            # En modo mock, MockHardware gestiona su propio estado inicial.
+            if self._initialize_analog:
+                self._hardware.initialize_AD()
 
             # Comienza la temporización del precalentamiento.
             self._timer.start()
@@ -177,11 +181,22 @@ class StartupSequence(QObject):
         self,
         error,
     ):
-        """Detiene la secuencia e informa el error al controlador."""
+        """Detiene la secuencia, libera POWER_ON e informa el error."""
 
         self._timer.stop()
         self._running = False
 
+        message = str(error)
+        try:
+            self._hardware.digital_set(
+                "POWER_ON",
+                INACTIVE,
+            )
+        except Exception as safe_error:
+            message = (
+                f"{message} No se pudo liberar POWER_ON: {safe_error}"
+            )
+
         self.startup_error.emit(
-            str(error)
+            message
         )

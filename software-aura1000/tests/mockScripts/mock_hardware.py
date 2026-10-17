@@ -15,6 +15,9 @@ class MockHardware:
             name: (signal["initial_state"] == signal["active_state"])
             for name, signal in DIGITALSIGNALS.items()
         }
+        # SYS_POWER debe permanecer inactiva al iniciar la simulación; de lo
+        # contrario, el valor inicial configurado como activo solicita apagar.
+        self._digital_states["SYS_POWER"] = False
         self._analog_values = {
             "MFC1_FLOW": 0.0,
             "MFC2_FLOW": 0.0,
@@ -126,7 +129,7 @@ class MockHardware:
         return self._analog_outputs.get(signal_name, 0.0)
 
 
-    def shutdown_state(self):
+    def shutdown_state(self, result_callback=None):
         """
         Simula el estado seguro global del hardware.
 
@@ -137,5 +140,32 @@ class MockHardware:
             "[MockHardware] shutdown_state()"
         )
 
-        self.digital_safe_state()
-        self.analog_safe_state()
+        errors = []
+        for signal_name, signal in DIGITALSIGNALS.items():
+            if signal["dir"] != "OUT":
+                continue
+            try:
+                self._digital_states[signal_name] = (
+                    signal["initial_state"] == signal["active_state"]
+                )
+                if result_callback:
+                    result_callback(
+                        signal_name, True,
+                        f"estado lógico inicial solicitado: {'activo' if self._digital_states[signal_name] else 'inactivo'}",
+                    )
+            except Exception as error:
+                errors.append(f"{signal_name}: {error}")
+                if result_callback:
+                    result_callback(signal_name, False, str(error))
+
+        from config.analog_signals import ANALOG_OUTPUTS
+        for signal_name in ANALOG_OUTPUTS:
+            try:
+                self.analog_write(signal_name, 0.0)
+                if result_callback:
+                    result_callback(signal_name, True, "setpoint solicitado: 0.0 V")
+            except Exception as error:
+                errors.append(f"{signal_name}: {error}")
+                if result_callback:
+                    result_callback(signal_name, False, str(error))
+        return errors

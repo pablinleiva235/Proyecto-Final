@@ -25,6 +25,7 @@ from controllers.startup_controller import StartupState
 
 from config_gui.strings import (EXIT_CONFIRMATION_TITLE,EXIT_CONFIRMATION_MESSAGE)
 from config_gui.strings import tr
+from services.shutdown_log import SHUTDOWN_LOG_PATH
 
 class ApplicationController(QObject):
     """Coordina el ciclo de vida general de la aplicación."""
@@ -206,4 +207,10 @@ class ApplicationController(QObject):
         print(
             "[ApplicationController] "
             f"Error durante el apagado: {message}"
+        )
+        QMessageBox.warning(
+            self._main_window,
+            tr("Errores durante el apagado"),
+            tr("Se encontraron errores durante el apagado. Revise el registro:")
+            + f"\n{SHUTDOWN_LOG_PATH}\n\n{message}",
         )

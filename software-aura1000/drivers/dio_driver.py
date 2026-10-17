@@ -52,6 +52,7 @@ cbw.cbDBitOut.argtypes = [
     ctypes.c_int,   # BitNum
     ctypes.c_int    # BitValue
 ]
+cbw.cbDBitOut.restype = ctypes.c_int
 
 # ------------------ Lectura Digital ----------------------
 cbw.cbDBitIn.argtypes = [
@@ -75,7 +76,9 @@ def config_port(board, port, direction):
 # Escritura Digital
 # ---------------------------------------------------------
 def write_bit(board, port, bit, value):
-    cbw.cbDBitOut(board, port, bit, value)
+    err = cbw.cbDBitOut(board, port, bit, value)
+    if err != 0:
+        raise Exception(f"cbDBitOut error {err}")
 
 # ---------------------------------------------------------
 # Lectura Digital

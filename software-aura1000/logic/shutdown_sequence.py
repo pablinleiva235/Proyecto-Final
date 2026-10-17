@@ -12,6 +12,7 @@ alguno de los subsistemas produzca un error.
 """
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from services.shutdown_log import ShutdownLog
 
 
 class ShutdownSequence(QObject):
@@ -37,26 +38,36 @@ class ShutdownSequence(QObject):
 
     def start(self):
         #Ejecuta la secuencia de apagado seguro.
-
-        errors = self._shutdown_sequences()
-
+        shutdown_log = ShutdownLog()
+        errors = []
+        shutdown_log.log("Inicio del apagado seguro")
+        errors.extend(shutdown_log.errors)
+        errors.extend(self._shutdown_sequences(shutdown_log))
         try:
-            self._hardware.shutdown_state()
-
-        except Exception as error:
-            errors.append(
-                f"Hardware safe state: {error}"
+            hardware_errors = self._hardware.shutdown_state(
+                result_callback=shutdown_log.log_result
             )
+            errors.extend(hardware_errors or [])
+        except Exception as error:
+            message = f"Estado seguro global del hardware: {error}"
+            errors.append(message)
+            shutdown_log.log_result("Estado seguro global del hardware", False, str(error))
+
+        errors.extend(shutdown_log.errors)
+        if errors:
+            shutdown_log.log("Apagado finalizado con fallas: " + " | ".join(errors))
+        else:
+            shutdown_log.log("Apagado finalizado sin fallas")
+        shutdown_log.close()
+        errors.extend(error for error in shutdown_log.errors if error not in errors)
 
         if errors:
             self.sequence_error.emit(
                 " | ".join(errors)
             )
-            return
-
         self.sequence_completed.emit()
 
-    def _shutdown_sequences(self):
+    def _shutdown_sequences(self, shutdown_log):
         """
         Intenta detener todas las secuencias funcionales.
         Si una secuencia falla, continúa intentando
@@ -66,18 +77,20 @@ class ShutdownSequence(QObject):
         errors = []
 
         sequences = (
-            ("Vent",self._vent_sequence),
-            ("Main Vacuum",self._main_vacuum_sequence),
-            ("Soft Vacuum",self._soft_vacuum_sequence),
+            ("Venteo", self._vent_sequence),
+            ("Vacío principal", self._main_vacuum_sequence),
+            ("Soft Vacuum", self._soft_vacuum_sequence),
         )
 
         for name, sequence in sequences:
+            shutdown_log.log(f"{name}: inicio")
             try:
                 sequence.shutdown()
+                shutdown_log.log_result(name, True)
 
             except Exception as error:
-                errors.append(
-                    f"{name}: {error}"
-                )
+                message = f"{name}: {error}"
+                errors.append(message)
+                shutdown_log.log_result(name, False, str(error))
 
         return errors

@@ -89,6 +89,7 @@ def main():
 
     startup_sequence = StartupSequence(
         hardware=hardware,
+        initialize_analog=not USE_MOCK_HARDWARE,
     )
 
     # =========================================================================

@@ -13,7 +13,6 @@ class Hardware:
         self.ad_board = 1
 
         self.initialize_DIO()
-        self.initialize_AD()
 
     # ===========================================================================================
     #                           FUNCION DE INICIALIZACION PLACA DIGITAL
@@ -64,10 +63,35 @@ class Hardware:
     # ===========================================================================================
     #                    FUNCION DE ESTADO SEGURO EN EL APAGADO/EMERGENCIA
     # ===========================================================================================
-    def shutdown_state(self):
-        # 1) Llevar salidas a estado seguro
-        self.digital_safe_state()
-        self.analog_safe_state() #DESCOMENTAR ESTO EN NOTEBOOK DE SALA!!!!
+    def shutdown_state(self, result_callback=None):
+        """Intenta cada salida de estado seguro por separado y devuelve fallas."""
+        errors = []
+        for signal_name, signal in DIGITALSIGNALS.items():
+            if signal["dir"] != "OUT":
+                continue
+            logical_initial = signal["initial_state"] == signal["active_state"]
+            try:
+                port_base, bit_offset = self.map_to_ul_bit(signal["port"], signal["bit"])
+                dio.write_bit(self.dio_board, port_base, bit_offset, signal["initial_state"])
+                detail = f"estado lógico inicial solicitado: {'activo' if logical_initial else 'inactivo'}"
+                self._report_shutdown_result(result_callback, signal_name, True, detail)
+            except Exception as error:
+                errors.append(f"{signal_name}: {error}")
+                self._report_shutdown_result(result_callback, signal_name, False, str(error))
+
+        for signal_name in ANALOG_OUTPUTS:
+            try:
+                self.analog_write(signal_name, 0.0)
+                self._report_shutdown_result(result_callback, signal_name, True, "setpoint solicitado: 0.0 V")
+            except Exception as error:
+                errors.append(f"{signal_name}: {error}")
+                self._report_shutdown_result(result_callback, signal_name, False, str(error))
+        return errors
+
+    @staticmethod
+    def _report_shutdown_result(callback, name, success, detail):
+        if callback is not None:
+            callback(name, success, detail)
 
     # ===========================================================================================
     #                             FUNCIONES DIGITALES DE ALTO NIVEL

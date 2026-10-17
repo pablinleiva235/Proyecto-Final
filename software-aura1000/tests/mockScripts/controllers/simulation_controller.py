@@ -23,6 +23,10 @@ class SimulationController(QObject):
                 self._toggle_input("SYS_POWER")
                 return True
 
+            if event.key() == Qt.Key_F:
+                self._toggle_input("LAMP1_FAIL")
+                return True
+
         return super().eventFilter(obj,event)
 
     def _toggle_input(self,signal_name):

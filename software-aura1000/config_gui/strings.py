@@ -362,6 +362,8 @@ _SPANISH_TO_ENGLISH = {
     "Tutores": "Advisors",
     "Cerrar": "Close",
     "Configuración de idioma y tema": "Language and theme settings",
+    "Errores durante el apagado": "Shutdown errors",
+    "Se encontraron errores durante el apagado. Revise el registro:": "Errors occurred during shutdown. Please review the log:",
     "Alarma de seguridad": "Safety alarm",
     "Advertencia del magnetrón": "Magnetron warning",
     "Se detuvieron lámparas y plasma por una falla:": "Lamps and plasma were stopped due to a fault:",

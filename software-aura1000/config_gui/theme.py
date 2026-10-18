@@ -85,10 +85,6 @@ _STATUS_ICON_FOREGROUND = {
     "dark": THEMES["dark"]["background"],
     "light": "#FFFFFF",
 }
-_DISABLED_BUTTON_FOREGROUND = {
-    "dark": THEMES["dark"]["background"],
-    "light": "#FFFFFF",
-}
 
 SIGNAL_WIDGET_BORDER_RADIUS = 10
 SIGNAL_LED_SIZE = 18
@@ -417,21 +413,9 @@ QPushButton:checked, QPushButton:checked:hover {{
 }}
 
 QPushButton:disabled {{
-    background-color: {SIGNAL_INACTIVE_COLOR};
-    border: {BORDER_W}px solid {SIGNAL_INACTIVE_COLOR};
-    color: __DISABLED_BUTTON_FOREGROUND__;
-}}
-
-QPushButton#SettingsButton:disabled, QPushButton#ExitButton:disabled,
-QPushButton#CancelButton:disabled, QPushButton#MFCControlButton:disabled,
-QPushButton#MaintainerSequenceButton:disabled,
-QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,
-QPushButton#SetpointStepButton:disabled, QPushButton#BackButton:disabled,
-QPushButton#LoginButton:disabled, QPushButton#MaintenanceActionButton:disabled,
-QPushButton#SettingsCloseButton:disabled {{
-    background-color: {SIGNAL_INACTIVE_COLOR};
-    border-color: {SIGNAL_INACTIVE_COLOR};
-    color: __DISABLED_BUTTON_FOREGROUND__;
+    background-color: {SURFACE_COLOR};
+    border: {BORDER_W}px solid {BORDER_COLOR};
+    color: {TEXT_MUTED_COLOR};
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -840,9 +824,9 @@ QPushButton#MFCControlButton:checked {{
 }}
 
 QPushButton#MFCControlButton:disabled {{
-    background-color: {SIGNAL_INACTIVE_COLOR};
-    color: __DISABLED_BUTTON_FOREGROUND__;
-    border-color: {SIGNAL_INACTIVE_COLOR};
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
+    border-color: {BORDER_COLOR};
 }}
 
 QPushButton#MaintainerSequenceButton {{
@@ -862,9 +846,9 @@ QPushButton#MaintainerSequenceButton:hover {{
 }}
 
 QPushButton#MaintainerSequenceButton:disabled {{
-    background-color: {SIGNAL_INACTIVE_COLOR};
-    color: __DISABLED_BUTTON_FOREGROUND__;
-    border-color: {SIGNAL_INACTIVE_COLOR};
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
+    border-color: {BORDER_COLOR};
 }}
 
 QPushButton#MaintainerSequenceButton:pressed {{
@@ -882,9 +866,9 @@ QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,
 QPushButton#SetpointStepButton:disabled, QPushButton#BackButton:disabled,
 QPushButton#LoginButton:disabled, QPushButton#MaintenanceActionButton:disabled,
 QPushButton#SettingsCloseButton:disabled {{
-    background-color: {SIGNAL_INACTIVE_COLOR};
-    color: __DISABLED_BUTTON_FOREGROUND__;
-    border-color: {SIGNAL_INACTIVE_COLOR};
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
+    border-color: {BORDER_COLOR};
 }}
 
 QDoubleSpinBox#MaintenanceSetpointInput {{
@@ -942,7 +926,4 @@ def build_app_style(theme="dark"):
     return stylesheet.replace(
         "__STATUS_ICON_FOREGROUND__",
         _STATUS_ICON_FOREGROUND[theme],
-    ).replace(
-        "__DISABLED_BUTTON_FOREGROUND__",
-        _DISABLED_BUTTON_FOREGROUND[theme],
     )

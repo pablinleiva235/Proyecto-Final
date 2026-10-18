@@ -290,8 +290,14 @@ class MainWindow(QMainWindow):
         self.analog_controller.signal_value_changed.connect(
             self.maintainer_screen.set_analog_value
         )
+        self.analog_controller.signal_value_changed.connect(
+            self.normal_operation_screen.set_analog_value
+        )
         self.analog_controller.signal_error.connect(
             self.maintainer_screen.set_analog_error
+        )
+        self.analog_controller.signal_error.connect(
+            self.normal_operation_screen.set_analog_error
         )
 
         # Controles de MFC, throttle, lámparas y plasma.
@@ -360,11 +366,11 @@ class MainWindow(QMainWindow):
         self.analog_controller.stop_monitoring()
 
     def _show_normal_operation_screen(self):
-        """Muestra el prototipo de operación normal en modo simulado."""
+        """Muestra operación normal e inicia el monitoreo analógico."""
         self.navigation_controller.show_screen(
             NORMAL_OPERATION_SCREEN
         )
-        self.analog_controller.stop_monitoring()
+        self.analog_controller.start_monitoring()
 
     def _request_maintainer_access(self):
     # Solicita autenticación antes de ingresar al modo de mantenimiento

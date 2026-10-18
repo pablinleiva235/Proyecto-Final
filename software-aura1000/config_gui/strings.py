@@ -49,7 +49,7 @@ STATISTICS_BUTTON_TEXT = "Estadísticas"
 
 NORMAL_OPERATION_TITLE = "OPERACIÓN NORMAL"
 SIMULATION_MODE_LABEL = "MODO SIMULADO"
-SIMULATION_MODE_DESCRIPTION = "Los controles de esta pantalla solo modifican la demostración visual."
+SIMULATION_MODE_DESCRIPTION = "Las lecturas provienen del backend activo. El diagrama y la gestión de recetas están pendientes."
 EQUIPMENT_STATUS_TITLE = "Estado del equipo"
 EQUIPMENT_STATUS_READY = "Listo para operación (simulado)"
 VACUUM_PRESSURE_TITLE = "Vacío y presión"
@@ -98,6 +98,24 @@ RECIPE_FEATURE_PENDING_MESSAGE = (
 START_PROCESS_PENDING_TOOLTIP = (
     "Pendiente de integrar la secuencia real del proceso."
 )
+OPERATION_READINGS_TITLE = "Lecturas analógicas"
+OPERATION_TEMPERATURE_LABEL = "Temperatura de cámara"
+OPERATION_PRESSURE_LABEL = "Presión de cámara"
+OPERATION_MFC1_LABEL = "MFC1 · Oxígeno (O₂)"
+OPERATION_MFC2_LABEL = "MFC2 · Nitrógeno (N₂)"
+OPERATION_EOP_LABEL = "End Point (EOP)"
+OPERATION_RF_LABEL = "Nivel de RF"
+OPERATION_READING_WAITING = "Esperando lectura"
+OPERATION_READING_UNAVAILABLE = "No disponible"
+OPERATION_READING_OK = "Lectura recibida"
+OPERATION_READING_ERROR = "Error de lectura"
+OPERATION_DIAGRAM_TITLE = "Esquema del equipo"
+OPERATION_DIAGRAM_PENDING = "Espacio reservado para el diagrama esquemático del equipo"
+OPERATION_RECIPE_ACTIONS_TITLE = "Recetas"
+NEW_RECIPE_BUTTON = "Nueva receta"
+START_RECIPE_BUTTON = "Iniciar receta"
+VIEW_RECIPE_BUTTON = "Visualizar receta"
+START_RECIPE_PENDING_TOOLTIP = "Pendiente de integrar las recetas y la secuencia real del proceso."
 
 
 # =============================================================================
@@ -246,7 +264,7 @@ _SPANISH_TO_ENGLISH = {
     "Estadísticas": "Statistics",
     "OPERACIÓN NORMAL": "NORMAL OPERATION",
     "MODO SIMULADO": "SIMULATION MODE",
-    "Los controles de esta pantalla solo modifican la demostración visual.": "Controls on this screen only change the visual demo.",
+    "Las lecturas provienen del backend activo. El diagrama y la gestión de recetas están pendientes.": "Readings come from the active backend. The schematic and recipe management are pending.",
     "Estado del equipo": "Equipment status",
     "Listo para operación (simulado)": "Ready for operation (simulated)",
     "Vacío y presión": "Vacuum and pressure",
@@ -294,6 +312,24 @@ _SPANISH_TO_ENGLISH = {
     "Función pendiente": "Feature pending",
     "La gestión de recetas estará disponible en una próxima etapa.": "Recipe management will be available in a future stage.",
     "Pendiente de integrar la secuencia real del proceso.": "The real process sequence has not been integrated yet.",
+    "Lecturas analógicas": "Analog readings",
+    "Temperatura de cámara": "Chamber temperature",
+    "Presión de cámara": "Chamber pressure",
+    "MFC1 · Oxígeno (O₂)": "MFC1 · Oxygen (O₂)",
+    "MFC2 · Nitrógeno (N₂)": "MFC2 · Nitrogen (N₂)",
+    "End Point (EOP)": "End Point (EOP)",
+    "Nivel de RF": "RF level",
+    "Esperando lectura": "Waiting for reading",
+    "No disponible": "Unavailable",
+    "Lectura recibida": "Reading received",
+    "Error de lectura": "Reading error",
+    "Esquema del equipo": "Equipment schematic",
+    "Espacio reservado para el diagrama esquemático del equipo": "Reserved space for the equipment schematic",
+    "Recetas": "Recipes",
+    "Nueva receta": "New recipe",
+    "Iniciar receta": "Start recipe",
+    "Visualizar receta": "View recipe",
+    "Pendiente de integrar las recetas y la secuencia real del proceso.": "Recipe handling and the real process sequence have not been integrated yet.",
     "Confirmar salida": "Confirm exit",
     "Sí": "Yes",
     "No": "No",

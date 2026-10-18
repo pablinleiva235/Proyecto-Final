@@ -116,6 +116,47 @@ NEW_RECIPE_BUTTON = "Nueva receta"
 START_RECIPE_BUTTON = "Iniciar receta"
 VIEW_RECIPE_BUTTON = "Visualizar receta"
 START_RECIPE_PENDING_TOOLTIP = "Pendiente de integrar las recetas y la secuencia real del proceso."
+ACTIVE_RECIPE_LABEL = "Receta activa"
+NO_ACTIVE_RECIPE = "Ninguna"
+RECIPE_EDITOR_TITLE = "Nueva receta"
+RECIPE_VIEW_TITLE = "Visualizar receta"
+RECIPE_NAME_LABEL = "Nombre"
+RECIPE_DESCRIPTION_LABEL = "Descripción"
+RECIPE_O2_FLOW_LABEL = "Flujo de O₂"
+RECIPE_N2_FLOW_LABEL = "Flujo de N₂"
+RECIPE_BASE_PRESSURE_LABEL = "Presión base"
+RECIPE_PROCESS_PRESSURE_LABEL = "Presión de proceso"
+RECIPE_PROCESS_TEMPERATURE_LABEL = "Temperatura de proceso"
+RECIPE_SAVE_DIALOG_TITLE = "Guardar receta"
+RECIPE_LOAD_DIALOG_TITLE = "Cargar receta"
+RECIPE_FILE_FILTER = "Recetas (*.txt)"
+RECIPE_SAVE_BUTTON = "Guardar"
+RECIPE_CANCEL_BUTTON = "Cancelar"
+RECIPE_CLOSE_BUTTON = "Cerrar"
+RECIPE_EDIT_BUTTON = "Editar receta"
+RECIPE_SAVED_TITLE = "Receta guardada"
+RECIPE_SAVED_MESSAGE = "La receta se guardó correctamente."
+RECIPE_OVERWRITE_TITLE = "Confirmar sobrescritura"
+RECIPE_OVERWRITE_MESSAGE = "Ya existe una receta con ese nombre. ¿Desea reemplazarla?"
+RECIPE_DISCARD_TITLE = "Descartar cambios"
+RECIPE_DISCARD_MESSAGE = "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?"
+RECIPE_NO_ACTIVE_TITLE = "Sin receta activa"
+RECIPE_NO_ACTIVE_MESSAGE = "Cree o cargue una receta antes de continuar."
+RECIPE_INVALID_TITLE = "Receta no válida"
+RECIPE_ERROR_NAME_REQUIRED = "El nombre de la receta es obligatorio."
+RECIPE_ERROR_INVALID_VALUES = "Todos los parámetros deben contener números válidos."
+RECIPE_ERROR_NONNEGATIVE = "Los parámetros deben ser finitos y no negativos."
+RECIPE_ERROR_O2_RANGE = "El flujo de O₂ debe estar entre 0 y 10 SLPM."
+RECIPE_ERROR_N2_RANGE = "El flujo de N₂ debe estar entre 0 y 1 SLPM."
+RECIPE_ERROR_INVALID_LOCATION = "Las recetas deben estar dentro de la carpeta recipies."
+RECIPE_ERROR_FILE_NOT_FOUND = "No se encontró un archivo de receta .txt."
+RECIPE_ERROR_READ = "No se pudo leer la receta. Verifique el archivo y sus permisos."
+RECIPE_ERROR_SECTIONS = "El archivo debe contener las secciones [RECIPE] y [PARAMETERS]."
+RECIPE_ERROR_METADATA = "La receta debe incluir un nombre y una descripción válidos."
+RECIPE_ERROR_PARAMETERS = "La receta está incompleta o contiene parámetros no numéricos."
+RECIPE_ERROR_FILENAME = "El nombre no permite generar un nombre de archivo válido."
+RECIPE_ERROR_TEMPLATE_PROTECTED = "La plantilla está protegida. Guarde la receta con otro nombre."
+RECIPE_ERROR_WRITE = "No se pudo guardar la receta. Verifique los permisos de la carpeta."
 
 
 # =============================================================================
@@ -330,6 +371,45 @@ _SPANISH_TO_ENGLISH = {
     "Iniciar receta": "Start recipe",
     "Visualizar receta": "View recipe",
     "Pendiente de integrar las recetas y la secuencia real del proceso.": "Recipe handling and the real process sequence have not been integrated yet.",
+    "Receta activa": "Active recipe",
+    "Ninguna": "None",
+    "Nueva receta": "New recipe",
+    "Visualizar receta": "View recipe",
+    "Nombre": "Name",
+    "Descripción": "Description",
+    "Flujo de O₂": "O₂ flow",
+    "Flujo de N₂": "N₂ flow",
+    "Presión base": "Base pressure",
+    "Presión de proceso": "Process pressure",
+    "Temperatura de proceso": "Process temperature",
+    "Guardar": "Save",
+    "Cancelar": "Cancel",
+    "Cerrar": "Close",
+    "Editar receta": "Edit recipe",
+    "Recetas (*.txt)": "Recipes (*.txt)",
+    "Receta guardada": "Recipe saved",
+    "La receta se guardó correctamente.": "The recipe was saved successfully.",
+    "Confirmar sobrescritura": "Confirm overwrite",
+    "Ya existe una receta con ese nombre. ¿Desea reemplazarla?": "A recipe with that name already exists. Do you want to replace it?",
+    "Descartar cambios": "Discard changes",
+    "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?": "There are unsaved changes in the current recipe. Do you want to discard them?",
+    "Sin receta activa": "No active recipe",
+    "Cree o cargue una receta antes de continuar.": "Create or load a recipe before continuing.",
+    "Receta no válida": "Invalid recipe",
+    "El nombre de la receta es obligatorio.": "Recipe name is required.",
+    "Todos los parámetros deben contener números válidos.": "All parameters must contain valid numbers.",
+    "Los parámetros deben ser finitos y no negativos.": "Parameters must be finite and non-negative.",
+    "El flujo de O₂ debe estar entre 0 y 10 SLPM.": "O₂ flow must be between 0 and 10 SLPM.",
+    "El flujo de N₂ debe estar entre 0 y 1 SLPM.": "N₂ flow must be between 0 and 1 SLPM.",
+    "Las recetas deben estar dentro de la carpeta recipies.": "Recipes must be inside the recipies folder.",
+    "No se encontró un archivo de receta .txt.": "Recipe .txt file was not found.",
+    "No se pudo leer la receta. Verifique el archivo y sus permisos.": "Could not read the recipe. Check the file and permissions.",
+    "El archivo debe contener las secciones [RECIPE] y [PARAMETERS].": "The file must contain [RECIPE] and [PARAMETERS] sections.",
+    "La receta debe incluir un nombre y una descripción válidos.": "The recipe must include a valid name and description.",
+    "La receta está incompleta o contiene parámetros no numéricos.": "The recipe is incomplete or contains non-numeric parameters.",
+    "El nombre no permite generar un nombre de archivo válido.": "The name cannot be converted to a valid filename.",
+    "La plantilla está protegida. Guarde la receta con otro nombre.": "The template is protected. Save the recipe with another name.",
+    "No se pudo guardar la receta. Verifique los permisos de la carpeta.": "Could not save the recipe. Check folder permissions.",
     "Confirmar salida": "Confirm exit",
     "Sí": "Yes",
     "No": "No",

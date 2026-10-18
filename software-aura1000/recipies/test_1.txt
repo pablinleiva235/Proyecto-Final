@@ -1,0 +1,11 @@
+[RECIPE]
+name = test_1
+description = Limpieza estándar de obleas de silicio
+
+[PARAMETERS]
+o2_flow = 5
+n2_flow = 0.6
+base_pressure = 0.08
+process_pressure = 3
+process_temperature = 200
+

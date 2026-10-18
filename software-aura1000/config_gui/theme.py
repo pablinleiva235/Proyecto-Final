@@ -171,6 +171,49 @@ QFrame#OperationCard QLabel {{
     font-size: 14px;
 }}
 
+QFrame#OperationReadoutCard {{
+    background-color: {SURFACE_SECONDARY_COLOR};
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 9px;
+}}
+
+QLabel#OperationReadoutLabel {{
+    background-color: transparent;
+    color: {TEXT_MUTED_COLOR};
+    font-size: 12px;
+    font-weight: 600;
+}}
+
+QLabel#OperationReadoutValue {{
+    background-color: transparent;
+    color: {TEXT_COLOR};
+    font-size: 19px;
+    font-weight: bold;
+}}
+
+QLabel#OperationReadoutUnit {{
+    background-color: transparent;
+    color: {TEXT_MUTED_COLOR};
+    font-size: 12px;
+}}
+
+QLabel#ActiveRecipeName {{
+    background-color: transparent;
+    color: {TEXT_COLOR};
+    font-size: 14px;
+    font-weight: 600;
+}}
+
+QLabel#OperationDiagramPlaceholder {{
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_MUTED_COLOR};
+    border: 1px dashed {BORDER_COLOR};
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: 600;
+}}
+
 QFrame#OperationStatusCard {{
     background-color: {SURFACE_COLOR};
     border: 2px solid {BORDER_COLOR};
@@ -882,6 +925,24 @@ QDoubleSpinBox#MaintenanceSetpointInput {{
 
 QDialog#SettingsDialog {{
     background-color: {SURFACE_COLOR};
+}}
+
+QDialog#RecipeEditorDialog, QDialog#RecipeViewerDialog {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+}}
+
+QLineEdit#RecipeInput {{
+    background-color: {TEXTBOX_BACKGROUND_COLOR};
+    color: {TEXT_COLOR};
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 6px;
+    padding: 7px 9px;
+    min-width: 220px;
+}}
+
+QLineEdit#RecipeInput:focus {{
+    border-color: {PRIMARY_COLOR};
 }}
 
 QComboBox#SettingsCombo {{

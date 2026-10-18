@@ -1,8 +1,11 @@
 """Pantalla de operación normal con lecturas y espacio para el esquema."""
 
+from dataclasses import replace
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QFrame,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -14,6 +17,8 @@ from PyQt5.QtWidgets import (
 import config_gui.strings as text
 from gui.widgets.localization import set_localized_text, translate_widget_tree
 from gui.widgets.status_indicator import StatusIndicatorWidget
+from gui.recipe_dialogs import RecipeEditorDialog, RecipeViewerDialog
+from services.recipe_service import RecipeError, RecipeService
 
 
 class NormalOperationScreen(QWidget):
@@ -32,6 +37,9 @@ class NormalOperationScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._readouts = {}
+        self._recipe_service = RecipeService()
+        self._active_recipe = None
+        self._recipe_dirty = False
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -70,9 +78,17 @@ class NormalOperationScreen(QWidget):
         self.diagram_panel.layout().addWidget(self.diagram_placeholder, 1)
 
         self.actions_panel = self._make_panel(text.OPERATION_RECIPE_ACTIONS_TITLE)
+        self.active_recipe_label = QLabel(text.ACTIVE_RECIPE_LABEL)
+        self.active_recipe_label.setObjectName("OperationReadoutLabel")
+        self.active_recipe_name = QLabel(text.NO_ACTIVE_RECIPE)
+        self.active_recipe_name.setObjectName("ActiveRecipeName")
+        actions_layout = self.actions_panel.layout()
+        actions_layout.addWidget(self.active_recipe_label)
+        actions_layout.addWidget(self.active_recipe_name)
         self.new_recipe_button = self._recipe_button(text.NEW_RECIPE_BUTTON)
         self.load_recipe_button = self._recipe_button(text.LOAD_RECIPE_BUTTON)
         self.save_recipe_button = self._recipe_button(text.SAVE_RECIPE_BUTTON)
+        self.save_recipe_button.setEnabled(False)
         self.start_recipe_button = self._recipe_button(text.START_RECIPE_BUTTON)
         self.start_recipe_button.setEnabled(False)
         self.start_recipe_button.setToolTip(text.START_RECIPE_PENDING_TOOLTIP)
@@ -80,7 +96,7 @@ class NormalOperationScreen(QWidget):
             text.tr(text.START_RECIPE_PENDING_TOOLTIP)
         )
         self.view_recipe_button = self._recipe_button(text.VIEW_RECIPE_BUTTON)
-        actions_layout = self.actions_panel.layout()
+        self.view_recipe_button.setEnabled(False)
         for button in (
             self.new_recipe_button,
             self.load_recipe_button,
@@ -119,13 +135,10 @@ class NormalOperationScreen(QWidget):
 
     def connect_signals(self):
         self.back_button.clicked.connect(self.back_requested.emit)
-        for button in (
-            self.new_recipe_button,
-            self.load_recipe_button,
-            self.save_recipe_button,
-            self.view_recipe_button,
-        ):
-            button.clicked.connect(self._show_recipe_pending_notice)
+        self.new_recipe_button.clicked.connect(self._new_recipe)
+        self.load_recipe_button.clicked.connect(self._load_recipe)
+        self.save_recipe_button.clicked.connect(self._save_recipe)
+        self.view_recipe_button.clicked.connect(self._view_recipe)
 
     @staticmethod
     def _make_panel(title):
@@ -204,11 +217,150 @@ class NormalOperationScreen(QWidget):
             "fault", f"{text.tr(text.OPERATION_READING_ERROR)}: {message}"
         )
 
-    def _show_recipe_pending_notice(self):
+    def _new_recipe(self):
+        if self._has_unsaved_draft() and not self._confirm_discard_draft():
+            return
+        try:
+            recipe = replace(
+                self._recipe_service.load_template(),
+                name="",
+                source_path=None,
+            )
+        except RecipeError as error:
+            self._show_recipe_error(error)
+            return
+
+        dialog = RecipeEditorDialog(recipe, self)
+        if dialog.exec_() == dialog.Accepted:
+            self._set_active_recipe(dialog.recipe, dirty=True)
+
+    def _load_recipe(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            text.tr(text.RECIPE_LOAD_DIALOG_TITLE),
+            str(self._recipe_service.directory),
+            text.tr(text.RECIPE_FILE_FILTER),
+        )
+        if not path:
+            return
+        if self._has_unsaved_draft() and not self._confirm_discard_draft():
+            return
+        try:
+            recipe = self._recipe_service.load_file(path)
+        except RecipeError as error:
+            self._show_recipe_error(error)
+            return
+        self._set_active_recipe(recipe, dirty=False)
+
+    def _save_recipe(self):
+        recipe = self._active_recipe
+        if recipe is None:
+            self._show_no_active_recipe()
+            return
+
+        if recipe.source_path == self._recipe_service.template_path:
+            dialog = RecipeEditorDialog(replace(recipe, name="", source_path=None), self)
+            if dialog.exec_() != dialog.Accepted:
+                return
+            recipe = dialog.recipe
+            self._active_recipe = recipe
+            self._recipe_dirty = True
+
+        try:
+            path = self._recipe_service.path_for_name(recipe.name)
+            overwrite = False
+            if path.exists():
+                answer = QMessageBox.question(
+                    self,
+                    text.tr(text.RECIPE_OVERWRITE_TITLE),
+                    text.tr(text.RECIPE_OVERWRITE_MESSAGE),
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No,
+                )
+                if answer != QMessageBox.Yes:
+                    return
+                overwrite = True
+            saved_recipe = self._recipe_service.save(recipe, overwrite=overwrite)
+        except FileExistsError:
+            answer = QMessageBox.question(
+                self,
+                text.tr(text.RECIPE_OVERWRITE_TITLE),
+                text.tr(text.RECIPE_OVERWRITE_MESSAGE),
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if answer != QMessageBox.Yes:
+                return
+            try:
+                saved_recipe = self._recipe_service.save(recipe, overwrite=True)
+            except RecipeError as error:
+                self._show_recipe_error(error)
+                return
+        except (RecipeError, OSError) as error:
+            self._show_recipe_error(error)
+            return
+
+        self._set_active_recipe(saved_recipe, dirty=False)
         QMessageBox.information(
             self,
-            text.tr(text.RECIPE_FEATURE_PENDING_TITLE),
-            text.tr(text.RECIPE_FEATURE_PENDING_MESSAGE),
+            text.tr(text.RECIPE_SAVED_TITLE),
+            text.tr(text.RECIPE_SAVED_MESSAGE),
+        )
+
+    def _view_recipe(self):
+        if self._active_recipe is None:
+            self._show_no_active_recipe()
+            return
+        viewer = RecipeViewerDialog(self._active_recipe, self)
+        if viewer.exec_() == viewer.Accepted and viewer.edit_requested:
+            recipe_to_edit = self._active_recipe
+            is_template = (
+                recipe_to_edit.source_path == self._recipe_service.template_path
+            )
+            if is_template:
+                recipe_to_edit = replace(recipe_to_edit, name="", source_path=None)
+            editor = RecipeEditorDialog(
+                recipe_to_edit,
+                self,
+                allow_name_edit=is_template,
+            )
+            if editor.exec_() == editor.Accepted:
+                self._set_active_recipe(editor.recipe, dirty=True)
+
+    def _set_active_recipe(self, recipe, dirty=False):
+        self._active_recipe = recipe
+        self._recipe_dirty = bool(dirty)
+        self.active_recipe_name.setProperty("i18nSourceText_text", None)
+        self.active_recipe_name.setText(recipe.name or text.tr(text.NO_ACTIVE_RECIPE))
+        self.save_recipe_button.setEnabled(True)
+        self.view_recipe_button.setEnabled(True)
+
+    def _has_unsaved_draft(self):
+        return self._active_recipe is not None and self._recipe_dirty
+
+    def _confirm_discard_draft(self):
+        answer = QMessageBox.question(
+            self,
+            text.tr(text.RECIPE_DISCARD_TITLE),
+            text.tr(text.RECIPE_DISCARD_MESSAGE),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        return answer == QMessageBox.Yes
+
+    def _show_no_active_recipe(self):
+        QMessageBox.information(
+            self,
+            text.tr(text.RECIPE_NO_ACTIVE_TITLE),
+            text.tr(text.RECIPE_NO_ACTIVE_MESSAGE),
+        )
+
+    def _show_recipe_error(self, error):
+        message = str(error)
+        QMessageBox.warning(
+            self,
+            text.tr(text.RECIPE_INVALID_TITLE),
+            text.tr(message),
         )
 
     def update_texts(self, *_):

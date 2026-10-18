@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 
 import config_gui.strings as text
 from gui.widgets.localization import set_localized_text, translate_widget_tree
+from gui.widgets.status_indicator import StatusIndicatorWidget
 
 
 class NonNegativeNumberValidator(QValidator):
@@ -111,6 +112,8 @@ class NormalOperationScreen(QWidget):
         equipment_layout = QHBoxLayout(self.equipment_card)
         equipment_layout.setContentsMargins(14, 6, 14, 6)
         equipment_layout.setSpacing(12)
+        self.equipment_indicator = StatusIndicatorWidget("on", "Equipo listo")
+        equipment_layout.addWidget(self.equipment_indicator)
         equipment_title = QLabel(text.EQUIPMENT_STATUS_TITLE)
         equipment_title.setObjectName("OperationStatusTitle")
         equipment_layout.addWidget(equipment_title)
@@ -182,8 +185,18 @@ class NormalOperationScreen(QWidget):
             ("magnetron_warning", text.MAGNETRON_WARNING_STATUS_LABEL, text.DEMO_STATUS_NORMAL),
             ("magnetron_overheat", text.MAGNETRON_OVERHEAT_STATUS_LABEL, text.DEMO_STATUS_NORMAL),
         )
+        status_visual_states = {
+            "atmosphere": "running",
+            "door": "off",
+            "air_flow": "on",
+            "lamp_failure": "off",
+            "plasma_failure": "off",
+            "magnetron_warning": "off",
+            "magnetron_overheat": "off",
+        }
         for index, (key, label, value) in enumerate(statuses):
-            row, indicator = self._make_digital_indicator(label, value)
+            visual_state = status_visual_states[key]
+            row, indicator = self._make_digital_indicator(label, value, visual_state)
             digital_grid.addLayout(row, index // 2, index % 2)
             self.digital_indicators[key] = indicator
         digital_grid.setColumnStretch(0, 1)
@@ -192,9 +205,11 @@ class NormalOperationScreen(QWidget):
         self.module_card, module_layout = self._make_card(text.MODULE_CONTROLS_TITLE)
         self.vacuum_state = QLabel(text.SIMULATED_OFF)
         self.vacuum_state.setObjectName("DemoStatus")
+        self.vacuum_indicator = StatusIndicatorWidget("off", "Bomba de vacío apagada", size=34)
         self.vacuum_button = QPushButton(text.SIMULATED_START_BUTTON)
         self.vacuum_button.setObjectName("DemoActionButton")
         vacuum_row = QHBoxLayout()
+        vacuum_row.addWidget(self.vacuum_indicator)
         vacuum_row.addWidget(QLabel(text.VACUUM_STATE_LABEL))
         vacuum_row.addWidget(self.vacuum_state)
         vacuum_row.addStretch()
@@ -203,9 +218,11 @@ class NormalOperationScreen(QWidget):
 
         self.plasma_state = QLabel(text.SIMULATED_OFF)
         self.plasma_state.setObjectName("DemoStatus")
+        self.plasma_indicator = StatusIndicatorWidget("off", "Plasma apagado", size=34)
         self.plasma_button = QPushButton(text.SIMULATED_START_BUTTON)
         self.plasma_button.setObjectName("DemoActionButton")
         plasma_row = QHBoxLayout()
+        plasma_row.addWidget(self.plasma_indicator)
         plasma_row.addWidget(QLabel(text.PLASMA_STATE_LABEL))
         plasma_row.addWidget(self.plasma_state)
         plasma_row.addStretch()
@@ -365,13 +382,15 @@ class NormalOperationScreen(QWidget):
         }
 
     @staticmethod
-    def _make_digital_indicator(label, value):
+    def _make_digital_indicator(label, value, visual_state="off"):
         row = QHBoxLayout()
+        icon = StatusIndicatorWidget(visual_state, value, size=30)
         name = QLabel(label)
         name.setObjectName("DigitalStatusLabel")
         status = QLabel(value)
         status.setObjectName("DigitalStatusValue")
         status.setAlignment(Qt.AlignCenter)
+        row.addWidget(icon)
         row.addWidget(name)
         row.addStretch()
         row.addWidget(status)
@@ -445,6 +464,10 @@ class NormalOperationScreen(QWidget):
     def _toggle_vacuum_demo(self):
         self._states["vacuum"] = not self._states["vacuum"]
         active = self._states["vacuum"]
+        self.vacuum_indicator.set_state(
+            "on" if active else "off",
+            "Bomba de vacío encendida" if active else "Bomba de vacío apagada",
+        )
         set_localized_text(
             self.vacuum_state,
             text.SIMULATED_ON if active else text.SIMULATED_OFF,
@@ -465,6 +488,10 @@ class NormalOperationScreen(QWidget):
     def _toggle_plasma_demo(self):
         self._states["plasma"] = not self._states["plasma"]
         active = self._states["plasma"]
+        self.plasma_indicator.set_state(
+            "on" if active else "off",
+            "Plasma encendido" if active else "Plasma apagado",
+        )
         set_localized_text(
             self.plasma_state,
             text.SIMULATED_ON if active else text.SIMULATED_OFF,

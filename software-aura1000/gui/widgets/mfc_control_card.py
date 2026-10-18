@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 from gui.widgets.localization import set_localized_text
+from gui.widgets.status_indicator import StatusIndicatorWidget
 from config_gui.strings import tr
 
 
@@ -24,6 +25,9 @@ class MFCControlCard(QFrame):
         self.name = name
         self.maximum_flow = float(maximum_flow)
         self.setObjectName("MFCControlCard")
+        self._valve_open = False
+        self._measurement_fault = False
+        self.status_indicator = StatusIndicatorWidget("off", "Válvula cerrada")
 
         header = QHBoxLayout()
         self.title_label = QLabel(f"{name} — {gas}")
@@ -32,8 +36,6 @@ class MFCControlCard(QFrame):
         self.valve_status.setObjectName("MaintenancePill")
         self.valve_status.setProperty("state", "inactive")
         header.addWidget(self.title_label)
-        header.addStretch()
-        header.addWidget(self.valve_status)
 
         reading = QHBoxLayout()
         self.icon_label = QLabel(gas)
@@ -79,11 +81,22 @@ class MFCControlCard(QFrame):
             self.valve_button.fontMetrics().horizontalAdvance("Cerrar válvula") + 32
         )
 
+        details = QVBoxLayout()
+        details.setContentsMargins(0, 0, 0, 0)
+        details.setSpacing(6)
+        details.addLayout(header)
+        details.addLayout(reading)
+
+        overview = QHBoxLayout()
+        overview.setSpacing(14)
+        overview.addWidget(self.status_indicator)
+        overview.addLayout(details, 1)
+        overview.addWidget(self.valve_status)
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setContentsMargins(18, 14, 18, 14)
         layout.setSpacing(10)
-        layout.addLayout(header)
-        layout.addLayout(reading)
+        layout.addLayout(overview)
         layout.addWidget(self.progress)
         layout.addLayout(setpoint_row)
         layout.addWidget(self.valve_button)
@@ -104,6 +117,8 @@ class MFCControlCard(QFrame):
         progress = min(1.0, flow / self.maximum_flow)
         self.progress.setValue(round(progress * 1000))
         self.progress.show()
+        self._measurement_fault = False
+        self._update_status_indicator()
         self.measured_value.style().unpolish(self.measured_value)
         self.measured_value.style().polish(self.measured_value)
 
@@ -112,6 +127,8 @@ class MFCControlCard(QFrame):
         self.measured_value.setProperty("error", True)
         self.measured_value.setToolTip(message)
         self.progress.hide()
+        self._measurement_fault = True
+        self.status_indicator.set_state("fault", "Error de lectura")
         self.measured_value.style().unpolish(self.measured_value)
         self.measured_value.style().polish(self.measured_value)
 
@@ -119,6 +136,7 @@ class MFCControlCard(QFrame):
         self.setpoint.setValue(float(flow))
 
     def set_valve_state(self, opened):
+        self._valve_open = bool(opened)
         self.valve_button.blockSignals(True)
         self.valve_button.setChecked(bool(opened))
         valve_text = "Cerrar válvula" if opened else "Abrir válvula"
@@ -128,7 +146,17 @@ class MFCControlCard(QFrame):
         self.valve_status.setProperty("state", "active" if opened else "inactive")
         self.valve_status.style().unpolish(self.valve_status)
         self.valve_status.style().polish(self.valve_status)
+        self._update_status_indicator()
+
+    def _update_status_indicator(self):
+        if self._measurement_fault:
+            self.status_indicator.set_state("fault", "Error de lectura")
+            return
+        state = "on" if self._valve_open else "off"
+        label = "Válvula abierta" if self._valve_open else "Válvula cerrada"
+        self.status_indicator.set_state(state, label)
 
     def set_controls_enabled(self, enabled):
+        enabled = bool(enabled)
         for widget in (self.setpoint, self.apply_button, self.valve_button):
-            widget.setEnabled(bool(enabled))
+            widget.setEnabled(enabled)

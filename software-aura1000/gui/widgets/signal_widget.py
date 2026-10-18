@@ -33,13 +33,16 @@ from PyQt5.QtWidgets import (
 )
 
 from config_gui.strings import (
+    SIGNAL_STATE_FAULT,
     SIGNAL_STATE_ACTIVE,
     SIGNAL_STATE_INACTIVE,
     SIGNAL_STATE_PROCESSING,
+    SIGNAL_STATE_WARNING,
     SIGNAL_OUTPUT_MODULE_CONTROL,
 )
 from config.digital_signals import DIGITALSIGNALS
 from gui.widgets.localization import set_localized_text
+from gui.widgets.status_indicator import StatusIndicatorWidget
 
 
 class SignalVisualState(Enum):
@@ -71,12 +74,6 @@ class SignalWidget(QFrame):
     """
 
     toggle_requested = pyqtSignal(str)
-
-    _STATE_TEXT = {
-        SignalVisualState.ACTIVE: SIGNAL_STATE_ACTIVE,
-        SignalVisualState.INACTIVE: SIGNAL_STATE_INACTIVE,
-        SignalVisualState.PROCESSING: SIGNAL_STATE_PROCESSING,
-    }
 
     def __init__(
         self,
@@ -116,22 +113,10 @@ class SignalWidget(QFrame):
     def create_widgets(self) -> None:
         self._name_label = QLabel(self._display_name)
         self._name_label.setObjectName("signalNameLabel")
-
-        self._led_indicator = QLabel()
-        self._led_indicator.setObjectName("signalLedIndicator")
-
-        # El LED es puramente visual y no debe interceptar eventos del mouse.
-        self._led_indicator.setAttribute(
-            Qt.WA_TransparentForMouseEvents,
-            True,
-        )
+        self._state_indicator = StatusIndicatorWidget("off", self._display_name)
 
         self._status_label = QLabel()
         self._status_label.setObjectName("signalStatusLabel")
-
-        self._kind_label = QLabel("DO" if self._signal_is_output() else "DI")
-        self._kind_label.setObjectName("signalKindIcon")
-        self._kind_label.setAlignment(Qt.AlignCenter)
 
         footer_text = (
             "Salida · tocar para alternar"
@@ -146,25 +131,18 @@ class SignalWidget(QFrame):
         self._footer_label.setObjectName("signalFooterLabel")
 
     def setup_layout(self) -> None:
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.addWidget(self._name_label)
-        header.addStretch()
-        header.addWidget(self._status_label)
+        details = QVBoxLayout()
+        details.setContentsMargins(0, 0, 0, 0)
+        details.setSpacing(4)
+        details.addWidget(self._name_label)
+        details.addWidget(self._footer_label)
 
-        detail = QHBoxLayout()
-        detail.setContentsMargins(0, 0, 0, 0)
-        detail.setSpacing(12)
-        detail.addWidget(self._kind_label)
-        detail.addWidget(self._led_indicator)
-        detail.addWidget(self._footer_label)
-        detail.addStretch()
-
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(16, 14, 16, 14)
-        main_layout.setSpacing(10)
-        main_layout.addLayout(header)
-        main_layout.addLayout(detail)
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(16, 12, 16, 12)
+        main_layout.setSpacing(14)
+        main_layout.addWidget(self._state_indicator)
+        main_layout.addLayout(details, 1)
+        main_layout.addWidget(self._status_label)
 
     def connect_signals(self) -> None:
         """Conecta las señales internas del widget.
@@ -232,12 +210,12 @@ class SignalWidget(QFrame):
         """Marca la tarjeta con un error sin perder el último estado leído."""
         self.setToolTip(message)
         self.setProperty("error", "true")
-        self._refresh_style(self)
+        self._update_state_presentation()
 
     def clear_error(self) -> None:
         self.setToolTip("")
         self.setProperty("error", "false")
-        self._refresh_style(self)
+        self._update_state_presentation()
 
     def set_processing(self) -> None:
         """Muestra que existe una solicitud de cambio en proceso.
@@ -300,33 +278,41 @@ class SignalWidget(QFrame):
 
         self._visual_state = state
 
-        set_localized_text(self._status_label, self._STATE_TEXT[state])
-
         self.setProperty(
             "visualState",
             state.value,
         )
-
-        self._led_indicator.setProperty(
-            "visualState",
-            state.value,
-        )
-
-        self._status_label.setProperty(
-            "visualState",
-            state.value,
-        )
-        self._status_label.setProperty(
-            "pillState",
-            state.value,
-        )
+        self._update_state_presentation()
 
         self._update_cursor()
 
         # Qt no siempre vuelve a evaluar automáticamente las reglas QSS
         # cuando cambia una propiedad dinámica.
         self._refresh_style(self)
-        self._refresh_style(self._led_indicator)
+        self._refresh_style(self._status_label)
+
+    def _update_state_presentation(self):
+        if self.property("error") in (True, "true"):
+            semantic_state, state_text = "fault", SIGNAL_STATE_FAULT
+        elif self._signal_name == "MAGNETRON_WARNING" and self._visual_state == SignalVisualState.ACTIVE:
+            semantic_state, state_text = "warning", SIGNAL_STATE_WARNING
+        elif (
+            (self._signal_name.endswith("_FAIL") or self._signal_name == "MAGNETRON_OVERHEAT")
+            and self._visual_state == SignalVisualState.ACTIVE
+        ):
+            semantic_state, state_text = "fault", SIGNAL_STATE_FAULT
+        elif self._visual_state == SignalVisualState.PROCESSING:
+            semantic_state, state_text = "running", SIGNAL_STATE_PROCESSING
+        elif self._visual_state == SignalVisualState.ACTIVE:
+            semantic_state, state_text = "on", SIGNAL_STATE_ACTIVE
+        else:
+            semantic_state, state_text = "off", SIGNAL_STATE_INACTIVE
+
+        set_localized_text(self._status_label, state_text)
+        self.setProperty("semanticState", semantic_state)
+        self._status_label.setProperty("semanticState", semantic_state)
+        self._state_indicator.set_state(semantic_state, state_text)
+        self._refresh_style(self)
         self._refresh_style(self._status_label)
 
     def _signal_is_output(self) -> bool:

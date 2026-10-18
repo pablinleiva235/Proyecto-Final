@@ -50,6 +50,7 @@ from gui.widgets.signal_widget import SignalWidget
 from gui.widgets.analog_readout_card import AnalogReadoutCard
 from gui.widgets.mfc_control_card import MFCControlCard
 from gui.widgets.localization import set_localized_text
+from gui.widgets.status_indicator import StatusIndicatorWidget
 
 
 class MaintainerScreen(QWidget):
@@ -183,6 +184,7 @@ class MaintainerScreen(QWidget):
         )
         self.operation_status_label = QLabel("")
         self.operation_status_label.setWordWrap(True)
+        self.operation_status_label.setObjectName("MaintainerOperationStatus")
 
         self._sequence_buttons = {
         "door": self.door_sequence_button,
@@ -454,22 +456,29 @@ class MaintainerScreen(QWidget):
         self.lamps13_state_label = QLabel("LISTAS")
         self.lamps13_state_label.setObjectName("MaintenancePill")
         self.lamps13_state_label.setProperty("state", "inactive")
+        self.lamps13_indicator = StatusIndicatorWidget("off", "LISTAS", size=34)
         self.lamp2_button = QPushButton(myStr.MAINTAINER_LAMP2_ON)
         self.lamp2_button.setObjectName("MaintenanceActionButton")
         self.lamp2_button.setCheckable(True)
         self.lamp2_state_label = QLabel("APAGADA")
         self.lamp2_state_label.setObjectName("MaintenancePill")
         self.lamp2_state_label.setProperty("state", "inactive")
+        self.lamp2_indicator = StatusIndicatorWidget("off", "APAGADA", size=34)
         self.plasma_button = QPushButton(myStr.MAINTAINER_PLASMA_ON)
         self.plasma_button.setObjectName("MaintenanceActionButton")
         self.plasma_button.setCheckable(True)
         self.plasma_state_label = QLabel("APAGADO")
         self.plasma_state_label.setObjectName("MaintenancePill")
         self.plasma_state_label.setProperty("state", "inactive")
+        self.plasma_indicator = StatusIndicatorWidget("off", "APAGADO", size=34)
         lamps13_column = QWidget()
         lamps13_layout = QVBoxLayout(lamps13_column)
         lamps13_layout.setContentsMargins(0, 0, 0, 0)
-        lamps13_layout.addWidget(self.lamps13_state_label)
+        lamps13_status = QHBoxLayout()
+        lamps13_status.addWidget(self.lamps13_indicator)
+        lamps13_status.addWidget(self.lamps13_state_label)
+        lamps13_status.addStretch()
+        lamps13_layout.addLayout(lamps13_status)
         lamps13_layout.addWidget(QLabel(myStr.MAINTAINER_PULSE_SECONDS))
         lamps13_layout.addWidget(self.lamps13_duration)
         lamps13_layout.addWidget(self.lamps13_button)
@@ -477,13 +486,21 @@ class MaintainerScreen(QWidget):
         lamp2_column = QWidget()
         lamp2_layout = QVBoxLayout(lamp2_column)
         lamp2_layout.setContentsMargins(0, 0, 0, 0)
-        lamp2_layout.addWidget(self.lamp2_state_label)
+        lamp2_status = QHBoxLayout()
+        lamp2_status.addWidget(self.lamp2_indicator)
+        lamp2_status.addWidget(self.lamp2_state_label)
+        lamp2_status.addStretch()
+        lamp2_layout.addLayout(lamp2_status)
         lamp2_layout.addWidget(self.lamp2_button)
 
         plasma_column = QWidget()
         plasma_layout = QVBoxLayout(plasma_column)
         plasma_layout.setContentsMargins(0, 0, 0, 0)
-        plasma_layout.addWidget(self.plasma_state_label)
+        plasma_status = QHBoxLayout()
+        plasma_status.addWidget(self.plasma_indicator)
+        plasma_status.addWidget(self.plasma_state_label)
+        plasma_status.addStretch()
+        plasma_layout.addLayout(plasma_status)
         plasma_layout.addWidget(self.plasma_button)
 
         process_layout.addWidget(lamps13_column, 2)
@@ -544,32 +561,47 @@ class MaintainerScreen(QWidget):
 
     def set_process_state(self, name, enabled):
         if name == "lamps13":
+            status_text = "PULSO ACTIVO" if enabled else "LISTAS"
             self._set_pill(
                 self.lamps13_state_label,
-                "PULSO ACTIVO" if enabled else "LISTAS",
+                status_text,
                 "active" if enabled else "inactive",
+            )
+            self.lamps13_indicator.set_state(
+                "running" if enabled else "off",
+                myStr.tr(status_text),
             )
         elif name == "lamp2":
             self.lamp2_button.setChecked(enabled)
+            status_text = "ENCENDIDA" if enabled else "APAGADA"
             set_localized_text(
                 self.lamp2_button,
                 myStr.MAINTAINER_LAMP2_OFF if enabled else myStr.MAINTAINER_LAMP2_ON,
             )
             self._set_pill(
                 self.lamp2_state_label,
-                "ENCENDIDA" if enabled else "APAGADA",
+                status_text,
                 "active" if enabled else "inactive",
+            )
+            self.lamp2_indicator.set_state(
+                "on" if enabled else "off",
+                myStr.tr(status_text),
             )
         elif name == "plasma":
             self.plasma_button.setChecked(enabled)
+            status_text = "ACTIVO" if enabled else "APAGADO"
             set_localized_text(
                 self.plasma_button,
                 myStr.MAINTAINER_PLASMA_OFF if enabled else myStr.MAINTAINER_PLASMA_ON,
             )
             self._set_pill(
                 self.plasma_state_label,
-                "ACTIVO" if enabled else "APAGADO",
+                status_text,
                 "active" if enabled else "inactive",
+            )
+            self.plasma_indicator.set_state(
+                "on" if enabled else "off",
+                myStr.tr(status_text),
             )
 
     def set_mfc_flow(self, name, flow):
@@ -597,6 +629,7 @@ class MaintainerScreen(QWidget):
         )
 
     def set_module_controls_enabled(self, enabled):
+        enabled = bool(enabled)
         self.mfc1_card.set_controls_enabled(enabled)
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
@@ -606,6 +639,7 @@ class MaintainerScreen(QWidget):
         )
         for widget in widgets:
             widget.setEnabled(enabled)
+
 
     @staticmethod
     def _set_pill(widget, text, state):
@@ -618,9 +652,9 @@ class MaintainerScreen(QWidget):
     def set_operation_message(self, message, is_error=False):
         set_localized_text(self.operation_status_label, message)
         self.operation_status_label.setProperty("error", bool(is_error))
-        self.operation_status_label.setStyleSheet(
-            "color: #b00020;" if is_error else "color: #2e7d32;"
-        )
+        self.operation_status_label.style().unpolish(self.operation_status_label)
+        self.operation_status_label.style().polish(self.operation_status_label)
+        self.operation_status_label.update()
 
     # =========================================================================
     # Interfaz pública para SignalController

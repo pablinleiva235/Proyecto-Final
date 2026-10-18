@@ -10,23 +10,51 @@ apariencia o la incorporación de distintos temas visuales.
 # Paleta de colores
 # =============================================================================
 
-# Colores principales
-BACKGROUND_COLOR = "#1E1E1E"
-SURFACE_COLOR = "#2B2B2B"
-SURFACE_HOVER_COLOR = "#3A3A3A"
-SURFACE_DISABLED_COLOR = "#555555"
-TEXTBOX_BACKGROUND_COLOR = "#252525"
+# Paletas compartidas por todos los componentes de la interfaz.
+THEMES = {
+    "dark": {
+        "background": "#121358",
+        "surface": "#232F72",
+        "surface_secondary": "#2F578A",
+        "primary": "#36ADA3",
+        "text": "#FAFAFA",
+        "text_secondary": "#D8E5F0",
+        "border": "#7196B8",
+        "on": "#4ADE80",
+        "running": "#38BDF8",
+        "warning": "#FACC15",
+        "fault": "#FB7185",
+        "off": "#94A3B8",
+    },
+    "light": {
+        "background": "#F2EFE7",
+        "surface": "#C8DFDB",
+        "surface_secondary": "#66A3BF",
+        "primary": "#3368A0",
+        "text": "#121358",
+        "text_secondary": "#315779",
+        "border": "#67848E",
+        "on": "#166534",
+        "running": "#075985",
+        "warning": "#92400E",
+        "fault": "#B91C1C",
+        "off": "#64748B",
+    },
+}
 
-PRIMARY_COLOR = "#0094FF"
-DANGER_COLOR = "#D32F2F"
-
-# Barra superior
-TOP_BAR_COLOR = "#111111"
-
-
-# Texto
-TEXT_COLOR = "#EEEEEE"
-TEXT_MUTED_COLOR = "#AAAAAA"
+_DEFAULT_COLORS = THEMES["dark"]
+BACKGROUND_COLOR = _DEFAULT_COLORS["background"]
+SURFACE_COLOR = _DEFAULT_COLORS["surface"]
+SURFACE_SECONDARY_COLOR = _DEFAULT_COLORS["surface_secondary"]
+SURFACE_HOVER_COLOR = SURFACE_SECONDARY_COLOR
+SURFACE_DISABLED_COLOR = _DEFAULT_COLORS["off"]
+TEXTBOX_BACKGROUND_COLOR = SURFACE_COLOR
+PRIMARY_COLOR = _DEFAULT_COLORS["primary"]
+BORDER_COLOR = _DEFAULT_COLORS["border"]
+DANGER_COLOR = _DEFAULT_COLORS["fault"]
+TOP_BAR_COLOR = _DEFAULT_COLORS["background"]
+TEXT_COLOR = _DEFAULT_COLORS["text"]
+TEXT_MUTED_COLOR = _DEFAULT_COLORS["text_secondary"]
 
 # =============================================================================
 # Configuración de Textos
@@ -46,9 +74,21 @@ BORDER_RADIUS = 12
 # ============================================================
 # SignalWidget
 # ============================================================
-SIGNAL_ACTIVE_COLOR = "#2ECC71"
-SIGNAL_INACTIVE_COLOR = "#707070"
-SIGNAL_PROCESSING_COLOR = "#F1C40F"
+SIGNAL_ACTIVE_COLOR = _DEFAULT_COLORS["on"]
+SIGNAL_INACTIVE_COLOR = _DEFAULT_COLORS["off"]
+SIGNAL_PROCESSING_COLOR = _DEFAULT_COLORS["running"]
+SIGNAL_WARNING_COLOR = _DEFAULT_COLORS["warning"]
+SIGNAL_FAULT_COLOR = _DEFAULT_COLORS["fault"]
+# Tinta para el glifo dentro de los círculos de estado, elegida para conservar
+# contraste con los colores de estado de cada paleta.
+_STATUS_ICON_FOREGROUND = {
+    "dark": THEMES["dark"]["background"],
+    "light": "#FFFFFF",
+}
+_DISABLED_BUTTON_FOREGROUND = {
+    "dark": THEMES["dark"]["background"],
+    "light": "#FFFFFF",
+}
 
 SIGNAL_WIDGET_BORDER_RADIUS = 10
 SIGNAL_LED_SIZE = 18
@@ -74,7 +114,7 @@ QMainWindow {{
 QWidget {{
     background-color: {BACKGROUND_COLOR};
     color: {TEXT_COLOR};
-    font-family: FONT_FAMILY;
+    font-family: {FONT_FAMILY};
     font-size: {SUBTITLE_FONT_SIZE}px;
 }}
 
@@ -126,7 +166,7 @@ QLabel#TopBarTime {{
 
 QFrame#OperationCard {{
     background-color: {SURFACE_COLOR};
-    border: 2px solid {SURFACE_HOVER_COLOR};
+    border: 2px solid {BORDER_COLOR};
     border-radius: 12px;
 }}
 
@@ -137,7 +177,7 @@ QFrame#OperationCard QLabel {{
 
 QFrame#OperationStatusCard {{
     background-color: {SURFACE_COLOR};
-    border: 2px solid {SURFACE_HOVER_COLOR};
+    border: 2px solid {BORDER_COLOR};
     border-radius: 10px;
 }}
 
@@ -167,9 +207,9 @@ QLabel#OperationCardTitle {{
 }}
 
 QLabel#SimulationBadge {{
-    background-color: #6B4E00;
-    color: #FFF2C2;
-    border: 2px solid #D9A400;
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+    border: 2px solid {SIGNAL_PROCESSING_COLOR};
     border-radius: 10px;
     padding: 10px 16px;
     font-size: 16px;
@@ -226,7 +266,7 @@ QLabel#SetpointFeedback[valid="false"] {{
 QLineEdit[objectName^="SetpointInput_"] {{
     background-color: {TEXTBOX_BACKGROUND_COLOR};
     color: {TEXT_COLOR};
-    border: 2px solid {SURFACE_HOVER_COLOR};
+    border: 2px solid {BORDER_COLOR};
     border-radius: 8px;
     padding: 8px;
     font-size: 16px;
@@ -243,7 +283,7 @@ QLabel#DigitalStatusLabel {{
 }}
 
 QLabel#DigitalStatusValue {{
-    background-color: #173D2B;
+    background-color: {SURFACE_COLOR};
     color: {SIGNAL_ACTIVE_COLOR};
     border: 1px solid {SIGNAL_ACTIVE_COLOR};
     border-radius: 6px;
@@ -254,7 +294,7 @@ QLabel#DigitalStatusValue {{
 
 QLabel#DemoStatus {{
     background-color: transparent;
-    color: #F1C40F;
+    color: {SIGNAL_PROCESSING_COLOR};
     font-size: 14px;
     font-weight: bold;
 }}
@@ -303,6 +343,8 @@ QPushButton#SettingsButton {{
 
 QPushButton#SettingsButton:hover {{
     background-color: {SURFACE_HOVER_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {BORDER_COLOR};
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -358,15 +400,38 @@ QPushButton {{
 
 QPushButton:hover {{
     background-color: {SURFACE_HOVER_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {BORDER_COLOR};
 }}
 
 QPushButton:pressed {{
-    background-color: {PRIMARY_COLOR};
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {PRIMARY_COLOR};
+}}
+
+QPushButton:checked, QPushButton:checked:hover {{
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {PRIMARY_COLOR};
 }}
 
 QPushButton:disabled {{
-    border: {SURFACE_DISABLED_COLOR};
-    color: {TEXT_MUTED_COLOR};
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    border: {BORDER_W}px solid {SIGNAL_INACTIVE_COLOR};
+    color: __DISABLED_BUTTON_FOREGROUND__;
+}}
+
+QPushButton#SettingsButton:disabled, QPushButton#ExitButton:disabled,
+QPushButton#CancelButton:disabled, QPushButton#MFCControlButton:disabled,
+QPushButton#MaintainerSequenceButton:disabled,
+QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,
+QPushButton#SetpointStepButton:disabled, QPushButton#BackButton:disabled,
+QPushButton#LoginButton:disabled, QPushButton#MaintenanceActionButton:disabled,
+QPushButton#SettingsCloseButton:disabled {{
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    border-color: {SIGNAL_INACTIVE_COLOR};
+    color: __DISABLED_BUTTON_FOREGROUND__;
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -383,7 +448,9 @@ QPushButton#ExitButton {{
 }}
 
 QPushButton#ExitButton:hover {{
-    background-color: {DANGER_COLOR};
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {DANGER_COLOR};
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -404,7 +471,7 @@ QLabel#LoginTitle {{
 QLineEdit#LoginInput {{
     background-color: {TEXTBOX_BACKGROUND_COLOR};
     color: {TEXT_COLOR};
-    border: {BORDER_W}px solid {SURFACE_HOVER_COLOR};
+    border: {BORDER_W}px solid {BORDER_COLOR};
     border-radius: {BORDER_RADIUS}px;
     padding: 10px 24px;
     font-size: {TEXT_FONT_SIZE}px;
@@ -437,6 +504,7 @@ QPushButton#CancelButton {{
 
 QPushButton#CancelButton:hover {{
     background-color: {SURFACE_HOVER_COLOR};
+    color: {TEXT_COLOR};
 }}
 
 /* ========================================================================== */
@@ -445,7 +513,7 @@ QPushButton#CancelButton:hover {{
 
 QTabWidget#MaintainerTabs::pane {{
     background-color: {BACKGROUND_COLOR};
-    border: 2px solid {SURFACE_HOVER_COLOR};
+    border: 2px solid {BORDER_COLOR};
     border-radius: 8px;
     top: -1px;
 }}
@@ -454,7 +522,7 @@ QTabWidget#MaintainerTabs QTabBar::tab {{
     background-color: {SURFACE_COLOR};
     color: {TEXT_MUTED_COLOR};
 
-    border: 2px solid {SURFACE_HOVER_COLOR};
+    border: 2px solid {BORDER_COLOR};
     border-bottom: none;
 
     padding: 12px 28px;
@@ -467,7 +535,7 @@ QTabWidget#MaintainerTabs QTabBar::tab {{
 }}
 
 QTabWidget#MaintainerTabs QTabBar::tab:selected {{
-    background-color: {PRIMARY_COLOR};
+    background-color: {SURFACE_SECONDARY_COLOR};
     color: {TEXT_COLOR};
 
     border-color: {PRIMARY_COLOR};
@@ -492,8 +560,8 @@ QPushButton#MFCControlButton {{
 /* -------------------------------------------------------------------------- */
 
 QFrame#signalWidget {{
-    background-color: #0B0F2A;
-    border: 1px solid #26345C;
+    background-color: {SURFACE_COLOR};
+    border: 1px solid {BORDER_COLOR};
     border-radius: 18px;
 }}
 
@@ -507,7 +575,15 @@ QFrame#signalWidget[visualState="processing"] {{
 }}
 
 QFrame#signalWidget[error="true"] {{
-    border-color: #FF7B83;
+    border-color: {SIGNAL_FAULT_COLOR};
+}}
+
+QFrame#signalWidget[semanticState="warning"] {{
+    border-color: {SIGNAL_WARNING_COLOR};
+}}
+
+QFrame#signalWidget[semanticState="fault"] {{
+    border-color: {SIGNAL_FAULT_COLOR};
 }}
 
 QLabel#signalNameLabel {{
@@ -519,8 +595,8 @@ QLabel#signalNameLabel {{
 }}
 
 QLabel#signalStatusLabel {{
-    background-color: #202B45;
-    color: #B8C6E4;
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
     border-radius: 12px;
     padding: 5px 10px;
     border: none;
@@ -545,8 +621,8 @@ QLabel#signalLedIndicator[visualState="active"] {{
 }}
 
 QLabel#signalStatusLabel[visualState="active"] {{
-    color: #55E0AE;
-    background-color: #143B35;
+    color: {SIGNAL_ACTIVE_COLOR};
+    background-color: {SURFACE_COLOR};
 }}
 
 
@@ -558,8 +634,8 @@ QLabel#signalLedIndicator[visualState="inactive"] {{
 }}
 
 QLabel#signalStatusLabel[visualState="inactive"] {{
-    color: #AAB6D0;
-    background-color: #202B45;
+    color: {TEXT_MUTED_COLOR};
+    background-color: {SURFACE_COLOR};
 }}
 
 
@@ -571,8 +647,45 @@ QLabel#signalLedIndicator[visualState="processing"] {{
 }}
 
 QLabel#signalStatusLabel[visualState="processing"] {{
-    color: #FFD166;
-    background-color: #4A3B1E;
+    color: {SIGNAL_PROCESSING_COLOR};
+    background-color: {SURFACE_COLOR};
+}}
+
+QLabel#signalStatusLabel[semanticState="warning"] {{
+    color: {SIGNAL_WARNING_COLOR};
+    background-color: {SURFACE_COLOR};
+}}
+
+QLabel#signalStatusLabel[semanticState="fault"] {{
+    color: {SIGNAL_FAULT_COLOR};
+    background-color: {SURFACE_COLOR};
+}}
+
+QWidget#StatusIndicator {{
+    border-radius: 21px;
+    border: 1px solid {BORDER_COLOR};
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    color: __STATUS_ICON_FOREGROUND__;
+}}
+
+QWidget#StatusIndicator[state="on"] {{
+    background-color: {SIGNAL_ACTIVE_COLOR};
+    color: __STATUS_ICON_FOREGROUND__;
+}}
+
+QWidget#StatusIndicator[state="running"] {{
+    background-color: {SIGNAL_PROCESSING_COLOR};
+    color: __STATUS_ICON_FOREGROUND__;
+}}
+
+QWidget#StatusIndicator[state="warning"] {{
+    background-color: {SIGNAL_WARNING_COLOR};
+    color: __STATUS_ICON_FOREGROUND__;
+}}
+
+QWidget#StatusIndicator[state="fault"] {{
+    background-color: {SIGNAL_FAULT_COLOR};
+    color: __STATUS_ICON_FOREGROUND__;
 }}
 
 QLabel#signalKindIcon {{
@@ -581,27 +694,27 @@ QLabel#signalKindIcon {{
     min-height: 36px;
     max-height: 36px;
     border-radius: 18px;
-    background-color: #123B4B;
-    color: #55DDF0;
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
     font-size: 11px;
     font-weight: bold;
 }}
 
 QLabel#signalFooterLabel, QLabel#MaintenanceCardFooter {{
     background-color: transparent;
-    color: #9BA9C7;
+    color: {TEXT_MUTED_COLOR};
     font-size: 12px;
 }}
 
 QFrame#MaintenanceCard, QFrame#MFCControlCard {{
-    background-color: #0B0F2A;
-    border: 1px solid #26345C;
+    background-color: {SURFACE_COLOR};
+    border: 1px solid {BORDER_COLOR};
     border-radius: 18px;
 }}
 
 QGroupBox#MaintainerCardGroup {{
-    background-color: #0B0F2A;
-    border: 1px solid #26345C;
+    background-color: {SURFACE_COLOR};
+    border: 1px solid {BORDER_COLOR};
     border-radius: 18px;
     margin-top: 20px;
     padding: 18px 12px 12px 12px;
@@ -630,8 +743,8 @@ QLabel#MaintenanceCardIcon {{
     min-height: 42px;
     max-height: 42px;
     border-radius: 21px;
-    background-color: #123B4B;
-    color: #55DDF0;
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
     font-size: 13px;
     font-weight: bold;
 }}
@@ -644,18 +757,18 @@ QLabel#MaintenanceCardValue {{
 }}
 
 QLabel#MaintenanceCardValue[error="true"] {{
-    color: #FF7B83;
+    color: {SIGNAL_FAULT_COLOR};
 }}
 
 QLabel#MaintenanceCardUnit {{
     background-color: transparent;
-    color: #C4CCE0;
+    color: {TEXT_MUTED_COLOR};
     font-size: 13px;
 }}
 
 QLabel#MaintenancePill, QLabel#MaintenancePill[state="inactive"] {{
-    background-color: #202B45;
-    color: #B8C6E4;
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_MUTED_COLOR};
     border: none;
     border-radius: 12px;
     padding: 5px 10px;
@@ -664,18 +777,23 @@ QLabel#MaintenancePill, QLabel#MaintenancePill[state="inactive"] {{
 }}
 
 QLabel#MaintenancePill[state="active"] {{
-    background-color: #143B35;
-    color: #55E0AE;
+    background-color: {SURFACE_COLOR};
+    color: {SIGNAL_ACTIVE_COLOR};
 }}
 
 QLabel#MaintenancePill[state="error"] {{
-    background-color: #4A202A;
-    color: #FF9299;
+    background-color: {SURFACE_COLOR};
+    color: {SIGNAL_FAULT_COLOR};
+}}
+
+QLabel#MaintenancePill[state="warning"] {{
+    background-color: {SURFACE_COLOR};
+    color: {SIGNAL_WARNING_COLOR};
 }}
 
 QLabel#MaintenancePill[state="info"] {{
-    background-color: #123B4B;
-    color: #55DDF0;
+    background-color: {SURFACE_COLOR};
+    color: {SIGNAL_PROCESSING_COLOR};
 }}
 
 QProgressBar#MFCFlowProgress {{
@@ -683,26 +801,53 @@ QProgressBar#MFCFlowProgress {{
     max-height: 8px;
     border: none;
     border-radius: 4px;
-    background-color: #202B45;
+    background-color: {SURFACE_SECONDARY_COLOR};
 }}
 
 QProgressBar#MFCFlowProgress::chunk {{
     border-radius: 4px;
-    background-color: #35D7E8;
+    background-color: {PRIMARY_COLOR};
+}}
+
+QLabel#MaintainerOperationStatus {{
+    background-color: transparent;
+    color: {TEXT_MUTED_COLOR};
+    font-size: {TEXT_FONT_SIZE}px;
+}}
+
+QLabel#MaintainerOperationStatus[error="true"] {{
+    color: {DANGER_COLOR};
+}}
+
+QLabel#MaintainerOperationStatus[error="false"] {{
+    color: {SIGNAL_ACTIVE_COLOR};
 }}
 
 QPushButton#MFCControlButton {{
-    background-color: #172342;
-    border: 1px solid #35D7E8;
+    background-color: {SURFACE_COLOR};
+    border: 1px solid {PRIMARY_COLOR};
     border-radius: 9px;
     color: {TEXT_COLOR};
     padding: 7px 12px;
     font-size: 14px;
 }}
 
+QPushButton#MFCControlButton:hover, QPushButton#MFCControlButton:pressed,
+QPushButton#MFCControlButton:checked {{
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {PRIMARY_COLOR};
+}}
+
+QPushButton#MFCControlButton:disabled {{
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    color: __DISABLED_BUTTON_FOREGROUND__;
+    border-color: {SIGNAL_INACTIVE_COLOR};
+}}
+
 QPushButton#MaintainerSequenceButton {{
-    background-color: #111831;
-    border: 1px solid #26345C;
+    background-color: {SURFACE_COLOR};
+    border: 1px solid {BORDER_COLOR};
     border-radius: 14px;
     color: {TEXT_COLOR};
     padding: 14px 16px;
@@ -711,18 +856,21 @@ QPushButton#MaintainerSequenceButton {{
 }}
 
 QPushButton#MaintainerSequenceButton:hover {{
-    background-color: #172342;
-    border-color: #35D7E8;
+    background-color: {SURFACE_SECONDARY_COLOR};
+    border-color: {PRIMARY_COLOR};
+    color: {TEXT_COLOR};
 }}
 
 QPushButton#MaintainerSequenceButton:disabled {{
-    background-color: #141A2C;
-    color: #8792AC;
-    border-color: #30384B;
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    color: __DISABLED_BUTTON_FOREGROUND__;
+    border-color: {SIGNAL_INACTIVE_COLOR};
 }}
 
 QPushButton#MaintainerSequenceButton:pressed {{
-    background-color: #123B4B;
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {PRIMARY_COLOR};
 }}
 
 QPushButton#MaintenanceActionButton {{
@@ -730,10 +878,19 @@ QPushButton#MaintenanceActionButton {{
     font-size: 14px;
 }}
 
+QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,
+QPushButton#SetpointStepButton:disabled, QPushButton#BackButton:disabled,
+QPushButton#LoginButton:disabled, QPushButton#MaintenanceActionButton:disabled,
+QPushButton#SettingsCloseButton:disabled {{
+    background-color: {SIGNAL_INACTIVE_COLOR};
+    color: __DISABLED_BUTTON_FOREGROUND__;
+    border-color: {SIGNAL_INACTIVE_COLOR};
+}}
+
 QDoubleSpinBox#MaintenanceSetpointInput {{
-    background-color: #111831;
+    background-color: {TEXTBOX_BACKGROUND_COLOR};
     color: {TEXT_COLOR};
-    border: 1px solid #3A4A70;
+    border: 1px solid {BORDER_COLOR};
     border-radius: 8px;
     padding: 6px 8px;
     font-size: 14px;
@@ -761,51 +918,31 @@ QPushButton#SettingsCloseButton {{
 """
 
 
-_LIGHT_THEME_REPLACEMENTS = {
-    "#1E1E1E": "#F3F6FB",
-    "#2B2B2B": "#FFFFFF",
-    "#3A3A3A": "#DCE4EF",
-    "#555555": "#C8D0DC",
-    "#252525": "#FFFFFF",
-    "#0094FF": "#087EB5",
-    "#D32F2F": "#B42332",
-    "#111111": "#E6EBF3",
-    "#EEEEEE": "#17233A",
-    "#AAAAAA": "#58647A",
-    "#0B0F2A": "#FFFFFF",
-    "#26345C": "#CFD8E6",
-    "#202B45": "#E8EDF5",
-    "#B8C6E4": "#3D4960",
-    "#55E0AE": "#147D5B",
-    "#143B35": "#D9F4E9",
-    "#AAB6D0": "#46536B",
-    "#FFD166": "#8A5B00",
-    "#4A3B1E": "#FFF0C2",
-    "#123B4B": "#DDF3FA",
-    "#55DDF0": "#08789A",
-    "#9BA9C7": "#65728A",
-    "#111831": "#F5F8FC",
-    "#172342": "#EAF3FB",
-    "#8792AC": "#68758C",
-    "#141A2C": "#E2E7EF",
-    "#30384B": "#AAB5C5",
-    "#35D7E8": "#078AAA",
-    "#4A202A": "#FDE7E7",
-    "#FF9299": "#A4262C",
-    "#FF7B83": "#B42332",
-    "#3A4A70": "#AEBBD0",
-    "#173D2B": "#D9F4E9",
-    "#2EC4B6": "#087EB5",
+# La hoja de estilos se construye usando los valores de la paleta oscura.
+# Al cambiar de tema, cada color exacto se sustituye por el mismo rol semántico
+# de la paleta seleccionada.
+_COLOR_ROLES = {
+    color.upper(): role
+    for role, color in THEMES["dark"].items()
 }
 
 
 def build_app_style(theme="dark"):
-    """Devuelve la hoja global para el tema claro u oscuro."""
-    if theme == "dark":
-        return APP_STYLE
-    if theme != "light":
+    """Devuelve la hoja global usando una única paleta semántica."""
+    if theme not in THEMES:
         raise ValueError("El tema debe ser 'light' o 'dark'.")
-    stylesheet = APP_STYLE
-    for dark_color, light_color in _LIGHT_THEME_REPLACEMENTS.items():
-        stylesheet = stylesheet.replace(dark_color, light_color)
-    return stylesheet
+    import re
+
+    palette = THEMES[theme]
+    stylesheet = re.sub(
+        r"#[0-9A-Fa-f]{6}",
+        lambda match: palette[_COLOR_ROLES[match.group(0).upper()]],
+        APP_STYLE,
+    )
+    return stylesheet.replace(
+        "__STATUS_ICON_FOREGROUND__",
+        _STATUS_ICON_FOREGROUND[theme],
+    ).replace(
+        "__DISABLED_BUTTON_FOREGROUND__",
+        _DISABLED_BUTTON_FOREGROUND[theme],
+    )

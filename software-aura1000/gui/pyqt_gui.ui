@@ -26,7 +26,7 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
        <widget class="QPushButton" name="MenuPrincipal_btn_enable_driver">
@@ -2658,7 +2658,7 @@ QProgressBar::chunk {
         </property>
         <property name="styleSheet">
          <string notr="true">QFrame {
-    background-color: rgb(43, 43, 43);
+    background-color: rgb(1, 1, 1);
 }</string>
         </property>
         <property name="frameShape">

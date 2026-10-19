@@ -1203,7 +1203,7 @@ class Ui_MainWindow(object):
         self.frame = QtWidgets.QFrame(self.PreEncendido)
         self.frame.setGeometry(QtCore.QRect(0, 0, 941, 141))
         self.frame.setStyleSheet("QFrame {\n"
-"    background-color: rgb(43, 43, 43);\n"
+"    background-color: rgb(1, 1, 1);\n"
 "}")
         self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
@@ -1236,7 +1236,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.stackedWidget.setCurrentIndex(0)
+        self.stackedWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>956</width>
+    <width>1001</width>
     <height>890</height>
    </rect>
   </property>
@@ -26,7 +26,7 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
        <widget class="QPushButton" name="MenuPrincipal_btn_enable_driver">
@@ -229,7 +229,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>370</y>
-          <width>941</width>
+          <width>951</width>
           <height>21</height>
          </rect>
         </property>
@@ -479,7 +479,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>550</y>
-          <width>941</width>
+          <width>951</width>
           <height>41</height>
          </rect>
         </property>
@@ -668,7 +668,7 @@ QPushButton:hover {
          <rect>
           <x>730</x>
           <y>0</y>
-          <width>211</width>
+          <width>221</width>
           <height>81</height>
          </rect>
         </property>
@@ -697,7 +697,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>60</y>
-          <width>941</width>
+          <width>951</width>
           <height>41</height>
          </rect>
         </property>
@@ -1093,7 +1093,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>380</y>
-          <width>941</width>
+          <width>951</width>
           <height>51</height>
          </rect>
         </property>
@@ -1178,7 +1178,7 @@ QPushButton:hover {
          <rect>
           <x>750</x>
           <y>590</y>
-          <width>191</width>
+          <width>201</width>
           <height>41</height>
          </rect>
         </property>
@@ -1325,45 +1325,6 @@ QPushButton:hover {
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
-        <property name="geometry">
-         <rect>
-          <x>150</x>
-          <y>690</y>
-          <width>61</width>
-          <height>91</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Bahnschrift SemiCondensed</family>
-          <pointsize>42</pointsize>
-          <weight>50</weight>
-          <bold>false</bold>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color: rgb(255, 130, 0); </string>
-        </property>
-        <property name="text">
-         <string>°C</string>
-        </property>
-       </widget>
-       <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>690</y>
-          <width>141</width>
-          <height>91</height>
-         </rect>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QLCDNumber{
-    color: rgb(255, 130, 0);   
-}</string>
-        </property>
-       </widget>
        <widget class="QLineEdit" name="MenuPrincipal_outerLamps_pulseTime">
         <property name="geometry">
          <rect>
@@ -1428,8 +1389,8 @@ QPushButton:hover {
          <rect>
           <x>-20</x>
           <y>80</y>
-          <width>981</width>
-          <height>751</height>
+          <width>971</width>
+          <height>741</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -1492,6 +1453,45 @@ QPushButton:hover {
           <string>Lamp 2 On</string>
          </property>
         </widget>
+        <widget class="QLCDNumber" name="MenuPrincipal_chamber_temp">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>610</y>
+           <width>141</width>
+           <height>91</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLCDNumber{
+    color: rgb(255, 130, 0);   
+}</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="MenuPrincipal_celsius_lbl">
+         <property name="geometry">
+          <rect>
+           <x>180</x>
+           <y>610</y>
+           <width>61</width>
+           <height>91</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift SemiCondensed</family>
+           <pointsize>42</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 130, 0); </string>
+         </property>
+         <property name="text">
+          <string>°C</string>
+         </property>
+        </widget>
        </widget>
        <zorder>frame_4</zorder>
        <zorder>frame_12</zorder>
@@ -1549,8 +1549,6 @@ QPushButton:hover {
        <zorder>MenuPrincipal_plasma_menu_lbl</zorder>
        <zorder>MenuPrincipal_lbl_status_atm</zorder>
        <zorder>MenuPrincipal_mfc1_setpoint</zorder>
-       <zorder>MenuPrincipal_celsius_lbl</zorder>
-       <zorder>MenuPrincipal_chamber_temp</zorder>
        <zorder>MenuPrincipal_outerLamps_pulseTime</zorder>
        <zorder>MenuPrincipal_eop_lbl</zorder>
        <zorder>line_2</zorder>
@@ -1617,7 +1615,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>70</y>
-          <width>941</width>
+          <width>951</width>
           <height>20</height>
          </rect>
         </property>
@@ -1805,7 +1803,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>300</y>
-          <width>941</width>
+          <width>951</width>
           <height>20</height>
          </rect>
         </property>
@@ -1814,28 +1812,6 @@ QPushButton:hover {
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QLineEdit" name="ThrottleMenu_pressure_entry">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>620</y>
-          <width>141</width>
-          <height>81</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Bahnschrift Light SemiCondensed</family>
-          <pointsize>36</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>1.5 - 3</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
         </property>
        </widget>
        <widget class="Line" name="line_9">
@@ -1843,7 +1819,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>520</y>
-          <width>941</width>
+          <width>951</width>
           <height>20</height>
          </rect>
         </property>
@@ -1852,58 +1828,6 @@ QPushButton:hover {
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-       <widget class="QLabel" name="ThrottleMenu_setpoint_pressure_unit_lbl">
-        <property name="geometry">
-         <rect>
-          <x>160</x>
-          <y>610</y>
-          <width>91</width>
-          <height>101</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <family>Bahnschrift SemiCondensed</family>
-          <pointsize>40</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
-        <property name="text">
-         <string>Torr</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="ThrottleMenu_pressure_set">
-        <property name="geometry">
-         <rect>
-          <x>320</x>
-          <y>630</y>
-          <width>171</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton {
-    background-color: #E6E7E8;
-    border: 1px solid #A4A5A6;
-    border-radius: 2px;
-}
-
-QPushButton:hover {
-    background-color: #E4EEF2;
-	border: 1px solid #007799;
-}</string>
-        </property>
-        <property name="text">
-         <string> Ajustar Presion</string>
         </property>
        </widget>
        <widget class="QPushButton" name="ThrottleMenu_pressure_stop">
@@ -1936,31 +1860,12 @@ QPushButton:hover {
          <string>Detener </string>
         </property>
        </widget>
-       <widget class="QLabel" name="label_5">
-        <property name="geometry">
-         <rect>
-          <x>260</x>
-          <y>630</y>
-          <width>51</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
        <widget class="QFrame" name="frame_6">
         <property name="geometry">
          <rect>
           <x>0</x>
           <y>80</y>
-          <width>941</width>
+          <width>951</width>
           <height>751</height>
          </rect>
         </property>
@@ -1975,6 +1880,99 @@ QPushButton:hover {
         <property name="frameShadow">
          <enum>QFrame::Raised</enum>
         </property>
+        <widget class="QLineEdit" name="ThrottleMenu_pressure_entry">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>540</y>
+           <width>141</width>
+           <height>81</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift Light SemiCondensed</family>
+           <pointsize>36</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>1.5 - 3</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_5">
+         <property name="geometry">
+          <rect>
+           <x>270</x>
+           <y>550</y>
+           <width>51</width>
+           <height>71</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="pixmap">
+          <pixmap resource="resources.qrc">:/images/arrow.png</pixmap>
+         </property>
+         <property name="scaledContents">
+          <bool>true</bool>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="ThrottleMenu_pressure_set">
+         <property name="geometry">
+          <rect>
+           <x>330</x>
+           <y>550</y>
+           <width>171</width>
+           <height>71</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton {
+    background-color: #E6E7E8;
+    border: 1px solid #A4A5A6;
+    border-radius: 2px;
+}
+
+QPushButton:hover {
+    background-color: #E4EEF2;
+	border: 1px solid #007799;
+}</string>
+         </property>
+         <property name="text">
+          <string> Ajustar Presion</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="ThrottleMenu_setpoint_pressure_unit_lbl">
+         <property name="geometry">
+          <rect>
+           <x>170</x>
+           <y>530</y>
+           <width>91</width>
+           <height>101</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Bahnschrift SemiCondensed</family>
+           <pointsize>40</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>Torr</string>
+         </property>
+        </widget>
        </widget>
        <widget class="QFrame" name="frame_7">
         <property name="geometry">
@@ -2210,7 +2208,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>345</y>
-          <width>941</width>
+          <width>951</width>
           <height>41</height>
          </rect>
         </property>
@@ -2310,7 +2308,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>310</y>
-          <width>941</width>
+          <width>951</width>
           <height>51</height>
          </rect>
         </property>
@@ -2331,7 +2329,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>530</y>
-          <width>941</width>
+          <width>951</width>
           <height>61</height>
          </rect>
         </property>
@@ -2362,12 +2360,8 @@ QPushButton:hover {
        <zorder>lbl_throttle_closed</zorder>
        <zorder>lbl_throttle_open</zorder>
        <zorder>line_8</zorder>
-       <zorder>ThrottleMenu_pressure_entry</zorder>
        <zorder>line_9</zorder>
-       <zorder>ThrottleMenu_setpoint_pressure_unit_lbl</zorder>
-       <zorder>ThrottleMenu_pressure_set</zorder>
        <zorder>ThrottleMenu_pressure_stop</zorder>
-       <zorder>label_5</zorder>
        <zorder>ThrottleMenu_pasos_label</zorder>
        <zorder>ThrottleMenu_step_counter</zorder>
        <zorder>ThrottleMenu_pressureUnit_lbl_4</zorder>
@@ -2599,7 +2593,7 @@ QProgressBar::chunk {
          <rect>
           <x>0</x>
           <y>130</y>
-          <width>941</width>
+          <width>951</width>
           <height>20</height>
          </rect>
         </property>
@@ -2652,7 +2646,7 @@ QProgressBar::chunk {
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>941</width>
+          <width>951</width>
           <height>141</height>
          </rect>
         </property>
@@ -2707,7 +2701,7 @@ QProgressBar::chunk {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>956</width>
+     <width>1001</width>
      <height>21</height>
     </rect>
    </property>

@@ -1,1 +1,4 @@
 pyuic5 -x pyqt_gui.ui -o pyqt_gui.py
+
+Para que importe bien el modulo que usa para cargar las imagenes:
+pyuic5 -x pyqt_gui.ui -o pyqt_gui.py --import-from gui

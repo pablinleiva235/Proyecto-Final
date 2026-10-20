@@ -1804,7 +1804,7 @@ QPushButton:hover {
           <x>0</x>
           <y>300</y>
           <width>951</width>
-          <height>20</height>
+          <height>16</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -2153,7 +2153,7 @@ QPushButton:hover {
           <x>0</x>
           <y>576</y>
           <width>951</width>
-          <height>41</height>
+          <height>31</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -2209,7 +2209,7 @@ QPushButton:hover {
           <x>0</x>
           <y>345</y>
           <width>951</width>
-          <height>41</height>
+          <height>31</height>
          </rect>
         </property>
         <property name="lineWidth">

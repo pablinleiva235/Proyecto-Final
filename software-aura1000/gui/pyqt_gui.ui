@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>977</width>
+    <width>1002</width>
     <height>915</height>
    </rect>
   </property>
@@ -26,7 +26,7 @@
        <number>10</number>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="MenuPrincipal">
        <widget class="QPushButton" name="MenuPrincipal_btn_enable_driver">
@@ -1615,7 +1615,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>70</y>
-          <width>961</width>
+          <width>971</width>
           <height>20</height>
          </rect>
         </property>
@@ -1803,7 +1803,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>300</y>
-          <width>961</width>
+          <width>971</width>
           <height>20</height>
          </rect>
         </property>
@@ -1819,7 +1819,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>520</y>
-          <width>961</width>
+          <width>971</width>
           <height>20</height>
          </rect>
         </property>
@@ -1979,7 +1979,7 @@ QPushButton:hover {
          <rect>
           <x>200</x>
           <y>-10</y>
-          <width>761</width>
+          <width>771</width>
           <height>91</height>
          </rect>
         </property>
@@ -2152,7 +2152,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>576</y>
-          <width>961</width>
+          <width>971</width>
           <height>41</height>
          </rect>
         </property>
@@ -2208,7 +2208,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>345</y>
-          <width>961</width>
+          <width>971</width>
           <height>41</height>
          </rect>
         </property>
@@ -2225,7 +2225,7 @@ QPushButton:hover {
           <x>500</x>
           <y>310</y>
           <width>31</width>
-          <height>541</height>
+          <height>551</height>
          </rect>
         </property>
         <property name="lineWidth">
@@ -2308,7 +2308,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>310</y>
-          <width>961</width>
+          <width>971</width>
           <height>51</height>
          </rect>
         </property>
@@ -2329,7 +2329,7 @@ QPushButton:hover {
          <rect>
           <x>0</x>
           <y>530</y>
-          <width>961</width>
+          <width>971</width>
           <height>61</height>
          </rect>
         </property>
@@ -2593,7 +2593,7 @@ QProgressBar::chunk {
          <rect>
           <x>0</x>
           <y>130</y>
-          <width>961</width>
+          <width>981</width>
           <height>20</height>
          </rect>
         </property>
@@ -2646,7 +2646,7 @@ QProgressBar::chunk {
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>961</width>
+          <width>981</width>
           <height>141</height>
          </rect>
         </property>
@@ -2701,7 +2701,7 @@ QProgressBar::chunk {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>977</width>
+     <width>1002</width>
      <height>21</height>
     </rect>
    </property>

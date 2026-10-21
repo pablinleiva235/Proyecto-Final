@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(977, 915)
+        MainWindow.resize(1002, 915)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -753,7 +753,7 @@ class Ui_MainWindow(object):
 "}")
         self.ThrottleMenu_btn_back.setObjectName("ThrottleMenu_btn_back")
         self.line_6 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_6.setGeometry(QtCore.QRect(0, 70, 961, 20))
+        self.line_6.setGeometry(QtCore.QRect(0, 70, 971, 20))
         self.line_6.setLineWidth(2)
         self.line_6.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_6.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -841,13 +841,13 @@ class Ui_MainWindow(object):
         self.lbl_throttle_open.setFont(font)
         self.lbl_throttle_open.setObjectName("lbl_throttle_open")
         self.line_8 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_8.setGeometry(QtCore.QRect(0, 300, 961, 20))
+        self.line_8.setGeometry(QtCore.QRect(0, 300, 971, 20))
         self.line_8.setLineWidth(2)
         self.line_8.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_8.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_8.setObjectName("line_8")
         self.line_9 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_9.setGeometry(QtCore.QRect(0, 520, 961, 20))
+        self.line_9.setGeometry(QtCore.QRect(0, 520, 971, 20))
         self.line_9.setLineWidth(2)
         self.line_9.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_9.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -915,7 +915,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_setpoint_pressure_unit_lbl.setStyleSheet("")
         self.ThrottleMenu_setpoint_pressure_unit_lbl.setObjectName("ThrottleMenu_setpoint_pressure_unit_lbl")
         self.frame_7 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.frame_7.setGeometry(QtCore.QRect(200, -10, 761, 91))
+        self.frame_7.setGeometry(QtCore.QRect(200, -10, 771, 91))
         self.frame_7.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -983,7 +983,7 @@ class Ui_MainWindow(object):
         self.label.setScaledContents(True)
         self.label.setObjectName("label")
         self.line_14 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_14.setGeometry(QtCore.QRect(0, 576, 961, 41))
+        self.line_14.setGeometry(QtCore.QRect(0, 576, 971, 41))
         self.line_14.setLineWidth(2)
         self.line_14.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_14.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -1005,13 +1005,13 @@ class Ui_MainWindow(object):
         self.label_9.setFont(font)
         self.label_9.setObjectName("label_9")
         self.line_10 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_10.setGeometry(QtCore.QRect(0, 345, 961, 41))
+        self.line_10.setGeometry(QtCore.QRect(0, 345, 971, 41))
         self.line_10.setLineWidth(2)
         self.line_10.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_10.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_10.setObjectName("line_10")
         self.line_16 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.line_16.setGeometry(QtCore.QRect(500, 310, 31, 541))
+        self.line_16.setGeometry(QtCore.QRect(500, 310, 31, 551))
         self.line_16.setLineWidth(2)
         self.line_16.setFrameShape(QtWidgets.QFrame.VLine)
         self.line_16.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -1044,7 +1044,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_chamber_pressure_unit_lbl.setStyleSheet(" color: rgb(0, 0, 255);   ")
         self.ThrottleMenu_chamber_pressure_unit_lbl.setObjectName("ThrottleMenu_chamber_pressure_unit_lbl")
         self.frame_8 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.frame_8.setGeometry(QtCore.QRect(0, 310, 961, 51))
+        self.frame_8.setGeometry(QtCore.QRect(0, 310, 971, 51))
         self.frame_8.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -1052,7 +1052,7 @@ class Ui_MainWindow(object):
         self.frame_8.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_8.setObjectName("frame_8")
         self.frame_9 = QtWidgets.QFrame(self.ThrottleMenu)
-        self.frame_9.setGeometry(QtCore.QRect(0, 530, 961, 61))
+        self.frame_9.setGeometry(QtCore.QRect(0, 530, 971, 61))
         self.frame_9.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -1177,7 +1177,7 @@ class Ui_MainWindow(object):
         self.PreEncendido_progressBar.setProperty("value", 0)
         self.PreEncendido_progressBar.setObjectName("PreEncendido_progressBar")
         self.line_13 = QtWidgets.QFrame(self.PreEncendido)
-        self.line_13.setGeometry(QtCore.QRect(0, 130, 961, 20))
+        self.line_13.setGeometry(QtCore.QRect(0, 130, 981, 20))
         self.line_13.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_13.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_13.setObjectName("line_13")
@@ -1195,7 +1195,7 @@ class Ui_MainWindow(object):
         self.label_7.setStyleSheet("color: rgb(255, 255, 255)")
         self.label_7.setObjectName("label_7")
         self.frame = QtWidgets.QFrame(self.PreEncendido)
-        self.frame.setGeometry(QtCore.QRect(0, 0, 961, 141))
+        self.frame.setGeometry(QtCore.QRect(0, 0, 981, 141))
         self.frame.setStyleSheet("QFrame {\n"
 "    background-color: rgb(10, 10, 10);\n"
 "}")
@@ -1222,7 +1222,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.stackedWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 977, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1002, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -1230,7 +1230,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

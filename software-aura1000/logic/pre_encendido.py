@@ -1,9 +1,54 @@
 # logic/pre_encendido.py
+import sys
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QMessageBox
 from config.digital_signals import ACTIVE, INACTIVE
 from services.system_state import systemState
 
+def request_access_password(win, correct_password="1234") -> bool:
+    """Muestra una ventana modal pidiendo la contraseña de acceso."""
+    attempts = 3
+    
+    while attempts > 0:
+        password, ok = QInputDialog.getText(
+            win,
+            "Acceso Restringido",
+            "Ingrese la contraseña de operador:",
+            QLineEdit.Password
+        )
+        
+        # Si el usuario presiona "Cancelar" o cierra la ventana
+        if not ok:
+            return False
+            
+        # Validación de contraseña
+        if password == correct_password:
+            return True
+        else:
+            attempts -= 1
+            if attempts > 0:
+                QMessageBox.warning(
+                    win,
+                    "Contraseña Incorrecta",
+                    f"Contraseña inválida. Intentos restantes: {attempts}",
+                    QMessageBox.Ok
+                )
+            else:
+                QMessageBox.critical(
+                    win,
+                    "Acceso Denegado",
+                    "Se ha alcanzado el número máximo de intentos. El programa se cerrará.",
+                    QMessageBox.Ok
+                )
+                return False
+            
 def init(win):
     """Configura el estado visual inicial del Pre-Encendido"""
+    # 1. Solicitar contraseña antes de mostrar la pantalla inicial
+    # Reemplaza "1234" por la clave deseada (o una variable de configuración)
+    if not request_access_password(win, correct_password="1234"):
+        sys.exit(0)  # Cierra la aplicación de forma limpia si falla/cancela
+
+    # 2. Si la clave es correcta, continúa la carga normal de la UI
     win.ui.stackedWidget.setCurrentWidget(win.ui.PreEncendido)
     win.ui.PreEncendido_progressBar.hide()
     win.ui.PreEncendido_progressBar.setRange(0, 100)

@@ -2,6 +2,13 @@ virt/
 testPlacasBasico/
 testPlacas_capasAbstraccion/
 site/
+
 # Cache de Python
 **/__pycache__/
 *.pyc
+
+# PyInstaller / Artefactos de compilación
+build/
+dist/
+*.spec
+asher_aura1000_icon.ico

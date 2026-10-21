@@ -68,6 +68,23 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         target_set = getattr(win, "mfc1_target_slm", 0.0) > 0.0
         return valve_open and target_set
     ```
+
+??? note "`check_drivers_enabled(win)`"
+    Verifica si los drivers de la placa DIO están habilitados
+
+    ```python
+    def check_drivers_enabled(win) -> bool:
+        drivers_active = (win.ui.MenuPrincipal_btn_enable_driver.text() == "Deshabilitar Drivers")
+        if not drivers_active:
+            QMessageBox.warning(
+                win,
+                "Drivers Deshabilitados",
+                "Los drivers de salida (SN75436) están deshabilitados.\n\n"
+                "Presione 'Habilitar Drivers' antes de operar la puerta o las válvulas de vacío.",
+                QMessageBox.Ok
+            )
+        return drivers_active
+    ```
 ---
 
 ## <span style="color: #4CAF50;">Inicializacion</span>
@@ -239,6 +256,8 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
     ```python
     def toggle_door(win):
         """ Controla la apertura y el cierre seguro de la puerta de la cámara. """
+        if not check_drivers_enabled(win):
+            return  # Aborta la acción si los drivers están deshabilitados    
         btn = win.ui.MenuPrincipal_btn_open_door
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
@@ -274,6 +293,9 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
         """
         Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.
         """
+        if not check_drivers_enabled(win):
+            return  # Aborta la acción si los drivers están deshabilitados   
+
         btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
         btn_main = win.ui.MenuPrincipal_btn_main_vacuum
         btn_door = win.ui.MenuPrincipal_btn_open_door
@@ -387,60 +409,74 @@ El módulo `maintenance_process.py` agrupa metodos para poder ir probando median
 
     ```python
     def vent_chamber(win):
-    """ Controla el inicio y la cancelación manual del proceso de venteo. """
-    btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
-    btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
-    btn_main = win.ui.MenuPrincipal_btn_main_vacuum
+        """ Controla el inicio y la cancelación manual del proceso de venteo. """
+        if not check_drivers_enabled(win):
+            return  # Aborta la acción si los drivers están deshabilitados
+        
+        btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
+        btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
+        btn_main = win.ui.MenuPrincipal_btn_main_vacuum
 
-    if check_active_power(win):
-        QtWidgets.QMessageBox.warning(
-            win,
-            "Secuencia Inválida",
-            "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
-            "Apague todos los procesos térmicos y de RF primero.",
-            QtWidgets.QMessageBox.Ok
-        )
-        return
-
-    if btn_vent.text() == "Vent Chamber":
-        # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
-        if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
-            QtWidgets.QMessageBox.warning(
+        if check_active_power(win):
+            QMessageBox.warning(
                 win,
                 "Secuencia Inválida",
-                "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
-                "Cierre las válvulas de vacío primero.",
-                QtWidgets.QMessageBox.Ok
+                "No se puede ventear mientras haya Lámparas o Plasma activados.\n"
+                "Apague todos los procesos térmicos y de RF primero.",
+                QMessageBox.Ok
             )
             return
 
-        # Inicio de venteo
-        win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
-        btn_vent.setText("Venteando...")
-        btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
+        if btn_vent.text() == "Vent Chamber":
+            # Verifica que la camara esta en atmosfera, si es asi no permite ventear
+            if win.hw.digital_read("ATM_SWITCH"):
+                QMessageBox.warning(
+                    win,
+                    "Cámara en Atmósfera",
+                    "La cámara ya se encuentra a Presión Atmosférica (ATM_SWITCH activo).\n\n"
+                    "No es necesario iniciar la secuencia de venteo.",
+                    QMessageBox.Ok
+                )
+                return
+            
+            # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
+            if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
+                QMessageBox.warning(
+                    win,
+                    "Secuencia Inválida",
+                    "No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.\n"
+                    "Cierre las válvulas de vacío primero.",
+                    QMessageBox.Ok
+                )
+                return
 
-        # ── Seguridad Throttle al iniciar venteo ──
-        win.is_in_vacuum = False
-        if hasattr(win, "throttle"):
-            if win.throttle.auto_control_enabled:
-                win.throttle.stop_movement()
-            win.throttle.update_vacuum_interlocks()
-        
-        # Bloqueos de seguridad durante el venteo
-        btn_soft.setEnabled(False)
-        btn_main.setEnabled(False)
-        win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
-        set_process_controls_enabled(win, False)
-        
-    else:
-        # Cancelación manual
-        win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
-        btn_vent.setText("Vent Chamber")
-        btn_vent.setStyleSheet("")
-        
-        btn_soft.setEnabled(True)
-        btn_main.setEnabled(True)
-        print("Venteo cancelado manualmente por el operario.")
+            # Inicio de venteo
+            win.hw.digital_set("VENT_VALVE_CONTROL", ACTIVE)
+            btn_vent.setText("Venteando...")
+            btn_vent.setStyleSheet("background-color: #2ec4b6; color: black; font-weight: bold;")
+
+            # ── Seguridad Throttle al iniciar venteo ──
+            win.is_in_vacuum = False
+            if hasattr(win, "throttle"):
+                if win.throttle.auto_control_enabled:
+                    win.throttle.stop_movement()
+                win.throttle.update_vacuum_interlocks()
+            
+            # Bloqueos de seguridad durante el venteo
+            btn_soft.setEnabled(False)
+            btn_main.setEnabled(False)
+            win.ui.MenuPrincipal_btn_open_door.setEnabled(False)
+            set_process_controls_enabled(win, False)
+            
+        else:
+            # Cancelación manual
+            win.hw.digital_set("VENT_VALVE_CONTROL", INACTIVE)
+            btn_vent.setText("Vent Chamber")
+            btn_vent.setStyleSheet("")
+            
+            btn_soft.setEnabled(True)
+            btn_main.setEnabled(True)
+            print("Venteo cancelado manualmente por el operario.")
     ```
 
 ??? note "`finish_vent_sequence(win)`"

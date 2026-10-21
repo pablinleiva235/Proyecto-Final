@@ -79,6 +79,27 @@ El módulo `throttle_test.py` tiene la clase ThrottleController con metodos inte
 
 ---
 
+## <span style="color: #4CAF50;">Helper de chequeo de Driver habilitado`</span>
+
+??? note "Chequeo de Driver DRV8825 habilitado: `check_drivers_enabled(self)`"
+    Chequea que el driver de la valvula throttle este habilitado
+
+    ```python
+    def check_drivers_enabled(self) -> bool:
+        """Verifica si los drivers de la placa DIO están habilitados."""
+        drivers_active = (self.ui.ThrottleMenu_btn_toggle_enable.text() == "Deshabilitar Driver")
+        if not drivers_active:
+            QMessageBox.warning(
+                self.win,
+                "Drivers Deshabilitados",
+                "El driver de la valvula throttle esta deshabilitado.\n\n"
+                "Presione 'Habilitar Driver' antes de operar con la Throttle.",
+                QMessageBox.Ok
+            )
+        return drivers_active
+    ```
+---
+
 ## <span style="color: #4CAF50;">Secuencias de Calibración y Posicionamiento (*Homing*)</span>
 
 ??? note "Búsqueda del Límite de Apertura (*Homing* de Inicio): `home_on_startup(self)`"
@@ -475,6 +496,8 @@ El módulo `throttle_test.py` tiene la clase ThrottleController con metodos inte
             btn.setStyleSheet("")
 
     def on_step_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_step
         if "Full Step" in btn.text():
             self.set_half_step(ACTIVE)
@@ -484,6 +507,8 @@ El módulo `throttle_test.py` tiene la clase ThrottleController con metodos inte
             btn.setText("Modo: Full Step")
 
     def on_dir_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_dir
         if "Apertura" in btn.text():
             self.set_direction(ACTIVE)
@@ -493,6 +518,8 @@ El módulo `throttle_test.py` tiene la clase ThrottleController con metodos inte
             btn.setText("Dirección: Apertura")
 
     def on_run_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_run
         if btn.text() == "Girar Motor":
             self._log_time     = []
@@ -510,6 +537,8 @@ El módulo `throttle_test.py` tiene la clase ThrottleController con metodos inte
             self.stop_movement()
 
     def on_step_set_clicked(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         """Handler para el botón 'Ajustar posicion'."""
         try:
             val_text = self.ui.ThrottleMenu_step_entry.text().strip()

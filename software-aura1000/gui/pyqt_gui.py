@@ -14,11 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-<<<<<<< HEAD
-        MainWindow.resize(1001, 890)
-=======
         MainWindow.resize(977, 915)
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -130,11 +126,7 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_pressureUnit_lbl.setStyleSheet(" color: rgb(0, 100, 255);   ")
         self.MenuPrincipal_pressureUnit_lbl.setObjectName("MenuPrincipal_pressureUnit_lbl")
         self.MenuPrincipal_line = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.MenuPrincipal_line.setGeometry(QtCore.QRect(0, 370, 951, 21))
-=======
         self.MenuPrincipal_line.setGeometry(QtCore.QRect(0, 370, 961, 21))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.MenuPrincipal_line.setLineWidth(2)
         self.MenuPrincipal_line.setFrameShape(QtWidgets.QFrame.HLine)
         self.MenuPrincipal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -248,11 +240,7 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_mfc2_readout_lbl.setStyleSheet(" color: rgb(0, 100, 255);   ")
         self.MenuPrincipal_mfc2_readout_lbl.setObjectName("MenuPrincipal_mfc2_readout_lbl")
         self.MenuPrincipal_line_2 = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.MenuPrincipal_line_2.setGeometry(QtCore.QRect(0, 550, 951, 41))
-=======
         self.MenuPrincipal_line_2.setGeometry(QtCore.QRect(0, 550, 961, 41))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.MenuPrincipal_line_2.setLineWidth(2)
         self.MenuPrincipal_line_2.setFrameShape(QtWidgets.QFrame.HLine)
         self.MenuPrincipal_line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -332,11 +320,7 @@ class Ui_MainWindow(object):
         self.line_4.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_4.setObjectName("line_4")
         self.MenuPrincipal_btn_go_to_throttle = QtWidgets.QPushButton(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.MenuPrincipal_btn_go_to_throttle.setGeometry(QtCore.QRect(730, 0, 221, 81))
-=======
         self.MenuPrincipal_btn_go_to_throttle.setGeometry(QtCore.QRect(730, 0, 231, 81))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         font = QtGui.QFont()
         font.setPointSize(18)
         self.MenuPrincipal_btn_go_to_throttle.setFont(font)
@@ -351,11 +335,7 @@ class Ui_MainWindow(object):
 "}")
         self.MenuPrincipal_btn_go_to_throttle.setObjectName("MenuPrincipal_btn_go_to_throttle")
         self.line_5 = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.line_5.setGeometry(QtCore.QRect(0, 60, 951, 41))
-=======
         self.line_5.setGeometry(QtCore.QRect(0, 60, 961, 41))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_5.setLineWidth(2)
         self.line_5.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_5.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -524,11 +504,7 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_line_4.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.MenuPrincipal_line_4.setObjectName("MenuPrincipal_line_4")
         self.frame_5 = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.frame_5.setGeometry(QtCore.QRect(0, 380, 951, 51))
-=======
         self.frame_5.setGeometry(QtCore.QRect(0, 380, 961, 51))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_5.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -561,11 +537,7 @@ class Ui_MainWindow(object):
         self.line_15.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_15.setObjectName("line_15")
         self.line_17 = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.line_17.setGeometry(QtCore.QRect(750, 590, 201, 41))
-=======
         self.line_17.setGeometry(QtCore.QRect(750, 590, 211, 41))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_17.setLineWidth(2)
         self.line_17.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_17.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -647,11 +619,7 @@ class Ui_MainWindow(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.frame_4 = QtWidgets.QFrame(self.MenuPrincipal)
-<<<<<<< HEAD
-        self.frame_4.setGeometry(QtCore.QRect(-20, 80, 971, 741))
-=======
         self.frame_4.setGeometry(QtCore.QRect(-20, 80, 981, 801))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_4.setStyleSheet("QFrame {\n"
 "    background-color: rgb(220, 220, 220);\n"
 "}")
@@ -680,19 +648,8 @@ class Ui_MainWindow(object):
 "    border: 1px solid #007799;\n"
 "}")
         self.MenuPrincipal_btn_centralLamp.setObjectName("MenuPrincipal_btn_centralLamp")
-<<<<<<< HEAD
-        self.MenuPrincipal_chamber_temp = QtWidgets.QLCDNumber(self.frame_4)
-        self.MenuPrincipal_chamber_temp.setGeometry(QtCore.QRect(30, 610, 141, 91))
-        self.MenuPrincipal_chamber_temp.setStyleSheet("QLCDNumber{\n"
-"    color: rgb(255, 130, 0);   \n"
-"}")
-        self.MenuPrincipal_chamber_temp.setObjectName("MenuPrincipal_chamber_temp")
-        self.MenuPrincipal_celsius_lbl = QtWidgets.QLabel(self.frame_4)
-        self.MenuPrincipal_celsius_lbl.setGeometry(QtCore.QRect(180, 610, 61, 91))
-=======
         self.MenuPrincipal_celsius_lbl = QtWidgets.QLabel(self.frame_4)
         self.MenuPrincipal_celsius_lbl.setGeometry(QtCore.QRect(180, 610, 51, 91))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         font = QtGui.QFont()
         font.setFamily("Bahnschrift SemiCondensed")
         font.setPointSize(42)
@@ -701,15 +658,12 @@ class Ui_MainWindow(object):
         self.MenuPrincipal_celsius_lbl.setFont(font)
         self.MenuPrincipal_celsius_lbl.setStyleSheet("color: rgb(255, 130, 0); ")
         self.MenuPrincipal_celsius_lbl.setObjectName("MenuPrincipal_celsius_lbl")
-<<<<<<< HEAD
-=======
         self.MenuPrincipal_chamber_temp = QtWidgets.QLCDNumber(self.frame_4)
         self.MenuPrincipal_chamber_temp.setGeometry(QtCore.QRect(30, 610, 141, 91))
         self.MenuPrincipal_chamber_temp.setStyleSheet("QLCDNumber{\n"
 "    color: rgb(255, 130, 0);   \n"
 "}")
         self.MenuPrincipal_chamber_temp.setObjectName("MenuPrincipal_chamber_temp")
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_4.raise_()
         self.frame_12.raise_()
         self.frame_11.raise_()
@@ -799,11 +753,7 @@ class Ui_MainWindow(object):
 "}")
         self.ThrottleMenu_btn_back.setObjectName("ThrottleMenu_btn_back")
         self.line_6 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.line_6.setGeometry(QtCore.QRect(0, 70, 951, 20))
-=======
         self.line_6.setGeometry(QtCore.QRect(0, 70, 961, 20))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_6.setLineWidth(2)
         self.line_6.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_6.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -891,21 +841,13 @@ class Ui_MainWindow(object):
         self.lbl_throttle_open.setFont(font)
         self.lbl_throttle_open.setObjectName("lbl_throttle_open")
         self.line_8 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.line_8.setGeometry(QtCore.QRect(0, 300, 951, 16))
-=======
         self.line_8.setGeometry(QtCore.QRect(0, 300, 961, 20))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_8.setLineWidth(2)
         self.line_8.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_8.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_8.setObjectName("line_8")
         self.line_9 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.line_9.setGeometry(QtCore.QRect(0, 520, 951, 20))
-=======
         self.line_9.setGeometry(QtCore.QRect(0, 520, 961, 20))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_9.setLineWidth(2)
         self.line_9.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_9.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -927,11 +869,7 @@ class Ui_MainWindow(object):
 "}")
         self.ThrottleMenu_pressure_stop.setObjectName("ThrottleMenu_pressure_stop")
         self.frame_6 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.frame_6.setGeometry(QtCore.QRect(0, 80, 951, 751))
-=======
         self.frame_6.setGeometry(QtCore.QRect(0, 80, 971, 801))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_6.setStyleSheet("QFrame {\n"
 "    background-color: rgb(220, 220, 220);\n"
 "}")
@@ -1045,11 +983,7 @@ class Ui_MainWindow(object):
         self.label.setScaledContents(True)
         self.label.setObjectName("label")
         self.line_14 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.line_14.setGeometry(QtCore.QRect(0, 576, 951, 31))
-=======
         self.line_14.setGeometry(QtCore.QRect(0, 576, 961, 41))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_14.setLineWidth(2)
         self.line_14.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_14.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -1071,11 +1005,7 @@ class Ui_MainWindow(object):
         self.label_9.setFont(font)
         self.label_9.setObjectName("label_9")
         self.line_10 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.line_10.setGeometry(QtCore.QRect(0, 345, 951, 31))
-=======
         self.line_10.setGeometry(QtCore.QRect(0, 345, 961, 41))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_10.setLineWidth(2)
         self.line_10.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_10.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -1114,11 +1044,7 @@ class Ui_MainWindow(object):
         self.ThrottleMenu_chamber_pressure_unit_lbl.setStyleSheet(" color: rgb(0, 0, 255);   ")
         self.ThrottleMenu_chamber_pressure_unit_lbl.setObjectName("ThrottleMenu_chamber_pressure_unit_lbl")
         self.frame_8 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.frame_8.setGeometry(QtCore.QRect(0, 310, 951, 51))
-=======
         self.frame_8.setGeometry(QtCore.QRect(0, 310, 961, 51))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_8.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -1126,11 +1052,7 @@ class Ui_MainWindow(object):
         self.frame_8.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_8.setObjectName("frame_8")
         self.frame_9 = QtWidgets.QFrame(self.ThrottleMenu)
-<<<<<<< HEAD
-        self.frame_9.setGeometry(QtCore.QRect(0, 530, 951, 61))
-=======
         self.frame_9.setGeometry(QtCore.QRect(0, 530, 961, 61))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame_9.setStyleSheet("QFrame {\n"
 "    background-color: rgb(43, 43, 43);\n"
 "}")
@@ -1255,11 +1177,7 @@ class Ui_MainWindow(object):
         self.PreEncendido_progressBar.setProperty("value", 0)
         self.PreEncendido_progressBar.setObjectName("PreEncendido_progressBar")
         self.line_13 = QtWidgets.QFrame(self.PreEncendido)
-<<<<<<< HEAD
-        self.line_13.setGeometry(QtCore.QRect(0, 130, 951, 20))
-=======
         self.line_13.setGeometry(QtCore.QRect(0, 130, 961, 20))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.line_13.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_13.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_13.setObjectName("line_13")
@@ -1277,11 +1195,7 @@ class Ui_MainWindow(object):
         self.label_7.setStyleSheet("color: rgb(255, 255, 255)")
         self.label_7.setObjectName("label_7")
         self.frame = QtWidgets.QFrame(self.PreEncendido)
-<<<<<<< HEAD
-        self.frame.setGeometry(QtCore.QRect(0, 0, 951, 141))
-=======
         self.frame.setGeometry(QtCore.QRect(0, 0, 961, 141))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.frame.setStyleSheet("QFrame {\n"
 "    background-color: rgb(10, 10, 10);\n"
 "}")
@@ -1308,11 +1222,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.stackedWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-<<<<<<< HEAD
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1001, 21))
-=======
         self.menubar.setGeometry(QtCore.QRect(0, 0, 977, 21))
->>>>>>> 37c02a1a83f6954584ff9fcd0a36fb9ca3229d70
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)

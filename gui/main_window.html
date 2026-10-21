@@ -1460,58 +1460,106 @@
 <h2 id="metodos-de-inicializacion-y-maquina-de-estados"><span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span></h2>
 <details class="note">
 <summary>Inicialización del Constructor: <code>__init__(self, hardware)</code></summary>
-<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas, tambien para falla en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hardware</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<p>Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas durante el proceso, tambien para fallas en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (<code>timersIOManager</code>) pasándose a sí mismo como referencia (<code>self</code>) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hardware</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">hw</span> <span class="o">=</span> <span class="n">hardware</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">offClose</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Almacena el progreso de la barra</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hw</span> <span class="o">=</span> <span class="n">hardware</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offClose</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">startup_progress</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Almacena el progreso de la barra</span>
 
-    <span class="c1"># Crear interfaz autogenerada</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="n">Ui_MainWindow</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">setupUi</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># Crear interfaz autogenerada</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="n">Ui_MainWindow</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">setupUi</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-    <span class="c1"># Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state_lamps13_pulsing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lamp2_on</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rf_on</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Variable donde se almacena la ultima medicion de temperatura para el control de la lampara 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_chamber_temp</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="c1"># Control de ventanas emergentes de alarma/advertencia</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">warning_mag_shown</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># Variable con tiempo desde que se pulsa el boton de plasma </span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">rf_on_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="c1"># Control de ventanas emergentes de alarma/advertencia</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alarm_active</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warning_mag_shown</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># --- Variables para Control de Fallas en MFCs ---</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">MFC_FLOW_TOLERANCE_PCT</span> <span class="o">=</span> <span class="mf">0.05</span>  <span class="c1"># 5% de tolerancia (modificable)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># 30 muestras x 100ms = 3.0 segundos</span>
+        <span class="c1"># Variable con tiempo desde que se pulsa el boton de plasma </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rf_on_time</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="c1"># Buffers de promediado móvil</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
+        <span class="c1"># --- Variables para Control de Fallas en MFCs ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MFC1_FLOW_TOLERANCE_PCT</span> <span class="o">=</span> <span class="mf">0.15</span>  <span class="c1"># 5% de tolerancia (modificable)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MFC2_FLOW_TOLERANCE_PCT</span> <span class="o">=</span> <span class="mf">0.25</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># 30 muestras x 100ms = 3.0 segundos</span>
 
-    <span class="c1"># Setpoints de referencia (0.0 significa que no se exige flujo)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="c1"># Buffers de promediado móvil</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_flow_history</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MFC_WINDOW_SAMPLES</span><span class="p">)</span>
 
-    <span class="c1"># Instanciar el manager de timers pasándole &#39;self&#39; (esta ventana)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span> <span class="o">=</span> <span class="n">timersIOManager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">start_all_core_timers</span><span class="p">()</span>
+        <span class="c1"># Setpoints de referencia (0.0 significa que no se exige flujo)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfc1_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mfc2_target_slm</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-    <span class="c1"># Instanciamos el controlador de la valvula throttle</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">throttle</span> <span class="o">=</span> <span class="n">ThrottleController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> 
+        <span class="c1"># =====================================================================</span>
+        <span class="c1"># ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768</span>
+        <span class="c1"># =====================================================================</span>
+        <span class="n">old_central</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centralWidget</span><span class="p">()</span>
 
-    <span class="c1"># Instanciamos el controlador de temperatura</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">temp_ctrl</span> <span class="o">=</span> <span class="n">TempController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">old_central</span><span class="p">:</span>
+            <span class="c1"># A. Le fijamos un alto mínimo real a la UI original para que NO se comprima.</span>
+            <span class="c1"># 950px asegura que entre todo el contenido de Lámparas y Temperatura holgadamente.</span>
+            <span class="n">old_central</span><span class="o">.</span><span class="n">setMinimumSize</span><span class="p">(</span><span class="mi">980</span><span class="p">,</span> <span class="mi">950</span><span class="p">)</span>
 
-    <span class="c1"># Iniciar la máquina de estados en PRE_ENCENDIDO</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">)</span>
+            <span class="c1"># B. Creamos el QScrollArea y configuramos sus políticas</span>
+            <span class="n">scroll</span> <span class="o">=</span> <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QScrollArea</span><span class="p">()</span>
+            <span class="n">scroll</span><span class="o">.</span><span class="n">setWidget</span><span class="p">(</span><span class="n">old_central</span><span class="p">)</span>
+            <span class="n">scroll</span><span class="o">.</span><span class="n">setWidgetResizable</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">scroll</span><span class="o">.</span><span class="n">setFrameShape</span><span class="p">(</span><span class="n">QtWidgets</span><span class="o">.</span><span class="n">QFrame</span><span class="o">.</span><span class="n">NoFrame</span><span class="p">)</span>
+
+            <span class="c1"># C. Forzamos la barra de scroll vertical para que aparezca siempre</span>
+            <span class="n">scroll</span><span class="o">.</span><span class="n">setVerticalScrollBarPolicy</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">ScrollBarAlwaysOn</span><span class="p">)</span>
+            <span class="n">scroll</span><span class="o">.</span><span class="n">setHorizontalScrollBarPolicy</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">ScrollBarAsNeeded</span><span class="p">)</span>  <span class="c1"># Por si el ancho también se queda corto</span>
+
+            <span class="c1"># D. Reemplazamos el widget central</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setCentralWidget</span><span class="p">(</span><span class="n">scroll</span><span class="p">)</span>
+        <span class="c1"># =====================================================================</span>
+
+        <span class="c1"># Instanciar el manager de timers pasándole &#39;self&#39; (esta ventana)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span> <span class="o">=</span> <span class="n">timersIOManager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer_manager</span><span class="o">.</span><span class="n">start_all_core_timers</span><span class="p">()</span>
+
+        <span class="c1"># Instanciamos el controlador de la throttle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">throttle</span> <span class="o">=</span> <span class="n">ThrottleController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> 
+
+        <span class="c1"># Instanciamos el controlador de temperatura</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temp_ctrl</span> <span class="o">=</span> <span class="n">TempController</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Configurar botones de navegación entre menús</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_navigation</span><span class="p">()</span>
+
+        <span class="c1"># Iniciar la máquina de estados en PRE_ENCENDIDO</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">change_state</span><span class="p">(</span><span class="n">systemState</span><span class="o">.</span><span class="n">PRE_ENCENDIDO</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<details class="note">
+<summary>Botones de cambio de menu: <code>_setup_navigation(self)</code></summary>
+<p>Conecta los botones de cambio de menu de mantenimiento a throttle y viceversa en sus respectivos stackedWidget.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_setup_navigation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Ir a la vista de Throttle desde el Menú Principal</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_go_to_throttle</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">stackedWidget</span><span class="o">.</span><span class="n">setCurrentWidget</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Volver al Menú Principal desde la pantalla de Throttle</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_back</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">stackedWidget</span><span class="o">.</span><span class="n">setCurrentWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal</span><span class="p">)</span>
+    <span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">

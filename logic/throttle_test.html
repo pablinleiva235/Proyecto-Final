@@ -1086,6 +1086,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#helper-de-chequeo-de-driver-habilitado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper de chequeo de Driver habilitado`
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#secuencias-de-calibracion-y-posicionamiento-homing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1449,6 +1460,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#helper-de-chequeo-de-driver-habilitado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helper de chequeo de Driver habilitado`
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#secuencias-de-calibracion-y-posicionamiento-homing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1591,6 +1613,25 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_set</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_stop</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_pressure_entry</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+</details>
+<hr />
+<h2 id="helper-de-chequeo-de-driver-habilitado"><span style="color: #4CAF50;">Helper de chequeo de Driver habilitado`</span></h2>
+<details class="note">
+<summary>Chequeo de Driver DRV8825 habilitado: <code>check_drivers_enabled(self)</code></summary>
+<p>Chequea que el driver de la valvula throttle este habilitado</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_drivers_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verifica si los drivers de la placa DIO están habilitados.&quot;&quot;&quot;</span>
+    <span class="n">drivers_active</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_enable</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Deshabilitar Driver&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">drivers_active</span><span class="p">:</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">win</span><span class="p">,</span>
+            <span class="s2">&quot;Drivers Deshabilitados&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;El driver de la valvula throttle esta deshabilitado.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Presione &#39;Habilitar Driver&#39; antes de operar con la Throttle.&quot;</span><span class="p">,</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">drivers_active</span>
 </code></pre></div>
 </details>
 <hr />
@@ -1979,6 +2020,8 @@
         <span class="n">btn</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_step_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_drivers_enabled</span><span class="p">():</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_step</span>
     <span class="k">if</span> <span class="s2">&quot;Full Step&quot;</span> <span class="ow">in</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_half_step</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
@@ -1988,6 +2031,8 @@
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Modo: Full Step&quot;</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_dir_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_drivers_enabled</span><span class="p">():</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_dir</span>
     <span class="k">if</span> <span class="s2">&quot;Apertura&quot;</span> <span class="ow">in</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_direction</span><span class="p">(</span><span class="n">ACTIVE</span><span class="p">)</span>
@@ -1997,6 +2042,8 @@
         <span class="n">btn</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Dirección: Apertura&quot;</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_run_toggled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_drivers_enabled</span><span class="p">():</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados</span>
     <span class="n">btn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_btn_toggle_run</span>
     <span class="k">if</span> <span class="n">btn</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Girar Motor&quot;</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_log_time</span>     <span class="o">=</span> <span class="p">[]</span>
@@ -2014,6 +2061,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_step_set_clicked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_drivers_enabled</span><span class="p">():</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Handler para el botón &#39;Ajustar posicion&#39;.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">val_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">ThrottleMenu_step_entry</span><span class="o">.</span><span class="n">text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>

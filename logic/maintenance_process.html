@@ -1670,6 +1670,22 @@ Se llama en las funciones que habilitan valvulas de vacio y las de control de la
     <span class="k">return</span> <span class="n">valve_open</span> <span class="ow">and</span> <span class="n">target_set</span>
 </code></pre></div>
 </details>
+<details class="note">
+<summary><code>check_drivers_enabled(win)</code></summary>
+<p>Verifica si los drivers de la placa DIO están habilitados</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">check_drivers_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">drivers_active</span> <span class="o">=</span> <span class="p">(</span><span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_enable_driver</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Deshabilitar Drivers&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">drivers_active</span><span class="p">:</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="n">win</span><span class="p">,</span>
+            <span class="s2">&quot;Drivers Deshabilitados&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Los drivers de salida (SN75436) están deshabilitados.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Presione &#39;Habilitar Drivers&#39; antes de operar la puerta o las válvulas de vacío.&quot;</span><span class="p">,</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">drivers_active</span>
+</code></pre></div>
+</details>
 <hr />
 <h2 id="inicializacion"><span style="color: #4CAF50;">Inicializacion</span></h2>
 <details class="note">
@@ -1831,6 +1847,8 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <p>Administra la apertura y cierre del pistón neumático de la puerta de cámara de proceso. Si abre, deshabilita los botones para hacer vacio y ventear</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">toggle_door</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot; Controla la apertura y el cierre seguro de la puerta de la cámara. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_drivers_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados    </span>
     <span class="n">btn</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
     <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
     <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
@@ -1863,6 +1881,9 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_drivers_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados   </span>
+
     <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
     <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
     <span class="n">btn_door</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span>
@@ -1972,60 +1993,74 @@ Llama a <code>set_process_controls_enabled</code> para deshabilitar panel de MFC
 <summary><code>vent_chamber(win)</code></summary>
 <p>Maneja la apertura física de la línea de nitrógeno/aire hacia el interior de la cámara (<code>VENT_VALVE_CONTROL</code>). Evalúa rigurosamente que no existan líneas de vacío succionando en simultáneo. Si pasa los filtros, inicia el venteo y congela temporalmente todos los mandos periféricos del panel. Cuenta con una rutina de escape que permite la cancelación manual inmediata por parte del operario. Si la throttle estaba ajustando y se presiona este boton, la detiene</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">vent_chamber</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-<span class="sd">&quot;&quot;&quot; Controla el inicio y la cancelación manual del proceso de venteo. &quot;&quot;&quot;</span>
-<span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
-<span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
-<span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Controla el inicio y la cancelación manual del proceso de venteo. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_drivers_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+        <span class="k">return</span>  <span class="c1"># Aborta la acción si los drivers están deshabilitados</span>
 
-<span class="k">if</span> <span class="n">check_active_power</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
-    <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-        <span class="n">win</span><span class="p">,</span>
-        <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;No se puede ventear mientras haya Lámparas o Plasma activados.</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;Apague todos los procesos térmicos y de RF primero.&quot;</span><span class="p">,</span>
-        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
-    <span class="p">)</span>
-    <span class="k">return</span>
+    <span class="n">btn_vent</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_vent_chamber</span>
+    <span class="n">btn_soft</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_soft_vacuum</span>
+    <span class="n">btn_main</span> <span class="o">=</span> <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_main_vacuum</span>
 
-<span class="k">if</span> <span class="n">btn_vent</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Vent Chamber&quot;</span><span class="p">:</span>
-    <span class="c1"># Verifica que NINGUNA de las dos válvulas de vacío esté abierta</span>
-    <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span> <span class="ow">or</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">:</span> 
-        <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+    <span class="k">if</span> <span class="n">check_active_power</span><span class="p">(</span><span class="n">win</span><span class="p">):</span>
+        <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="n">win</span><span class="p">,</span>
             <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;Cierre las válvulas de vacío primero.&quot;</span><span class="p">,</span>
-            <span class="n">QtWidgets</span><span class="o">.</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="s2">&quot;No se puede ventear mientras haya Lámparas o Plasma activados.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Apague todos los procesos térmicos y de RF primero.&quot;</span><span class="p">,</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
         <span class="p">)</span>
         <span class="k">return</span>
 
-    <span class="c1"># Inicio de venteo</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
-    <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Venteando...&quot;</span><span class="p">)</span>
-    <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #2ec4b6; color: black; font-weight: bold;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">btn_vent</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Vent Chamber&quot;</span><span class="p">:</span>
+        <span class="c1"># Verifica que la camara esta en atmosfera, si es asi no permite ventear</span>
+        <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_read</span><span class="p">(</span><span class="s2">&quot;ATM_SWITCH&quot;</span><span class="p">):</span>
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Cámara en Atmósfera&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;La cámara ya se encuentra a Presión Atmosférica (ATM_SWITCH activo).</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;No es necesario iniciar la secuencia de venteo.&quot;</span><span class="p">,</span>
+                <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
 
-    <span class="c1"># ── Seguridad Throttle al iniciar venteo ──</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
-            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
-        <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
+        <span class="c1"># Verifica que NINGUNA de las dos válvulas de vacío esté abierta</span>
+        <span class="k">if</span> <span class="n">btn_soft</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Soft Vacuum Off&quot;</span> <span class="ow">or</span> <span class="n">btn_main</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Main Vacuum Off&quot;</span><span class="p">:</span> 
+            <span class="n">QMessageBox</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">win</span><span class="p">,</span>
+                <span class="s2">&quot;Secuencia Inválida&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;No se puede ventear la cámara si alguna válvula de vacío (Soft o Main) está abierta.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;Cierre las válvulas de vacío primero.&quot;</span><span class="p">,</span>
+                <span class="n">QMessageBox</span><span class="o">.</span><span class="n">Ok</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
 
-    <span class="c1"># Bloqueos de seguridad durante el venteo</span>
-    <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Inicio de venteo</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">ACTIVE</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Venteando...&quot;</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;background-color: #2ec4b6; color: black; font-weight: bold;&quot;</span><span class="p">)</span>
 
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># Cancelación manual</span>
-    <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
-    <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Vent Chamber&quot;</span><span class="p">)</span>
-    <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="c1"># ── Seguridad Throttle al iniciar venteo ──</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">is_in_vacuum</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="s2">&quot;throttle&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">auto_control_enabled</span><span class="p">:</span>
+                <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">stop_movement</span><span class="p">()</span>
+            <span class="n">win</span><span class="o">.</span><span class="n">throttle</span><span class="o">.</span><span class="n">update_vacuum_interlocks</span><span class="p">()</span>
 
-    <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Venteo cancelado manualmente por el operario.&quot;</span><span class="p">)</span>
+        <span class="c1"># Bloqueos de seguridad durante el venteo</span>
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">ui</span><span class="o">.</span><span class="n">MenuPrincipal_btn_open_door</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">set_process_controls_enabled</span><span class="p">(</span><span class="n">win</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Cancelación manual</span>
+        <span class="n">win</span><span class="o">.</span><span class="n">hw</span><span class="o">.</span><span class="n">digital_set</span><span class="p">(</span><span class="s2">&quot;VENT_VALVE_CONTROL&quot;</span><span class="p">,</span> <span class="n">INACTIVE</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;Vent Chamber&quot;</span><span class="p">)</span>
+        <span class="n">btn_vent</span><span class="o">.</span><span class="n">setStyleSheet</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">btn_soft</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">btn_main</span><span class="o">.</span><span class="n">setEnabled</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Venteo cancelado manualmente por el operario.&quot;</span><span class="p">)</span>
 </code></pre></div>
 </details>
 <details class="note">

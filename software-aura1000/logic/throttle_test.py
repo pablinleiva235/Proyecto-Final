@@ -75,6 +75,21 @@ class ThrottleController:
         self.ui.ThrottleMenu_pressure_entry.setEnabled(False)
 
     # =============================================================================
+    #     HELPER PARA CHEQUEAR SI EL DRIVER DE LA THROTTLE ESTA HABILITADO
+    # =============================================================================      
+    def check_drivers_enabled(self) -> bool:
+        """Verifica si los drivers de la placa DIO están habilitados."""
+        drivers_active = (self.ui.ThrottleMenu_btn_toggle_enable.text() == "Deshabilitar Driver")
+        if not drivers_active:
+            QMessageBox.warning(
+                self.win,
+                "Drivers Deshabilitados",
+                "El driver de la valvula throttle esta deshabilitado.\n\n"
+                "Presione 'Habilitar Driver' antes de operar con la Throttle.",
+                QMessageBox.Ok
+            )
+        return drivers_active
+    # =============================================================================
     #           HOMING DE LA THROTTLE AL INICIAR A POSICION ABIERTA
     # =============================================================================  
     def home_on_startup(self):
@@ -501,6 +516,8 @@ class ThrottleController:
             btn.setStyleSheet("")
 
     def on_step_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_step
         if "Full Step" in btn.text():
             self.set_half_step(ACTIVE)
@@ -510,6 +527,8 @@ class ThrottleController:
             btn.setText("Modo: Full Step")
 
     def on_dir_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_dir
         if "Apertura" in btn.text():
             self.set_direction(ACTIVE)
@@ -519,6 +538,8 @@ class ThrottleController:
             btn.setText("Dirección: Apertura")
 
     def on_run_toggled(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         btn = self.ui.ThrottleMenu_btn_toggle_run
         if btn.text() == "Girar Motor":
             # Inicializar log manual (sin setpoint)
@@ -537,6 +558,8 @@ class ThrottleController:
             self.stop_movement()
 
     def on_step_set_clicked(self):
+        if not self.check_drivers_enabled():
+            return  # Aborta la acción si los drivers están deshabilitados
         """Handler para el botón 'Ajustar posicion'."""
         try:
             val_text = self.ui.ThrottleMenu_step_entry.text().strip()

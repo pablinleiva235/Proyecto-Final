@@ -1,1 +1,3 @@
 pyuic5 -x pyqt_gui.ui -o pyqt_gui.py
+
+pyuic5 -x pyqt_gui.ui -o pyqt_gui.py --import-from gui

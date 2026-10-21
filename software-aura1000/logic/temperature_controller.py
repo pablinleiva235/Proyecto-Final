@@ -22,8 +22,8 @@ class TempController:
         self.MAX_TEMP_SETPOINT = 190.0
 
         # Parámetros del Control por Histéresis (°C)
-        self.HYSTERESIS_LOW = 3.0   # Encender L2 si T <= target - 3.0 °C
-        self.HYSTERESIS_HIGH = 3.0  # Apagar L2 si T >= target + 3.0 °C
+        self.HYSTERESIS_LOW = 7.0   # Encender L2 si T <= target - 7.0 °C
+        self.HYSTERESIS_HIGH = 7.0  # Apagar L2 si T >= target + 7.0 °C
 
         # Filtro de media móvil para suavizar lectura de termocupla
         self._temp_buffer = []

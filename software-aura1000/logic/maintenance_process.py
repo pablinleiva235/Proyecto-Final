@@ -52,6 +52,19 @@ def is_mfc1_o2_active(win) -> bool:
     target_set = getattr(win, "mfc1_target_slm", 0.0) > 0.0
     return valve_open and target_set
 
+def check_drivers_enabled(win) -> bool:
+    """Verifica si los drivers de la placa DIO están habilitados."""
+    drivers_active = (win.ui.MenuPrincipal_btn_enable_driver.text() == "Deshabilitar Drivers")
+    if not drivers_active:
+        QMessageBox.warning(
+            win,
+            "Drivers Deshabilitados",
+            "Los drivers de salida (SN75436) están deshabilitados.\n\n"
+            "Presione 'Habilitar Drivers' antes de operar la puerta o las válvulas de vacío.",
+            QMessageBox.Ok
+        )
+    return drivers_active
+
 # =============================================================================
 # INICIALIZACION
 # =============================================================================
@@ -213,6 +226,9 @@ def toggle_drivers(win):
 
 def toggle_door(win):
     """ Controla la apertura y el cierre seguro de la puerta de la cámara. """
+    if not check_drivers_enabled(win):
+        return  # Aborta la acción si los drivers están deshabilitados
+    
     btn = win.ui.MenuPrincipal_btn_open_door
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
@@ -243,6 +259,9 @@ def toggle_soft_vacuum(win):
     """
     Controla la habilitación y deshabilitación de la válvula neumática de soft vacuum.
     """
+    if not check_drivers_enabled(win):
+        return  # Aborta la acción si los drivers están deshabilitados
+    
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
     btn_door = win.ui.MenuPrincipal_btn_open_door
@@ -256,7 +275,6 @@ def toggle_soft_vacuum(win):
         win.hw.digital_set("SOFT_START_CONTROL", INACTIVE)
         btn_soft.setText("Soft Vacuum On")
         btn_soft.setStyleSheet("")
-
     update_vent_button_state(win)
 
 def toggle_main_vacuum(win):
@@ -349,6 +367,9 @@ def toggle_main_vacuum(win):
 
 def vent_chamber(win):
     """ Controla el inicio y la cancelación manual del proceso de venteo. """
+    if not check_drivers_enabled(win):
+        return  # Aborta la acción si los drivers están deshabilitados
+    
     btn_vent = win.ui.MenuPrincipal_btn_vent_chamber
     btn_soft = win.ui.MenuPrincipal_btn_soft_vacuum
     btn_main = win.ui.MenuPrincipal_btn_main_vacuum
@@ -364,6 +385,17 @@ def vent_chamber(win):
         return
 
     if btn_vent.text() == "Vent Chamber":
+        # Verifica que la camara esta en atmosfera, si es asi no permite ventear
+        if win.hw.digital_read("ATM_SWITCH"):
+            QMessageBox.warning(
+                win,
+                "Cámara en Atmósfera",
+                "La cámara ya se encuentra a Presión Atmosférica (ATM_SWITCH activo).\n\n"
+                "No es necesario iniciar la secuencia de venteo.",
+                QMessageBox.Ok
+            )
+            return
+        
         # Verifica que NINGUNA de las dos válvulas de vacío esté abierta
         if btn_soft.text() == "Soft Vacuum Off" or btn_main.text() == "Main Vacuum Off": 
             QMessageBox.warning(

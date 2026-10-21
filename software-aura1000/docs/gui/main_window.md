@@ -7,60 +7,109 @@ El módulo `main_window.py` constituye el componente de interfaz gráfica de usu
 ## <span style="color: #2196F3;">Métodos de Inicialización y Máquina de Estados</span>
 
 ??? note "Inicialización del Constructor: `__init__(self, hardware)`"
-    Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas para la deteccion de fallas de lamparas y plasma y el estado de las mismas, tambien para falla en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (`timersIOManager`) pasándose a sí mismo como referencia (`self`) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.
+    Instancia la clase base, inicializa un flag para determinar como se cerro el programa y configura los elementos visuales autogenerados. Instancia flags y variables usadas durante el proceso, tambien para fallas en caso de que los flujos de los MFCs se salgan de tolerancia. En lugar de contener timers locales, instancia el administrador externo de tiempos (`timersIOManager`) pasándose a sí mismo como referencia (`self`) y enciende el lazo de I/O principal de 100 ms. Finalmente, fuerza la entrada del sistema al estado de pre-encendido.
 
     ```python
-    def __init__(self, hardware):
-        super().__init__()
-        
-        self.hw = hardware
-        self.offClose = 0
-        self.startup_progress = 0  # Almacena el progreso de la barra
+        def __init__(self, hardware):
+            super().__init__()
+            
+            self.hw = hardware
+            self.offClose = 0
+            self.startup_progress = 0  # Almacena el progreso de la barra
 
-        # Crear interfaz autogenerada
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+            # Crear interfaz autogenerada
+            self.ui = Ui_MainWindow()
+            self.ui.setupUi(self)
 
-        # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
-        self.state_lamps13_pulsing = False
-        self.lamp2_on = False
-        self.rf_on = False
+            # Estado de lamparas y plasma para deteccion de fallas, state_lamps13_pulsing tambien la usa para la habilitacion del boton de venteo
+            self.state_lamps13_pulsing = False
+            self.lamp2_on = False
+            self.rf_on = False
 
-        # Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera
-        self.is_in_vacuum = False
+            # Variable donde se almacena la ultima medicion de temperatura para el control de la lampara 2
+            self.last_chamber_temp = None
 
-        # Control de ventanas emergentes de alarma/advertencia
-        self.alarm_active = False
-        self.warning_mag_shown = False
+            # Estado de vacio inicial para deshabilitar menu de ajuste de presion en atmosfera
+            self.is_in_vacuum = False
 
-        # Variable con tiempo desde que se pulsa el boton de plasma 
-        self.rf_on_time = 0.0
+            # Control de ventanas emergentes de alarma/advertencia
+            self.alarm_active = False
+            self.warning_mag_shown = False
 
-        # --- Variables para Control de Fallas en MFCs ---
-        self.MFC_FLOW_TOLERANCE_PCT = 0.05  # 5% de tolerancia (modificable)
-        self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
+            # Variable con tiempo desde que se pulsa el boton de plasma 
+            self.rf_on_time = 0.0
 
-        # Buffers de promediado móvil
-        self.mfc1_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
-        self.mfc2_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+            # --- Variables para Control de Fallas en MFCs ---
+            self.MFC1_FLOW_TOLERANCE_PCT = 0.15  # 5% de tolerancia (modificable)
+            self.MFC2_FLOW_TOLERANCE_PCT = 0.25
+            self.MFC_WINDOW_SAMPLES = 30  # 30 muestras x 100ms = 3.0 segundos
 
-        # Setpoints de referencia (0.0 significa que no se exige flujo)
-        self.mfc1_target_slm = 0.0
-        self.mfc2_target_slm = 0.0
-        
-        # Instanciar el manager de timers pasándole 'self' (esta ventana)
-        self.timer_manager = timersIOManager(self)
-        self.timer_manager.start_all_core_timers()
+            # Buffers de promediado móvil
+            self.mfc1_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
+            self.mfc2_flow_history = deque(maxlen=self.MFC_WINDOW_SAMPLES)
 
-        # Instanciamos el controlador de la valvula throttle
-        self.throttle = ThrottleController(self) 
+            # Setpoints de referencia (0.0 significa que no se exige flujo)
+            self.mfc1_target_slm = 0.0
+            self.mfc2_target_slm = 0.0
 
-        # Instanciamos el controlador de temperatura
-        self.temp_ctrl = TempController(self)
+            # =====================================================================
+            # ADAPTACIÓN CON SCROLL FORZADO PARA MONITOR 1024x768
+            # =====================================================================
+            old_central = self.centralWidget()
 
-        # Iniciar la máquina de estados en PRE_ENCENDIDO
-        self.current_state = systemState.PRE_ENCENDIDO
-        self.change_state(systemState.PRE_ENCENDIDO)
+            if old_central:
+                # A. Le fijamos un alto mínimo real a la UI original para que NO se comprima.
+                # 950px asegura que entre todo el contenido de Lámparas y Temperatura holgadamente.
+                old_central.setMinimumSize(980, 950)
+
+                # B. Creamos el QScrollArea y configuramos sus políticas
+                scroll = QtWidgets.QScrollArea()
+                scroll.setWidget(old_central)
+                scroll.setWidgetResizable(True)
+                scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+                # C. Forzamos la barra de scroll vertical para que aparezca siempre
+                scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Por si el ancho también se queda corto
+
+                # D. Reemplazamos el widget central
+                self.setCentralWidget(scroll)
+            # =====================================================================
+            
+            # Instanciar el manager de timers pasándole 'self' (esta ventana)
+            self.timer_manager = timersIOManager(self)
+            self.timer_manager.start_all_core_timers()
+
+            # Instanciamos el controlador de la throttle
+            self.throttle = ThrottleController(self) 
+
+            # Instanciamos el controlador de temperatura
+            self.temp_ctrl = TempController(self)
+
+            # Configurar botones de navegación entre menús
+            self._setup_navigation()
+
+            # Iniciar la máquina de estados en PRE_ENCENDIDO
+            self.current_state = systemState.PRE_ENCENDIDO
+            self.change_state(systemState.PRE_ENCENDIDO)
+    ```
+
+??? note "Botones de cambio de menu: `_setup_navigation(self)`"
+    Conecta los botones de cambio de menu de mantenimiento a throttle y viceversa en sus respectivos stackedWidget.
+
+    ```python
+    def _setup_navigation(self):
+        # Ir a la vista de Throttle desde el Menú Principal
+        self.ui.MenuPrincipal_btn_go_to_throttle.clicked.connect(
+            lambda: self.ui.stackedWidget.setCurrentWidget(
+                self.ui.ThrottleMenu
+            )
+        )
+
+        # Volver al Menú Principal desde la pantalla de Throttle
+        self.ui.ThrottleMenu_btn_back.clicked.connect(
+            lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.MenuPrincipal)
+        )
     ```
 
 ??? note "Transición de la Máquina de Estados: `change_state(self, new_state)`"

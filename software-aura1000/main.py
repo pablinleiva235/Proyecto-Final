@@ -50,6 +50,9 @@ def main():
     # =========================================================================
 
     app = QApplication(sys.argv)
+    # El cierre de una ventana visible no debe terminar la app antes de que
+    # ApplicationController complete la secuencia de estado seguro.
+    app.setQuitOnLastWindowClosed(False)
 
     settings_manager = SettingsManager(app)
 

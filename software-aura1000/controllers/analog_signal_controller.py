@@ -15,6 +15,15 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 class AnalogSignalController(QObject):
 
+    # Conversión de voltaje a las unidades que espera la interfaz.
+    # Se conserva el escalado del código anterior: 10 V = 10 Torr/SLPM
+    # para Baratron y MFC1, y 1 V = 1 SLPM para MFC2.
+    ENGINEERING_CONVERSIONS = {
+        "BARATRON": (10.0 / 10.0, "Torr"),
+        "MFC1_FLOW": (10.0 / 10.0, "SLPM"),
+        "MFC2_FLOW": (1.0 / 1.0, "SLPM"),
+    }
+
     signal_value_changed = pyqtSignal(
         str,
         float,
@@ -75,9 +84,14 @@ class AnalogSignalController(QObject):
                 if value is None:
                     raise ValueError("La lectura no está disponible")
 
+                value = float(value)
+                if signal_name in self.ENGINEERING_CONVERSIONS:
+                    scale, _unit = self.ENGINEERING_CONVERSIONS[signal_name]
+                    value = max(0.0, value * scale)
+
                 self.signal_value_changed.emit(
                     signal_name,
-                    float(value),
+                    value,
                 )
 
             except Exception as error:

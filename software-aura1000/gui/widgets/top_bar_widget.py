@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QWidget,
 )
 
@@ -58,6 +59,9 @@ class TopBarWidget(QWidget):
 
         self.title_label = QLabel(APP_TITLE)
         self.title_label.setObjectName("TopBarTitle")
+        self.title_label.setWordWrap(False)
+        self.title_label.setMinimumWidth(0)
+        self.title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.title_label.setAlignment(
             Qt.AlignVCenter | Qt.AlignLeft
         )
@@ -97,16 +101,16 @@ class TopBarWidget(QWidget):
 
         layout = QHBoxLayout()
         layout.setContentsMargins(
-            24,
-            12,
-            24,
-            12,
+            8,
+            4,
+            8,
+            4,
         )
-        layout.setSpacing(18)
+        layout.setSpacing(5)
 
-        layout.addWidget(self.title_label)
-
-        layout.addStretch()
+        # Reserve the remaining width for the title after date/time/controls.
+        # Wrapping lets the full name remain visible at narrow window sizes.
+        layout.addWidget(self.title_label, 1)
 
         layout.addWidget(self.date_label)
         layout.addWidget(self.time_label)
@@ -146,6 +150,10 @@ class TopBarWidget(QWidget):
 
         if not self._clock_timer.isActive():
             self._clock_timer.start()
+
+    def stop_clock(self):
+        """Detiene el timer de fecha y hora durante el cierre."""
+        self._clock_timer.stop()
 
     def _update_datetime(self):
         """Actualiza la fecha y hora utilizando el reloj del sistema."""

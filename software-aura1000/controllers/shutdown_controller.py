@@ -48,7 +48,11 @@ class ShutdownController(QObject):
 
         self._is_shutting_down = True
         self.shutdown_started.emit()
-        self._shutdown_sequence.start()
+        try:
+            self._shutdown_sequence.start()
+        except Exception as error:
+            self.shutdown_error.emit(str(error))
+            self.shutdown_completed.emit()
         
         
     def _handle_sequence_completed(self):

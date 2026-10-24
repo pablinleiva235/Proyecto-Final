@@ -15,6 +15,21 @@ class MockHardware:
             name: (signal["initial_state"] == signal["active_state"])
             for name, signal in DIGITALSIGNALS.items()
         }
+        # Las entradas de falla arrancan sin alarma en el simulador. Sus
+        # niveles eléctricos de reposo pueden ser activos en DIGITALSIGNALS,
+        # pero el estado inicial lógico de la demo debe representar equipo OK.
+        for name, signal in DIGITALSIGNALS.items():
+            is_fault_input = (
+                signal["dir"] == "IN"
+                and (
+                    name.endswith("_FAIL")
+                    or name.endswith("_WARNING")
+                    or name.endswith("_OVERHEAT")
+                )
+            )
+            if is_fault_input:
+                self._digital_states[name] = False
+
         # SYS_POWER debe permanecer inactiva al iniciar la simulación; de lo
         # contrario, el valor inicial configurado como activo solicita apagar.
         self._digital_states["SYS_POWER"] = False

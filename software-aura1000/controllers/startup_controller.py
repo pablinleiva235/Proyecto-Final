@@ -79,6 +79,10 @@ class StartupController(QObject):
 
         self._startup_sequence.start()
 
+    def stop(self) -> None:
+        """Cancela cualquier timer de preencendido activo."""
+        self._startup_sequence.stop()
+
 
     # =========================================================================
     # Eventos provenientes de StartupSequence

@@ -37,7 +37,7 @@ STARTUP_ERROR_MESSAGE = (
 # Pantalla Principal
 # =============================================================================
 
-WELCOME_TITLE = "PLASMA ASHER AURA 1000"
+WELCOME_TITLE = "PLASMA ASHER\nAURA 1000"
 
 NORMAL_OPERATION_BUTTON_TEXT = "Operación normal"
 MAINTAINER_BUTTON_TEXT = "Mantenimiento"
@@ -88,7 +88,6 @@ SIMULATED_ON = "ACTIVO"
 SIMULATED_OFF = "INACTIVO"
 SIMULATED_START_BUTTON = "Iniciar"
 SIMULATED_STOP_BUTTON = "Detener"
-SAVE_RECIPE_BUTTON = "Guardar receta"
 LOAD_RECIPE_BUTTON = "Cargar receta"
 START_PROCESS_BUTTON = "Iniciar proceso"
 RECIPE_FEATURE_PENDING_TITLE = "Función pendiente"
@@ -127,10 +126,10 @@ RECIPE_N2_FLOW_LABEL = "Flujo de N₂"
 RECIPE_BASE_PRESSURE_LABEL = "Presión base"
 RECIPE_PROCESS_PRESSURE_LABEL = "Presión de proceso"
 RECIPE_PROCESS_TEMPERATURE_LABEL = "Temperatura de proceso"
-RECIPE_SAVE_DIALOG_TITLE = "Guardar receta"
 RECIPE_LOAD_DIALOG_TITLE = "Cargar receta"
 RECIPE_FILE_FILTER = "Recetas (*.txt)"
-RECIPE_SAVE_BUTTON = "Guardar"
+RECIPE_CREATE_BUTTON = "Crear receta"
+RECIPE_APPLY_BUTTON = "Aplicar cambios"
 RECIPE_CANCEL_BUTTON = "Cancelar"
 RECIPE_CLOSE_BUTTON = "Cerrar"
 RECIPE_EDIT_BUTTON = "Editar receta"
@@ -138,16 +137,20 @@ RECIPE_SAVED_TITLE = "Receta guardada"
 RECIPE_SAVED_MESSAGE = "La receta se guardó correctamente."
 RECIPE_OVERWRITE_TITLE = "Confirmar sobrescritura"
 RECIPE_OVERWRITE_MESSAGE = "Ya existe una receta con ese nombre. ¿Desea reemplazarla?"
-RECIPE_DISCARD_TITLE = "Descartar cambios"
-RECIPE_DISCARD_MESSAGE = "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?"
 RECIPE_NO_ACTIVE_TITLE = "Sin receta activa"
 RECIPE_NO_ACTIVE_MESSAGE = "Cree o cargue una receta antes de continuar."
 RECIPE_INVALID_TITLE = "Receta no válida"
 RECIPE_ERROR_NAME_REQUIRED = "El nombre de la receta es obligatorio."
 RECIPE_ERROR_INVALID_VALUES = "Todos los parámetros deben contener números válidos."
-RECIPE_ERROR_NONNEGATIVE = "Los parámetros deben ser finitos y no negativos."
-RECIPE_ERROR_O2_RANGE = "El flujo de O₂ debe estar entre 0 y 10 SLPM."
-RECIPE_ERROR_N2_RANGE = "El flujo de N₂ debe estar entre 0 y 1 SLPM."
+RECIPE_ERROR_NONFINITE = "Los parámetros deben ser números finitos."
+RECIPE_ERROR_OUT_OF_RANGE = "Uno o más parámetros están fuera del rango permitido."
+RECIPE_RANGE_WARNING_TITLE = "Valores ajustados al rango permitido"
+RECIPE_RANGE_WARNING_MESSAGE = (
+    "Se ajustaron estos valores. Revise el formulario y confirme nuevamente para guardar:\n{details}"
+)
+RECIPE_RANGE_ADJUSTMENT = (
+    "{field}: {original} → {adjusted} (rango permitido: {minimum}–{maximum} {unit})"
+)
 RECIPE_ERROR_INVALID_LOCATION = "Las recetas deben estar dentro de la carpeta recipies."
 RECIPE_ERROR_FILE_NOT_FOUND = "No se encontró un archivo de receta .txt."
 RECIPE_ERROR_READ = "No se pudo leer la receta. Verifique el archivo y sus permisos."
@@ -267,7 +270,7 @@ VENT_ERROR_BUTTON = "Error de Venteo"
 
 SIGNAL_DIRECTION_INPUT = "ENTRADA"
 SIGNAL_DIRECTION_OUTPUT = "SALIDA"
-SIGNAL_OUTPUT_MODULE_CONTROL = "Salida · control del módulo"
+SIGNAL_OUTPUT_MODULE_CONTROL = "Control del módulo"
 MFC_VALVE_INTERLOCK_ERROR = (
     "Para abrir una válvula MFC, el vacío principal debe estar activo "
     "y la puerta debe estar cerrada."
@@ -347,7 +350,6 @@ _SPANISH_TO_ENGLISH = {
     "INACTIVO": "OFF",
     "Iniciar": "Start",
     "Detener": "Stop",
-    "Guardar receta": "Save recipe",
     "Cargar receta": "Load recipe",
     "Iniciar proceso": "Start process",
     "Función pendiente": "Feature pending",
@@ -382,7 +384,8 @@ _SPANISH_TO_ENGLISH = {
     "Presión base": "Base pressure",
     "Presión de proceso": "Process pressure",
     "Temperatura de proceso": "Process temperature",
-    "Guardar": "Save",
+    "Crear receta": "Create recipe",
+    "Aplicar cambios": "Apply changes",
     "Cancelar": "Cancel",
     "Cerrar": "Close",
     "Editar receta": "Edit recipe",
@@ -391,16 +394,16 @@ _SPANISH_TO_ENGLISH = {
     "La receta se guardó correctamente.": "The recipe was saved successfully.",
     "Confirmar sobrescritura": "Confirm overwrite",
     "Ya existe una receta con ese nombre. ¿Desea reemplazarla?": "A recipe with that name already exists. Do you want to replace it?",
-    "Descartar cambios": "Discard changes",
-    "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?": "There are unsaved changes in the current recipe. Do you want to discard them?",
     "Sin receta activa": "No active recipe",
     "Cree o cargue una receta antes de continuar.": "Create or load a recipe before continuing.",
     "Receta no válida": "Invalid recipe",
     "El nombre de la receta es obligatorio.": "Recipe name is required.",
     "Todos los parámetros deben contener números válidos.": "All parameters must contain valid numbers.",
-    "Los parámetros deben ser finitos y no negativos.": "Parameters must be finite and non-negative.",
-    "El flujo de O₂ debe estar entre 0 y 10 SLPM.": "O₂ flow must be between 0 and 10 SLPM.",
-    "El flujo de N₂ debe estar entre 0 y 1 SLPM.": "N₂ flow must be between 0 and 1 SLPM.",
+    "Los parámetros deben ser números finitos.": "Parameters must be finite numbers.",
+    "Uno o más parámetros están fuera del rango permitido.": "One or more parameters are outside the allowed range.",
+    "Valores ajustados al rango permitido": "Values adjusted to the allowed range",
+    "Se ajustaron estos valores. Revise el formulario y confirme nuevamente para guardar:\n{details}": "These values were adjusted. Review the form and confirm again to save:\n{details}",
+    "{field}: {original} → {adjusted} (rango permitido: {minimum}–{maximum} {unit})": "{field}: {original} → {adjusted} (allowed range: {minimum}–{maximum} {unit})",
     "Las recetas deben estar dentro de la carpeta recipies.": "Recipes must be inside the recipies folder.",
     "No se encontró un archivo de receta .txt.": "Recipe .txt file was not found.",
     "No se pudo leer la receta. Verifique el archivo y sus permisos.": "Could not read the recipe. Check the file and permissions.",
@@ -492,11 +495,10 @@ _SPANISH_TO_ENGLISH = {
     "El flujo debe estar entre 0 y 1 SLPM.": "Flow must be between 0 and 1 SLPM.",
     "El movimiento manual requiere el vacío principal activo.": "Manual movement requires main vacuum to be active.",
     "El magnetrón alcanzó la señal de advertencia de temperatura.": "The magnetron reached its temperature warning threshold.",
-    "Entrada digital": "Digital input",
-    "Salida · solo lectura": "Output · read only",
-    "Salida · control del módulo": "Output · controlled by module",
+    "Solo lectura": "Read only",
+    "Control del módulo": "Module controlled",
     "Para abrir una válvula MFC, el vacío principal debe estar activo y la puerta debe estar cerrada.": "To open an MFC valve, main vacuum must be active and the door must be closed.",
-    "Salida · tocar para alternar": "Output · click to toggle",
+    "Tocar para alternar": "Click to toggle",
     "DETENIDO": "STOPPED",
     "LISTAS": "READY",
     "PULSO ACTIVO": "PULSE ACTIVE",

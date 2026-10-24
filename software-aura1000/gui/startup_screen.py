@@ -19,7 +19,7 @@ Los cambios visuales son solicitados desde una capa externa mediante
 los métodos públicos de esta clase.
 """
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QLabel,
     QProgressBar,
@@ -40,9 +40,12 @@ from gui.widgets.localization import translate_widget_tree
 class StartupScreen(QWidget):
     """Pantalla mostrada durante la secuencia de inicio del equipo."""
 
+    close_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._last_error_message = None
+        self._allow_close = False
 
         self.create_widgets()
         self.setup_layout()
@@ -169,3 +172,15 @@ class StartupScreen(QWidget):
         translate_widget_tree(self)
         if self.error_label.text():
             self.show_error(self._last_error_message)
+
+    def allow_close(self):
+        """Permite cerrar la pantalla luego del apagado coordinado."""
+        self._allow_close = True
+
+    def closeEvent(self, event):
+        if self._allow_close:
+            event.accept()
+            return
+
+        event.ignore()
+        self.close_requested.emit()

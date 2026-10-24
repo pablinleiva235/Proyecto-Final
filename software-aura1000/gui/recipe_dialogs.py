@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 import config_gui.strings as text
-from services.recipe_service import Recipe
+from services.recipe_service import Recipe, RecipeError, RecipeService
 
 
 class RecipeEditorDialog(QDialog):
@@ -29,9 +29,19 @@ class RecipeEditorDialog(QDialog):
         ("process_temperature", text.RECIPE_PROCESS_TEMPERATURE_LABEL, "°C"),
     )
 
-    def __init__(self, recipe, parent=None, allow_name_edit=True):
+    def __init__(
+        self,
+        recipe,
+        parent=None,
+        allow_name_edit=True,
+        recipe_service=None,
+        on_commit=None,
+        confirm_text=None,
+    ):
         super().__init__(parent)
         self._recipe = recipe
+        self._recipe_service = recipe_service or RecipeService()
+        self._on_commit = on_commit
         self.setObjectName("RecipeEditorDialog")
         self.setWindowTitle(text.tr(text.RECIPE_EDITOR_TITLE))
 
@@ -54,8 +64,10 @@ class RecipeEditorDialog(QDialog):
             self.parameter_edits[key] = edit
             form.addRow(f"{text.tr(label)} ({unit})", edit)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttons.button(QDialogButtonBox.Save).setText(text.tr(text.RECIPE_SAVE_BUTTON))
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setText(
+            text.tr(confirm_text or text.RECIPE_CREATE_BUTTON)
+        )
         buttons.button(QDialogButtonBox.Cancel).setText(text.tr(text.RECIPE_CANCEL_BUTTON))
         buttons.accepted.connect(self._accept_recipe)
         buttons.rejected.connect(self.reject)
@@ -82,28 +94,61 @@ class RecipeEditorDialog(QDialog):
             raw = self.parameter_edits[key].text().strip().replace(",", ".")
             try:
                 value = float(raw)
-            except ValueError:
+            except (ValueError, OverflowError):
                 self._show_invalid(text.RECIPE_ERROR_INVALID_VALUES)
                 return
-            if not math.isfinite(value) or value < 0:
-                self._show_invalid(text.RECIPE_ERROR_NONNEGATIVE)
+            if not math.isfinite(value):
+                self._show_invalid(text.RECIPE_ERROR_NONFINITE)
                 return
             values[key] = value
 
-        if values["o2_flow"] > 10:
-            self._show_invalid(text.RECIPE_ERROR_O2_RANGE)
-            return
-        if values["n2_flow"] > 1:
-            self._show_invalid(text.RECIPE_ERROR_N2_RANGE)
-            return
-
-        self._recipe = Recipe(
+        candidate = Recipe(
             name=name,
             description=description,
             source_path=self._recipe.source_path,
             **values,
         )
+        try:
+            candidate, changes = self._recipe_service.clamp_parameters(candidate)
+        except RecipeError as error:
+            self._show_invalid(str(error))
+            return
+
+        if changes:
+            self._apply_parameter_values(candidate)
+            details = "\n".join(
+                self._format_clamp_change(change) for change in changes
+            )
+            QMessageBox.warning(
+                self,
+                text.tr(text.RECIPE_RANGE_WARNING_TITLE),
+                text.tr(text.RECIPE_RANGE_WARNING_MESSAGE).format(details=details),
+            )
+            return
+
+        if self._on_commit is not None:
+            saved_recipe = self._on_commit(candidate)
+            if saved_recipe is None:
+                return
+            candidate = saved_recipe
+        self._recipe = candidate
         self.accept()
+
+    def _apply_parameter_values(self, recipe):
+        for key, edit in self.parameter_edits.items():
+            edit.setText(self._format_number(getattr(recipe, key)))
+
+    def _format_clamp_change(self, change):
+        key, original, adjusted, minimum, maximum, unit = change
+        label = next(label for field, label, _unit in self.FIELDS if field == key)
+        return text.tr(text.RECIPE_RANGE_ADJUSTMENT).format(
+            field=text.tr(label),
+            original=self._format_number(original),
+            adjusted=self._format_number(adjusted),
+            minimum=self._format_number(minimum),
+            maximum=self._format_number(maximum),
+            unit=unit,
+        )
 
     def _show_invalid(self, message):
         QMessageBox.warning(

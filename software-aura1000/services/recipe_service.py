@@ -3,7 +3,9 @@
 from configparser import ConfigParser, Error as ConfigParserError
 from dataclasses import dataclass, replace
 import math
+import os
 import re
+import tempfile
 import unicodedata
 from pathlib import Path
 from typing import Optional
@@ -38,7 +40,13 @@ class RecipeService:
         "process_pressure",
         "process_temperature",
     )
-    FLOW_LIMITS = {"o2_flow": 10.0, "n2_flow": 1.0}
+    PARAMETER_RANGES = {
+        "o2_flow": (0.0, 10.0, "SLPM"),
+        "n2_flow": (0.0, 1.0, "SLPM"),
+        "base_pressure": (0.0, 3.0, "Torr"),
+        "process_pressure": (0.0, 3.0, "Torr"),
+        "process_temperature": (130.0, 190.0, "°C"),
+    }
 
     def __init__(self, recipes_directory=None):
         package_root = Path(__file__).resolve().parents[1]
@@ -96,14 +104,29 @@ class RecipeService:
                 value = float(getattr(recipe, key))
             except (TypeError, ValueError) as error:
                 raise RecipeError(text.RECIPE_ERROR_INVALID_VALUES) from error
-            if not math.isfinite(value) or value < 0:
-                raise RecipeError(text.RECIPE_ERROR_NONNEGATIVE)
-            maximum = self.FLOW_LIMITS.get(key)
-            if maximum is not None and value > maximum:
-                raise RecipeError(
-                    text.RECIPE_ERROR_O2_RANGE if key == "o2_flow"
-                    else text.RECIPE_ERROR_N2_RANGE
-                )
+            if not math.isfinite(value):
+                raise RecipeError(text.RECIPE_ERROR_NONFINITE)
+            minimum, maximum, _unit = self.PARAMETER_RANGES[key]
+            if value < minimum or value > maximum:
+                raise RecipeError(text.RECIPE_ERROR_OUT_OF_RANGE)
+
+    def clamp_parameters(self, recipe):
+        """Devuelve la receta ajustada y los campos que cambiaron."""
+        corrected = {}
+        changes = []
+        for key in self.PARAMETERS:
+            try:
+                original = float(getattr(recipe, key))
+            except (TypeError, ValueError) as error:
+                raise RecipeError(text.RECIPE_ERROR_INVALID_VALUES) from error
+            if not math.isfinite(original):
+                raise RecipeError(text.RECIPE_ERROR_NONFINITE)
+            minimum, maximum, unit = self.PARAMETER_RANGES[key]
+            value = min(max(original, minimum), maximum)
+            corrected[key] = value
+            if value != original:
+                changes.append((key, original, value, minimum, maximum, unit))
+        return replace(recipe, **corrected), tuple(changes)
 
     def path_for_name(self, name):
         normalized = unicodedata.normalize("NFKD", str(name).strip())
@@ -114,6 +137,7 @@ class RecipeService:
         return self.directory / f"{slug}.txt"
 
     def save(self, recipe, overwrite=False):
+        recipe, _changes = self.clamp_parameters(recipe)
         self.validate(recipe, require_name=True)
         path = self.path_for_name(recipe.name).resolve()
         if path.parent != self.directory:
@@ -132,11 +156,29 @@ class RecipeService:
             key: self._format_value(float(getattr(recipe, key)))
             for key in self.PARAMETERS
         }
+        temporary_path = None
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
-            with path.open("w", encoding="utf-8", newline="\n") as recipe_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                newline="\n",
+                dir=self.directory,
+                prefix=f".{path.stem}_",
+                suffix=".tmp",
+                delete=False,
+            ) as recipe_file:
+                temporary_path = Path(recipe_file.name)
                 parser.write(recipe_file)
+                recipe_file.flush()
+                os.fsync(recipe_file.fileno())
+            os.replace(temporary_path, path)
         except OSError as error:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
             raise RecipeError(text.RECIPE_ERROR_WRITE) from error
         return replace(recipe, source_path=path)
 

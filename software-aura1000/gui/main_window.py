@@ -60,6 +60,8 @@ class MainWindow(QMainWindow):
         self.main_vacuum_sequence = main_vacuum_sequence
         self.vent_sequence = vent_sequence
         self.settings_manager = settings_manager
+        self._maintainer_screen_active = False
+        self._allow_close = False
 
 
         self.create_widgets()
@@ -113,6 +115,7 @@ class MainWindow(QMainWindow):
             monitored_signals=MAINTAINER_SIGNALS,
             output_signals=MAINTAINER_OUTPUT_SIGNALS,
             poll_interval_ms=100,
+            parent=self,
             can_toggle=self._can_toggle_manual_output,
         )
 
@@ -317,7 +320,6 @@ class MainWindow(QMainWindow):
         self.process_controller.operation_error.connect(self._handle_module_error)
         self.process_controller.alarm_raised.connect(self._handle_process_alarm)
         self.process_controller.warning_raised.connect(self._handle_process_warning)
-        self.module_monitor_timer.start()
         self.maintainer_screen.set_module_controls_enabled(False)
 
         # =========================================================
@@ -333,7 +335,10 @@ class MainWindow(QMainWindow):
         if self.settings_manager is None:
             return
         dialog = SettingsDialog(self.settings_manager, self)
-        dialog.exec_()
+        try:
+            dialog.exec_()
+        finally:
+            dialog.deleteLater()
 
     def update_texts(self, *_):
         translate_widget_tree(self)
@@ -343,7 +348,8 @@ class MainWindow(QMainWindow):
 
     def _show_welcome_screen(self):
     # Muestra la pantalla de bienvenida
-        self.signal_controller.stop_monitoring()
+        self._maintainer_screen_active = False
+        self._refresh_signal_monitoring()
         self.analog_controller.stop_monitoring()
         self.navigation_controller.show_screen(
             WELCOME_SCREEN
@@ -351,15 +357,18 @@ class MainWindow(QMainWindow):
 
     def _show_maintainer_screen(self):
     # Muestra la pantalla de mantenimiento e inicia el monitoreo de señales
+        self._maintainer_screen_active = True
         self.navigation_controller.show_screen(
             MAINTAINER_SCREEN
         )
-        self.signal_controller.start_monitoring()
+        self._refresh_signal_monitoring()
         self.analog_controller.start_monitoring()
         self._sync_module_permissions()
 
     def _show_statistics_screen(self):
     # Muestra la pantalla de estadísticas
+        self._maintainer_screen_active = False
+        self._refresh_signal_monitoring()
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
         )
@@ -367,17 +376,74 @@ class MainWindow(QMainWindow):
 
     def _show_normal_operation_screen(self):
         """Muestra operación normal e inicia el monitoreo analógico."""
+        self._maintainer_screen_active = False
+        self._refresh_signal_monitoring()
         self.navigation_controller.show_screen(
             NORMAL_OPERATION_SCREEN
         )
         self.analog_controller.start_monitoring()
 
+    def _refresh_signal_monitoring(self):
+        """Monitorea las entradas de mantenimiento o el ATM de un venteo activo."""
+        if self._maintainer_screen_active:
+            monitored_signals = MAINTAINER_SIGNALS
+        elif self.vent_sequence.state == VentState.RUNNING:
+            monitored_signals = ("ATM_SWITCH",)
+        else:
+            self.signal_controller.stop_monitoring()
+            return
+
+        self.signal_controller.set_monitored_signals(monitored_signals)
+        self.signal_controller.start_monitoring()
+
+    def start_module_monitoring(self):
+        """Activa el monitor de módulos cuando finaliza el preencendido."""
+        if not self.module_monitor_timer.isActive():
+            self.module_monitor_timer.start()
+
+    def stop_module_monitoring(self):
+        """Detiene el monitor de módulos antes de ejecutar el apagado."""
+        self.module_monitor_timer.stop()
+
+    def prepare_for_shutdown(self):
+        """Detiene monitores y salidas temporizadas antes del estado seguro."""
+        self.stop_module_monitoring()
+        self.signal_controller.shutdown()
+        self.analog_controller.stop_monitoring()
+        self.top_bar.stop_clock()
+
+        errors = []
+        operations = (
+            ("Throttle", self.throttle_controller.stop),
+            ("Módulos de proceso", self.process_controller.stop_all),
+        )
+        for name, operation in operations:
+            try:
+                operation()
+            except Exception as error:
+                errors.append(f"{name}: {error}")
+        return errors
+
+    def allow_close(self):
+        """Permite el cierre final una vez terminado el apagado seguro."""
+        self._allow_close = True
+
+    def closeEvent(self, event):
+        if self._allow_close:
+            event.accept()
+            return
+
+        event.ignore()
+        self.exit_requested.emit()
+
     def _request_maintainer_access(self):
     # Solicita autenticación antes de ingresar al modo de mantenimiento
         login_dialog = LoginDialog(self)
         login_dialog.update_texts()
-
-        result = login_dialog.exec_()
+        try:
+            result = login_dialog.exec_()
+        finally:
+            login_dialog.deleteLater()
 
         if result == QDialog.Accepted:
             self._show_maintainer_screen()
@@ -523,6 +589,7 @@ class MainWindow(QMainWindow):
             f"Estado: {state.value}"
         )
         self.maintainer_screen.set_vent_state(state)
+        self._refresh_signal_monitoring()
         self._sync_module_permissions()
         if state == VentState.RUNNING:
             atm_active = (

@@ -13,11 +13,12 @@ class AnalogReadoutCard(QFrame):
     def __init__(self, title, unit, icon, parent=None):
         super().__init__(parent)
         self.setObjectName("MaintenanceCard")
-        self.status_indicator = StatusIndicatorWidget("off", title)
+        self.status_indicator = StatusIndicatorWidget("off", title, size=30)
 
         header = QHBoxLayout()
         self.title_label = QLabel(title)
         self.title_label.setObjectName("MaintenanceCardTitle")
+        self.title_label.setWordWrap(True)
         self.type_label = QLabel("ADC")
         self.type_label.setObjectName("MaintenancePill")
         self.type_label.setProperty("state", "info")
@@ -38,17 +39,18 @@ class AnalogReadoutCard(QFrame):
 
         self.footer_label = QLabel("Lectura analógica")
         self.footer_label.setObjectName("MaintenanceCardFooter")
+        self.footer_label.setWordWrap(True)
 
         details = QVBoxLayout()
         details.setContentsMargins(0, 0, 0, 0)
-        details.setSpacing(6)
+        details.setSpacing(4)
         details.addLayout(header)
         details.addLayout(reading)
         details.addWidget(self.footer_label)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(18, 14, 18, 14)
-        layout.setSpacing(14)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(8)
         layout.addWidget(self.status_indicator)
         layout.addLayout(details, 1)
         layout.addWidget(self.type_label)

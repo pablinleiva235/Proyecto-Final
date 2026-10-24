@@ -77,36 +77,82 @@ class ProcessController(QObject):
             self._plasma_started_at = 0.0
 
     def check_faults(self):
-        try:
-            lamp1 = self._lamps13 and self._hardware.digital_read("LAMP1_FAIL")
-            lamp2 = self._lamp2 and self._hardware.digital_read("LAMP2_FAIL")
-            lamp3 = self._lamps13 and self._hardware.digital_read("LAMP3_FAIL")
-            plasma = (
-                self._plasma
-                and time.monotonic() - self._plasma_started_at > self.IGNITION_DELAY_S
-                and self._hardware.digital_read("PLASMA_FAIL")
-            )
-            warning = self._hardware.digital_read("MAGNETRON_WARNING")
-            overheat = self._hardware.digital_read("MAGNETRON_OVERHEAT")
-            failures = []
-            if lamp1: failures.append("Falla en lámpara 1 (pérdida de corriente).")
-            if lamp2: failures.append("Falla en lámpara 2 (pérdida de corriente).")
-            if lamp3: failures.append("Falla en lámpara 3 (pérdida de corriente).")
-            if plasma: failures.append("Falla en plasma (no encendió o se interrumpió la RF).")
-            if overheat: failures.append("Sobretemperatura del magnetrón.")
-            if failures:
+        lamp1 = self._read_fault_input("LAMP1_FAIL") if self._lamps13 else False
+        lamp2 = self._read_fault_input("LAMP2_FAIL") if self._lamp2 else False
+        lamp3 = self._read_fault_input("LAMP3_FAIL") if self._lamps13 else False
+        plasma_is_eligible = (
+            self._plasma
+            and time.monotonic() - self._plasma_started_at > self.IGNITION_DELAY_S
+        )
+        plasma = (
+            self._read_fault_input("PLASMA_FAIL")
+            if plasma_is_eligible else False
+        )
+        warning = self._read_fault_input("MAGNETRON_WARNING")
+        overheat = self._read_fault_input("MAGNETRON_OVERHEAT")
+
+        failures = []
+        if lamp1 is True:
+            failures.append("Falla en lámpara 1 (pérdida de corriente).")
+        if lamp2 is True:
+            failures.append("Falla en lámpara 2 (pérdida de corriente).")
+        if lamp3 is True:
+            failures.append("Falla en lámpara 3 (pérdida de corriente).")
+        if plasma is True:
+            failures.append("Falla en plasma (no encendió o se interrumpió la RF).")
+        if overheat is True:
+            failures.append("Sobretemperatura del magnetrón.")
+
+        if failures:
+            try:
                 self.stop_all()
+            except Exception as error:
+                self.operation_error.emit("Apagado por falla", str(error))
+            try:
                 self._write("ALARM_INDICATION", True)
-                self.alarm_raised.emit("\n".join(failures))
-            elif warning and not self._warning_shown:
-                self._warning_shown = True
+            except Exception as error:
+                self.operation_error.emit("Indicador de alarma", str(error))
+            self.alarm_raised.emit("\n".join(failures))
+            return
+
+        if warning is True and not self._warning_shown:
+            self._warning_shown = True
+            try:
                 self._write("ALARM_INDICATION", True)
-                self.warning_raised.emit("El magnetrón alcanzó la señal de advertencia de temperatura.")
-            elif not warning:
-                self._warning_shown = False
-                self._write("ALARM_INDICATION", False)
+            except Exception as error:
+                self.operation_error.emit("Indicador de alarma", str(error))
+            self.warning_raised.emit(
+                "El magnetrón alcanzó la señal de advertencia de temperatura."
+            )
+        elif warning is False:
+            self._warning_shown = False
+            critical_inputs_known = (
+                (not self._lamps13 or (lamp1 is not None and lamp3 is not None))
+                and (not self._lamp2 or lamp2 is not None)
+                and (not plasma_is_eligible or plasma is not None)
+                and overheat is not None
+            )
+            if critical_inputs_known:
+                try:
+                    self._write("ALARM_INDICATION", False)
+                except Exception as error:
+                    self.operation_error.emit("Indicador de alarma", str(error))
+
+    def _read_fault_input(self, signal_name):
+        """Lee una señal de falla sin interrumpir las demás lecturas."""
+        try:
+            value = self._hardware.digital_read(signal_name)
+            if not isinstance(value, bool):
+                raise TypeError(
+                    f"digital_read('{signal_name}') debe devolver bool."
+                )
+            return value
         except Exception as error:
-            self.operation_error.emit("Monitoreo de fallas", str(error))
+            self.operation_error.emit(
+                "Monitoreo de fallas",
+                f"{signal_name}: {error}",
+            )
+            return None
 
     def stop_all(self):
         self._pulse_timer.stop()

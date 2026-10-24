@@ -124,6 +124,17 @@ QLabel#TitleLabel {{
     color: {TEXT_COLOR};
 }}
 
+QLabel#MaintainerScreenTitle {{
+    font-size: 32px;
+    font-weight: bold;
+    color: {TEXT_COLOR};
+}}
+
+QLabel#SectionTitleLabel {{
+    font-size: 18px;
+    font-weight: bold;
+}}
+
 QLabel#SubtitleLabel {{
     font-size: {SUBTITLE_FONT_SIZE}px;
     color: {TEXT_MUTED_COLOR};
@@ -141,23 +152,23 @@ QWidget#TopBar {{
 QLabel#TopBarTitle {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: {SUBTITLE_FONT_SIZE}px;
+    font-size: 16px;
     font-weight: bold;
 }}
 
 QLabel#TopBarDate {{
     background-color: transparent;
     color: {TEXT_MUTED_COLOR};
-    font-size: {TEXT_FONT_SIZE}px;
+    font-size: 12px;
     font-weight: 500;
 }}
 
 QLabel#TopBarTime {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: {TEXT_FONT_SIZE}px;
+    font-size: 14px;
     font-weight: bold;
-    min-width: 80px;
+    min-width: 65px;
 }}
 
 QFrame#OperationCard {{
@@ -187,7 +198,7 @@ QLabel#OperationReadoutLabel {{
 QLabel#OperationReadoutValue {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: 19px;
+    font-size: 16px;
     font-weight: bold;
 }}
 
@@ -234,14 +245,14 @@ QFrame#OperationStatusCard QLabel#DemoStatusGood {{
 QLabel#NormalOperationTitle {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: 32px;
+    font-size: 27px;
     font-weight: bold;
 }}
 
 QLabel#OperationCardTitle {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: 17px;
+    font-size: 15px;
     font-weight: bold;
 }}
 
@@ -351,9 +362,9 @@ QPushButton#DemoActionButton {{
 }}
 
 QPushButton#RecipeActionButton {{
-    padding: 10px 20px;
-    font-size: 16px;
-    min-height: 42px;
+    padding: 2px 6px;
+    font-size: 14px;
+    min-height: 34px;
 }}
 
 QPushButton#SetpointStepButton {{
@@ -363,8 +374,8 @@ QPushButton#SetpointStepButton {{
 }}
 
 QPushButton#BackButton {{
-    padding: 10px 22px;
-    font-size: 16px;
+    padding: 6px 12px;
+    font-size: 14px;
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -578,8 +589,8 @@ QTabWidget#MaintainerTabs QTabBar::tab:hover {{
 }}
 
 QPushButton#MFCControlButton {{
-    padding: 6px 12px;
-    font-size: 15px;
+    padding: 3px 6px;
+    font-size: 12px;
 }}
 
 /* -------------------------------------------------------------------------- */
@@ -617,7 +628,7 @@ QLabel#signalNameLabel {{
     color: {TEXT_COLOR};
     background-color: transparent;
     border: none;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 600;
 }}
 
@@ -625,9 +636,9 @@ QLabel#signalStatusLabel {{
     background-color: {SURFACE_COLOR};
     color: {TEXT_MUTED_COLOR};
     border-radius: 12px;
-    padding: 5px 10px;
+    padding: 2px 4px;
     border: none;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
 }}
 
@@ -743,8 +754,8 @@ QGroupBox#MaintainerCardGroup {{
     background-color: {SURFACE_COLOR};
     border: 1px solid {BORDER_COLOR};
     border-radius: 18px;
-    margin-top: 20px;
-    padding: 18px 12px 12px 12px;
+    margin-top: 14px;
+    padding: 8px;
     color: {TEXT_COLOR};
     font-size: 16px;
     font-weight: bold;
@@ -855,8 +866,8 @@ QPushButton#MFCControlButton {{
     border: 1px solid {PRIMARY_COLOR};
     border-radius: 9px;
     color: {TEXT_COLOR};
-    padding: 7px 12px;
-    font-size: 14px;
+    padding: 3px 6px;
+    font-size: 12px;
 }}
 
 QPushButton#MFCControlButton:hover, QPushButton#MFCControlButton:pressed,
@@ -877,8 +888,8 @@ QPushButton#MaintainerSequenceButton {{
     border: 1px solid {BORDER_COLOR};
     border-radius: 14px;
     color: {TEXT_COLOR};
-    padding: 14px 16px;
-    font-size: 16px;
+    padding: 8px 10px;
+    font-size: 14px;
     font-weight: 600;
 }}
 
@@ -901,8 +912,8 @@ QPushButton#MaintainerSequenceButton:pressed {{
 }}
 
 QPushButton#MaintenanceActionButton {{
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 3px 6px;
+    font-size: 12px;
 }}
 
 QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,

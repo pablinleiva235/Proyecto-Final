@@ -63,6 +63,7 @@ class SignalController(QObject):
         self._monitored_signals = self._normalize_signals(
             monitored_signals
         )
+        self._available_signals = frozenset(self._monitored_signals)
 
         self._output_signals = self._normalize_signals(
             output_signals
@@ -77,6 +78,7 @@ class SignalController(QObject):
 
         # Salidas que están siendo procesadas actualmente.
         self._processing_signals: Set[str] = set()
+        self._shutting_down = False
 
         self._validate_output_signals()
 
@@ -111,10 +113,37 @@ class SignalController(QObject):
 
         self._poll_timer.stop()
 
+    def shutdown(self) -> None:
+        """Detiene el polling y cancela solicitudes pendientes de salida."""
+        self._shutting_down = True
+        self._poll_timer.stop()
+        self._processing_signals.clear()
+
     def refresh_signals(self) -> None:
         """Realiza una lectura inmediata de todas las señales."""
 
         self._poll_signals()
+
+    def set_monitored_signals(self, signal_names: Iterable[str]) -> None:
+        """Cambia el subconjunto que se consulta periódicamente.
+
+        Los nombres deben pertenecer al conjunto registrado al construir el
+        controlador. El último estado confirmado de las otras señales se
+        conserva para que las secuencias puedan consultarlo.
+        """
+        monitored_signals = self._normalize_signals(signal_names)
+        unknown_signals = monitored_signals - self._available_signals
+        if unknown_signals:
+            raise ValueError(
+                "Señales no registradas en SignalController: "
+                + ", ".join(sorted(unknown_signals))
+            )
+        if monitored_signals == self._monitored_signals:
+            return
+
+        self._monitored_signals = monitored_signals
+        if self._poll_timer.isActive():
+            self._poll_signals()
 
     @property
     def is_monitoring(self) -> bool:
@@ -142,6 +171,9 @@ class SignalController(QObject):
         """
 
         self._validate_signal_name(signal_name)
+
+        if self._shutting_down:
+            return
 
         if signal_name not in self._output_signals:
             self.signal_error.emit(
@@ -204,6 +236,8 @@ class SignalController(QObject):
         """Ejecuta y confirma el cambio solicitado sobre una salida."""
         
         try:
+            if self._shutting_down:
+                return
             self._hardware.digital_set(
                 signal_name,
                 requested_state,
@@ -405,7 +439,7 @@ class SignalController(QObject):
     ) -> None:
         """Verifica que una señal pertenezca al conjunto monitoreado."""
 
-        if signal_name not in self._monitored_signals:
+        if signal_name not in self._available_signals:
             raise KeyError(
                 f"La señal '{signal_name}' no está registrada "
                 "en SignalController."
@@ -414,10 +448,7 @@ class SignalController(QObject):
     def _validate_output_signals(self) -> None:
         """Verifica que todas las salidas sean también monitoreadas."""
 
-        unknown_outputs = (
-            self._output_signals
-            - self._monitored_signals
-        )
+        unknown_outputs = self._output_signals - self._available_signals
 
         if not unknown_outputs:
             return

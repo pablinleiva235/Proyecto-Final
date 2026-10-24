@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -111,24 +112,38 @@ class SignalWidget(QFrame):
         self._set_visual_state(self._visual_state)
 
     def create_widgets(self) -> None:
-        self._name_label = QLabel(self._display_name)
+        if len(self._display_name) > 18:
+            display_name = self._display_name.replace("_", "_\n")
+        else:
+            display_name = self._display_name.replace("_", "\u200b_\u200b")
+        self._name_label = QLabel(display_name)
         self._name_label.setObjectName("signalNameLabel")
-        self._state_indicator = StatusIndicatorWidget("off", self._display_name)
+        self._name_label.setWordWrap(True)
+        self._name_label.setMinimumWidth(0)
+        self._name_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self._state_indicator = StatusIndicatorWidget(
+            "off", self._display_name, size=24
+        )
 
         self._status_label = QLabel()
         self._status_label.setObjectName("signalStatusLabel")
+        self._status_label.setWordWrap(True)
+        self._status_label.setMinimumWidth(0)
 
         footer_text = (
-            "Salida · tocar para alternar"
+            "Tocar para alternar"
             if self._interactive
             else SIGNAL_OUTPUT_MODULE_CONTROL
             if self._signal_is_output() and self._module_controlled
-            else "Salida · solo lectura"
+            else "Solo lectura"
             if self._signal_is_output()
-            else "Entrada digital"
+            else ""
         )
         self._footer_label = QLabel(footer_text)
         self._footer_label.setObjectName("signalFooterLabel")
+        self._footer_label.setWordWrap(True)
+        self._footer_label.setMinimumWidth(0)
+        self._footer_label.setVisible(bool(footer_text))
 
     def setup_layout(self) -> None:
         details = QVBoxLayout()
@@ -136,13 +151,13 @@ class SignalWidget(QFrame):
         details.setSpacing(4)
         details.addWidget(self._name_label)
         details.addWidget(self._footer_label)
+        details.addWidget(self._status_label)
 
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(16, 12, 16, 12)
-        main_layout.setSpacing(14)
+        main_layout.setContentsMargins(6, 4, 6, 4)
+        main_layout.setSpacing(4)
         main_layout.addWidget(self._state_indicator)
         main_layout.addLayout(details, 1)
-        main_layout.addWidget(self._status_label)
 
     def connect_signals(self) -> None:
         """Conecta las señales internas del widget.

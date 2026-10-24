@@ -34,6 +34,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -93,8 +94,9 @@ class MaintainerScreen(QWidget):
         """Crea los componentes visuales de la pantalla."""
 
         self.title_label = QLabel(myStr.MAINTAINER_TITLE)
-        self.title_label.setObjectName("TitleLabel")
+        self.title_label.setObjectName("MaintainerScreenTitle")
         self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setWordWrap(True)
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("MaintainerTabs")
@@ -214,12 +216,12 @@ class MaintainerScreen(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(
-            48,
-            32,
-            48,
-            32,
+            20,
+            10,
+            20,
+            10,
         )
-        main_layout.setSpacing(24)
+        main_layout.setSpacing(10)
 
         main_layout.addWidget(
             self.title_label
@@ -292,14 +294,14 @@ class MaintainerScreen(QWidget):
         )
 
         sequences_layout.setContentsMargins(
-            40,
-            40,
-            40,
-            40,
+            16,
+            12,
+            16,
+            12,
         )
 
-        sequences_layout.setHorizontalSpacing(30)
-        sequences_layout.setVerticalSpacing(30)
+        sequences_layout.setHorizontalSpacing(12)
+        sequences_layout.setVerticalSpacing(12)
 
         sequences_layout.addWidget(
             self.door_sequence_button,
@@ -384,8 +386,8 @@ class MaintainerScreen(QWidget):
         outputs_layout.addWidget(self.outputs_scroll_area)
 
         columns_layout = QHBoxLayout()
-        columns_layout.setContentsMargins(24, 24, 24, 24)
-        columns_layout.setSpacing(24)
+        columns_layout.setContentsMargins(12, 12, 12, 12)
+        columns_layout.setSpacing(12)
         columns_layout.addWidget(inputs_column, 1)
         columns_layout.addWidget(outputs_column, 1)
         self.signals_tab.setLayout(columns_layout)
@@ -396,6 +398,8 @@ class MaintainerScreen(QWidget):
         grid_layout = self._create_signal_grid(widgets, columns=2)
         content = QWidget()
         content.setLayout(grid_layout)
+        content.setMinimumWidth(0)
+        content.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -403,20 +407,6 @@ class MaintainerScreen(QWidget):
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setWidget(content)
 
-        # Cuatro filas por dos columnas mantienen visibles hasta ocho señales.
-        card_height = max(
-            (widget.sizeHint().height() for widget in widgets),
-            default=0,
-        )
-        margins = grid_layout.contentsMargins()
-        visible_height = (
-            4 * card_height
-            + 3 * grid_layout.verticalSpacing()
-            + margins.top()
-            + margins.bottom()
-            + 2 * scroll_area.frameWidth()
-        )
-        scroll_area.setFixedHeight(visible_height)
         return scroll_area
 
     def _create_module_controls(self):
@@ -431,7 +421,12 @@ class MaintainerScreen(QWidget):
 
         self.throttle_group = QGroupBox(myStr.MAINTAINER_THROTTLE_TITLE)
         self.throttle_group.setObjectName("MaintainerCardGroup")
-        throttle_layout = QHBoxLayout(self.throttle_group)
+        throttle_title = QLabel(myStr.MAINTAINER_THROTTLE_TITLE)
+        throttle_title.setObjectName("MaintainerCardTitle")
+        throttle_title.setWordWrap(True)
+        self.throttle_group.setTitle("")
+        throttle_layout = QVBoxLayout(self.throttle_group)
+        throttle_layout.addWidget(throttle_title)
         self.throttle_open_button = QPushButton(myStr.MAINTAINER_THROTTLE_OPEN)
         self.throttle_close_button = QPushButton(myStr.MAINTAINER_THROTTLE_CLOSE)
         self.throttle_open_button.setObjectName("MaintenanceActionButton")
@@ -445,7 +440,12 @@ class MaintainerScreen(QWidget):
 
         self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
         self.process_group.setObjectName("MaintainerCardGroup")
-        process_layout = QHBoxLayout(self.process_group)
+        process_title = QLabel(myStr.MAINTAINER_PROCESS_TITLE)
+        process_title.setObjectName("MaintainerCardTitle")
+        process_title.setWordWrap(True)
+        self.process_group.setTitle("")
+        process_layout = QVBoxLayout(self.process_group)
+        process_layout.addWidget(process_title)
         self.lamps13_duration = QDoubleSpinBox()
         self.lamps13_duration.setRange(0.1, 28.0)
         self.lamps13_duration.setDecimals(1)
@@ -503,9 +503,9 @@ class MaintainerScreen(QWidget):
         plasma_layout.addLayout(plasma_status)
         plasma_layout.addWidget(self.plasma_button)
 
-        process_layout.addWidget(lamps13_column, 2)
-        process_layout.addWidget(lamp2_column, 1)
-        process_layout.addWidget(plasma_column, 1)
+        process_layout.addWidget(lamps13_column)
+        process_layout.addWidget(lamp2_column)
+        process_layout.addWidget(plasma_column)
 
     def _create_analog_readouts(self):
         names = (
@@ -517,9 +517,9 @@ class MaintainerScreen(QWidget):
         )
         content = QWidget()
         layout = QGridLayout(content)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setHorizontalSpacing(20)
-        layout.setVerticalSpacing(20)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setHorizontalSpacing(12)
+        layout.setVerticalSpacing(12)
         for index, (name, label, unit, icon) in enumerate(names):
             row, column = divmod(index, 2)
             card = AnalogReadoutCard(label, unit, icon)
@@ -773,8 +773,8 @@ class MaintainerScreen(QWidget):
             0,
         )
 
-        grid_layout.setHorizontalSpacing(24)
-        grid_layout.setVerticalSpacing(24)
+        grid_layout.setHorizontalSpacing(10)
+        grid_layout.setVerticalSpacing(10)
 
         for index, widget in enumerate(
             widgets

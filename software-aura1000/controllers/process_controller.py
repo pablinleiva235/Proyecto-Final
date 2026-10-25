@@ -29,6 +29,14 @@ class ProcessController(QObject):
         if not enabled:
             self.stop_all()
 
+    @property
+    def lamp2_active(self):
+        return self._lamp2
+
+    @property
+    def plasma_active(self):
+        return self._plasma
+
     def start_lamps13(self, seconds):
         hardware_attempted = False
         try:
@@ -53,8 +61,32 @@ class ProcessController(QObject):
                 self.state_changed.emit("lamps13", False)
             self.operation_error.emit("Lámparas 1 y 3", str(error))
 
+    def set_lamps13(self, enabled):
+        """Mantiene L1/L3 en el estado solicitado, sin temporizador de pulso."""
+        enabled = bool(enabled)
+        try:
+            if enabled:
+                self._require_operation()
+            self._pulse_timer.stop()
+            self._write("LAMP1_ON_CMD", enabled)
+            self._write("LAMP3_ON_CMD", enabled)
+            self._lamps13 = enabled
+            self.state_changed.emit("lamps13", enabled)
+            return True
+        except Exception as error:
+            # A partial write must not leave one outer lamp energized.
+            for signal in ("LAMP1_ON_CMD", "LAMP3_ON_CMD"):
+                try:
+                    self._write(signal, False)
+                except Exception:
+                    pass
+            self._lamps13 = False
+            self.state_changed.emit("lamps13", False)
+            self.operation_error.emit("L?mparas 1 y 3", str(error))
+            return False
+
     def set_lamp2(self, enabled):
-        self._set_output("LAMP2_ON_CMD", "lamp2", enabled)
+        return self._set_output("LAMP2_ON_CMD", "lamp2", enabled)
 
     def set_plasma(self, enabled):
         if enabled:
@@ -141,6 +173,7 @@ class ProcessController(QObject):
             self.state_changed.emit(state_name, bool(enabled))
             if state_name == "plasma" and not enabled:
                 self._plasma_started_at = 0.0
+            return True
         except Exception as error:
             if enabled:
                 try:
@@ -150,6 +183,7 @@ class ProcessController(QObject):
                 setattr(self, "_" + state_name, False)
                 self.state_changed.emit(state_name, False)
             self.operation_error.emit(state_name, str(error))
+            return False
 
     def _require_operation(self):
         if not self._can_operate():

@@ -143,6 +143,9 @@ RECIPE_ERROR_INVALID_VALUES = "Todos los parámetros deben contener números vá
 RECIPE_ERROR_NONNEGATIVE = "Los parámetros deben ser finitos y no negativos."
 RECIPE_ERROR_O2_RANGE = "El flujo de O₂ debe estar entre 0 y 10 SLPM."
 RECIPE_ERROR_N2_RANGE = "El flujo de N₂ debe estar entre 0 y 1 SLPM."
+RECIPE_ERROR_PROCESS_PRESSURE_RANGE = "La presión de proceso debe estar entre 0 y 3 Torr."
+RECIPE_ERROR_BASE_PRESSURE_RANGE = "La presión base debe estar entre 0 y 3 Torr."
+RECIPE_ERROR_PROCESS_TEMPERATURE_RANGE = "La temperatura de proceso debe estar entre 130 y 200 °C."
 RECIPE_ERROR_PRESSURE_UNAVAILABLE = "No hay una lectura actual de presión de cámara para definir el mínimo de presión base."
 RECIPE_ERROR_BASE_PRESSURE_MINIMUM = "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta."
 RECIPE_VALUES_CLAMPED_MESSAGE = "Estos valores estaban fuera de rango y se ajustaron al límite permitido:\n{details}\nRevise los valores y pulse Guardar nuevamente para guardar la receta."
@@ -233,6 +236,26 @@ MAINTAINER_CLOSE_VALVE = "Cerrar válvula"
 MAINTAINER_THROTTLE_TITLE = "Throttle · movimiento manual"
 MAINTAINER_THROTTLE_OPEN = "Abrir throttle"
 MAINTAINER_THROTTLE_CLOSE = "Cerrar throttle"
+MAINTAINER_PRESSURE_TITLE = "Control automático de presión"
+MAINTAINER_PRESSURE_SETPOINT = "Setpoint:"
+MAINTAINER_PRESSURE_START = "Iniciar control"
+MAINTAINER_PRESSURE_STOP = "Detener control"
+MAINTAINER_PRESSURE_CURRENT = "Presión actual: {pressure:.3f} Torr"
+MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE = "Presión actual: sin lectura"
+MAINTAINER_PRESSURE_IDLE = "Control detenido"
+MAINTAINER_PRESSURE_POSITIONING = "Posicionando throttle a 400 pasos desde apertura..."
+MAINTAINER_PRESSURE_RUNNING = "Control de presión activo"
+MAINTAINER_PRESSURE_ERROR = "Control detenido: {message}"
+MAINTAINER_TEMPERATURE_TITLE = "Control automático de temperatura"
+MAINTAINER_TEMPERATURE_SETPOINT = "Setpoint:"
+MAINTAINER_TEMPERATURE_START = "Iniciar control térmico"
+MAINTAINER_TEMPERATURE_STOP = "Detener control térmico"
+MAINTAINER_TEMPERATURE_CURRENT = "Temperatura actual: {temperature:.1f} °C"
+MAINTAINER_TEMPERATURE_CURRENT_UNAVAILABLE = "Temperatura actual: sin lectura"
+MAINTAINER_TEMPERATURE_IDLE = "Control térmico detenido"
+MAINTAINER_TEMPERATURE_RAMP = "Precalentando con las tres lámparas..."
+MAINTAINER_TEMPERATURE_HOLD = "Manteniendo temperatura con histéresis"
+MAINTAINER_TEMPERATURE_ERROR = "Control térmico detenido: {message}"
 MAINTAINER_PROCESS_TITLE = "Lámparas y plasma"
 MAINTAINER_PULSE_SECONDS = "Pulso (s):"
 MAINTAINER_LAMPS_PULSE = "Pulso lámparas 1 y 3"
@@ -438,6 +461,24 @@ _SPANISH_TO_ENGLISH = {
     "Throttle · movimiento manual": "Throttle · manual movement",
     "Abrir throttle": "Open throttle",
     "Cerrar throttle": "Close throttle",
+    "Control automático de presión": "Automatic pressure control",
+    "Setpoint:": "Setpoint:",
+    "Iniciar control": "Start control",
+    "Detener control": "Stop control",
+    "Presión actual: sin lectura": "Current pressure: no reading",
+    "Control detenido": "Control stopped",
+    "Posicionando throttle a 400 pasos desde apertura...": "Positioning throttle 400 steps from open...",
+    "Control de presión activo": "Pressure control active",
+    "Control automático de temperatura": "Automatic temperature control",
+    "Iniciar control térmico": "Start temperature control",
+    "Detener control térmico": "Stop temperature control",
+    "Temperatura actual: sin lectura": "Current temperature: no reading",
+    "Control térmico detenido": "Temperature control stopped",
+    "Precalentando con las tres lámparas...": "Preheating with all three lamps...",
+    "Manteniendo temperatura con histéresis": "Maintaining temperature with hysteresis",
+    "La presión de proceso debe estar entre 0 y 3 Torr.": "Process pressure must be between 0 and 3 Torr.",
+    "La presión base debe estar entre 0 y 3 Torr.": "Base pressure must be between 0 and 3 Torr.",
+    "La temperatura de proceso debe estar entre 130 y 200 °C.": "Process temperature must be between 130 and 200 °C.",
     "Lámparas y plasma": "Lamps and plasma",
     "Pulso (s):": "Pulse (s):",
     "Pulso lámparas 1 y 3": "Pulse lamps 1 and 3",
@@ -548,6 +589,14 @@ def tr(value):
         return "Decrease by " + value[len("Disminuir de a "):]
     if value.startswith("Aumentar de a "):
         return "Increase by " + value[len("Aumentar de a "):]
+    if value.startswith("Presión actual: "):
+        return "Current pressure: " + value[len("Presión actual: "):]
+    if value.startswith("Control detenido: "):
+        return "Control stopped: " + value[len("Control detenido: "):]
+    if value.startswith("Temperatura actual: "):
+        return "Current temperature: " + value[len("Temperatura actual: "):]
+    if value.startswith("Control térmico detenido: "):
+        return "Temperature control stopped: " + value[len("Control térmico detenido: "):]
     if value.startswith("Se detuvieron lámparas y plasma por una falla:"):
         return "Lamps and plasma were stopped due to a fault:" + value[len("Se detuvieron lámparas y plasma por una falla:"):]
     if value == "Abrir throttle (abriendo)":

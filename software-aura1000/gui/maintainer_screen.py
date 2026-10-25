@@ -70,6 +70,10 @@ class MaintainerScreen(QWidget):
     mfc_valve_requested = pyqtSignal(str, bool)
     throttle_move_requested = pyqtSignal(bool)
     throttle_stop_requested = pyqtSignal()
+    pressure_start_requested = pyqtSignal(float)
+    pressure_stop_requested = pyqtSignal()
+    temperature_start_requested = pyqtSignal(float)
+    temperature_stop_requested = pyqtSignal()
     lamps13_requested = pyqtSignal(float)
     lamp2_requested = pyqtSignal(bool)
     plasma_requested = pyqtSignal(bool)
@@ -272,6 +276,14 @@ class MaintainerScreen(QWidget):
         self.throttle_close_button.pressed.connect(lambda: self.throttle_move_requested.emit(True))
         self.throttle_open_button.released.connect(self.throttle_stop_requested.emit)
         self.throttle_close_button.released.connect(self.throttle_stop_requested.emit)
+        self.pressure_start_button.clicked.connect(
+            lambda: self.pressure_start_requested.emit(self.pressure_setpoint.value())
+        )
+        self.pressure_stop_button.clicked.connect(self.pressure_stop_requested.emit)
+        self.temperature_start_button.clicked.connect(
+            lambda: self.temperature_start_requested.emit(self.temperature_setpoint.value())
+        )
+        self.temperature_stop_button.clicked.connect(self.temperature_stop_requested.emit)
         self.lamps13_button.clicked.connect(lambda: self.lamps13_requested.emit(self.lamps13_duration.value()))
         self.lamp2_button.clicked.connect(lambda checked: self.lamp2_requested.emit(checked))
         self.plasma_button.clicked.connect(lambda checked: self.plasma_requested.emit(checked))
@@ -329,6 +341,7 @@ class MaintainerScreen(QWidget):
         sequences_layout.addWidget(self.mfc2_card, 2, 1)
         sequences_layout.addWidget(self.throttle_group, 3, 0)
         sequences_layout.addWidget(self.process_group, 3, 1)
+        sequences_layout.addWidget(self.temperature_group, 4, 0, 1, 2)
 
         sequences_layout.setColumnStretch(
             0,
@@ -344,6 +357,7 @@ class MaintainerScreen(QWidget):
         sequences_layout.setRowStretch(1, 0)
         sequences_layout.setRowStretch(2, 0)
         sequences_layout.setRowStretch(3, 0)
+        sequences_layout.setRowStretch(4, 0)
 
         self.sequences_scroll_area = QScrollArea(self.sequences_tab)
         self.sequences_scroll_area.setWidgetResizable(True)
@@ -443,6 +457,36 @@ class MaintainerScreen(QWidget):
         self.throttle_state_label.setProperty("state", "inactive")
         throttle_layout.addWidget(self.throttle_state_label)
 
+        pressure_controls = QVBoxLayout()
+        pressure_title = QLabel(myStr.MAINTAINER_PRESSURE_TITLE)
+        pressure_title.setObjectName("OperationReadoutLabel")
+        pressure_controls.addWidget(pressure_title)
+        pressure_setpoint_row = QHBoxLayout()
+        pressure_setpoint_row.addWidget(QLabel(myStr.MAINTAINER_PRESSURE_SETPOINT))
+        self.pressure_setpoint = QDoubleSpinBox()
+        self.pressure_setpoint.setRange(0.0, 3.0)
+        self.pressure_setpoint.setDecimals(3)
+        self.pressure_setpoint.setSingleStep(0.05)
+        self.pressure_setpoint.setSuffix(" Torr")
+        self.pressure_setpoint.setObjectName("MaintenanceSetpointInput")
+        pressure_setpoint_row.addWidget(self.pressure_setpoint)
+        pressure_controls.addLayout(pressure_setpoint_row)
+        pressure_buttons = QHBoxLayout()
+        self.pressure_start_button = QPushButton(myStr.MAINTAINER_PRESSURE_START)
+        self.pressure_start_button.setObjectName("MaintenanceActionButton")
+        self.pressure_stop_button = QPushButton(myStr.MAINTAINER_PRESSURE_STOP)
+        self.pressure_stop_button.setObjectName("MaintenanceActionButton")
+        self.pressure_stop_button.setEnabled(False)
+        pressure_buttons.addWidget(self.pressure_start_button)
+        pressure_buttons.addWidget(self.pressure_stop_button)
+        pressure_controls.addLayout(pressure_buttons)
+        self.pressure_reading_label = QLabel(myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE)
+        self.pressure_state_label = QLabel(myStr.MAINTAINER_PRESSURE_IDLE)
+        self.pressure_state_label.setWordWrap(True)
+        pressure_controls.addWidget(self.pressure_reading_label)
+        pressure_controls.addWidget(self.pressure_state_label)
+        throttle_layout.addLayout(pressure_controls, 1)
+
         self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
         self.process_group.setObjectName("MaintainerCardGroup")
         process_layout = QHBoxLayout(self.process_group)
@@ -506,6 +550,31 @@ class MaintainerScreen(QWidget):
         process_layout.addWidget(lamps13_column, 2)
         process_layout.addWidget(lamp2_column, 1)
         process_layout.addWidget(plasma_column, 1)
+
+        self.temperature_group = QGroupBox(myStr.MAINTAINER_TEMPERATURE_TITLE)
+        self.temperature_group.setObjectName("MaintainerCardGroup")
+        temperature_layout = QHBoxLayout(self.temperature_group)
+        temperature_layout.addWidget(QLabel(myStr.MAINTAINER_TEMPERATURE_SETPOINT))
+        self.temperature_setpoint = QDoubleSpinBox()
+        self.temperature_setpoint.setRange(130.0, 200.0)
+        self.temperature_setpoint.setDecimals(1)
+        self.temperature_setpoint.setSingleStep(1.0)
+        self.temperature_setpoint.setValue(180.0)
+        self.temperature_setpoint.setSuffix(" °C")
+        self.temperature_setpoint.setObjectName("MaintenanceSetpointInput")
+        temperature_layout.addWidget(self.temperature_setpoint)
+        self.temperature_start_button = QPushButton(myStr.MAINTAINER_TEMPERATURE_START)
+        self.temperature_start_button.setObjectName("MaintenanceActionButton")
+        self.temperature_stop_button = QPushButton(myStr.MAINTAINER_TEMPERATURE_STOP)
+        self.temperature_stop_button.setObjectName("MaintenanceActionButton")
+        self.temperature_stop_button.setEnabled(False)
+        temperature_layout.addWidget(self.temperature_start_button)
+        temperature_layout.addWidget(self.temperature_stop_button)
+        self.temperature_reading_label = QLabel(myStr.MAINTAINER_TEMPERATURE_CURRENT_UNAVAILABLE)
+        self.temperature_state_label = QLabel(myStr.MAINTAINER_TEMPERATURE_IDLE)
+        self.temperature_state_label.setWordWrap(True)
+        temperature_layout.addWidget(self.temperature_reading_label)
+        temperature_layout.addWidget(self.temperature_state_label, 1)
 
     def _create_analog_readouts(self):
         names = (
@@ -634,11 +703,95 @@ class MaintainerScreen(QWidget):
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
             self.throttle_open_button, self.throttle_close_button,
+            self.pressure_setpoint,
+            self.temperature_setpoint,
             self.lamps13_duration, self.lamps13_button, self.lamp2_button,
             self.plasma_button,
         )
         for widget in widgets:
             widget.setEnabled(enabled)
+        self._module_controls_enabled = enabled
+        pressure_active = self.pressure_stop_button.isEnabled()
+        self.pressure_start_button.setEnabled(
+            enabled and not pressure_active
+        )
+        self.throttle_open_button.setEnabled(enabled and not pressure_active)
+        self.throttle_close_button.setEnabled(enabled and not pressure_active)
+        self.pressure_setpoint.setEnabled(enabled and not pressure_active)
+        temperature_active = self.temperature_stop_button.isEnabled()
+        self.temperature_start_button.setEnabled(enabled and not temperature_active)
+        self.temperature_stop_button.setEnabled(enabled and temperature_active)
+        self.temperature_setpoint.setEnabled(enabled and not temperature_active)
+        self.lamps13_button.setEnabled(enabled and not temperature_active)
+        self.lamp2_button.setEnabled(enabled and not temperature_active)
+        self.plasma_button.setEnabled(enabled and not temperature_active)
+
+    def set_pressure_reading(self, pressure):
+        set_localized_text(
+            self.pressure_reading_label,
+            myStr.MAINTAINER_PRESSURE_CURRENT.format(pressure=float(pressure)),
+        )
+
+    def set_pressure_reading_unavailable(self, _message=None):
+        set_localized_text(
+            self.pressure_reading_label,
+            myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE,
+        )
+
+    def set_pressure_control_state(self, state):
+        labels = {
+            "detenido": myStr.MAINTAINER_PRESSURE_IDLE,
+            "posicionando": myStr.MAINTAINER_PRESSURE_POSITIONING,
+            "regulando": myStr.MAINTAINER_PRESSURE_RUNNING,
+        }
+        set_localized_text(self.pressure_state_label, labels.get(state, state))
+        active = state in ("posicionando", "regulando")
+        self.pressure_stop_button.setEnabled(active)
+        controls_enabled = getattr(self, "_module_controls_enabled", False)
+        self.pressure_start_button.setEnabled(controls_enabled and not active)
+        self.pressure_setpoint.setEnabled(controls_enabled and not active)
+        self.throttle_open_button.setEnabled(controls_enabled and not active)
+        self.throttle_close_button.setEnabled(controls_enabled and not active)
+
+    def set_pressure_control_error(self, message):
+        set_localized_text(
+            self.pressure_state_label,
+            myStr.MAINTAINER_PRESSURE_ERROR.format(message=message),
+        )
+
+    def set_temperature_reading(self, temperature):
+        set_localized_text(
+            self.temperature_reading_label,
+            myStr.MAINTAINER_TEMPERATURE_CURRENT.format(temperature=float(temperature)),
+        )
+
+    def set_temperature_reading_unavailable(self, _message=None):
+        set_localized_text(
+            self.temperature_reading_label,
+            myStr.MAINTAINER_TEMPERATURE_CURRENT_UNAVAILABLE,
+        )
+
+    def set_temperature_control_state(self, state):
+        labels = {
+            "detenido": myStr.MAINTAINER_TEMPERATURE_IDLE,
+            "precalentando": myStr.MAINTAINER_TEMPERATURE_RAMP,
+            "manteniendo": myStr.MAINTAINER_TEMPERATURE_HOLD,
+        }
+        set_localized_text(self.temperature_state_label, labels.get(state, state))
+        active = state in ("precalentando", "manteniendo")
+        controls_enabled = getattr(self, "_module_controls_enabled", False)
+        self.temperature_stop_button.setEnabled(active and controls_enabled)
+        self.temperature_start_button.setEnabled(controls_enabled and not active)
+        self.temperature_setpoint.setEnabled(controls_enabled and not active)
+        self.lamps13_button.setEnabled(controls_enabled and not active)
+        self.lamp2_button.setEnabled(controls_enabled and not active)
+        self.plasma_button.setEnabled(controls_enabled and not active)
+
+    def set_temperature_control_error(self, message):
+        set_localized_text(
+            self.temperature_state_label,
+            myStr.MAINTAINER_TEMPERATURE_ERROR.format(message=message),
+        )
 
 
     @staticmethod

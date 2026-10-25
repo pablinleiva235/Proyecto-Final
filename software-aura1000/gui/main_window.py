@@ -18,7 +18,9 @@ from controllers.interlock_controller import InterlockController
 from controllers.analog_signal_controller import AnalogSignalController
 from controllers.mfc_controller import MFCController
 from controllers.throttle_controller import ThrottleController
+from controllers.pressure_controller import PressureController
 from controllers.process_controller import ProcessController
+from controllers.temperature_controller import TemperatureController
 from PyQt5.QtCore import QTimer
 from logic.door_sequence import DoorState
 
@@ -143,8 +145,18 @@ class MainWindow(QMainWindow):
             can_operate=self._can_control_process_modules,
             parent=self,
         )
+        self.pressure_controller = PressureController(
+            throttle_controller=self.throttle_controller,
+            can_operate=self._can_control_process_modules,
+            parent=self,
+        )
         self.process_controller = ProcessController(
             hardware=self.hardware,
+            can_operate=self._can_control_process_modules,
+            parent=self,
+        )
+        self.temperature_controller = TemperatureController(
+            process_controller=self.process_controller,
             can_operate=self._can_control_process_modules,
             parent=self,
         )
@@ -293,11 +305,17 @@ class MainWindow(QMainWindow):
         self.analog_controller.signal_value_changed.connect(
             self.normal_operation_screen.set_analog_value
         )
+        self.analog_controller.signal_value_changed.connect(
+            self._handle_analog_value
+        )
         self.analog_controller.signal_error.connect(
             self.maintainer_screen.set_analog_error
         )
         self.analog_controller.signal_error.connect(
             self.normal_operation_screen.set_analog_error
+        )
+        self.analog_controller.signal_error.connect(
+            self._handle_analog_error
         )
 
         # Controles de MFC, throttle, lámparas y plasma.
@@ -310,6 +328,42 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
         self.throttle_controller.operation_error.connect(self._handle_throttle_error)
+        self.maintainer_screen.pressure_start_requested.connect(
+            self.pressure_controller.start
+        )
+        self.maintainer_screen.pressure_stop_requested.connect(
+            self.pressure_controller.stop
+        )
+        self.pressure_controller.pressure_changed.connect(
+            self.maintainer_screen.set_pressure_reading
+        )
+        self.pressure_controller.pressure_unavailable.connect(
+            self.maintainer_screen.set_pressure_reading_unavailable
+        )
+        self.pressure_controller.state_changed.connect(
+            self.maintainer_screen.set_pressure_control_state
+        )
+        self.pressure_controller.operation_error.connect(
+            self._handle_pressure_error
+        )
+        self.maintainer_screen.temperature_start_requested.connect(
+            self.temperature_controller.start
+        )
+        self.maintainer_screen.temperature_stop_requested.connect(
+            self.temperature_controller.stop
+        )
+        self.temperature_controller.temperature_changed.connect(
+            self.maintainer_screen.set_temperature_reading
+        )
+        self.temperature_controller.temperature_unavailable.connect(
+            self.maintainer_screen.set_temperature_reading_unavailable
+        )
+        self.temperature_controller.state_changed.connect(
+            self.maintainer_screen.set_temperature_control_state
+        )
+        self.temperature_controller.operation_error.connect(
+            self._handle_temperature_error
+        )
         self.maintainer_screen.lamps13_requested.connect(self.process_controller.start_lamps13)
         self.maintainer_screen.lamp2_requested.connect(self.process_controller.set_lamp2)
         self.maintainer_screen.plasma_requested.connect(self.process_controller.set_plasma)
@@ -343,8 +397,9 @@ class MainWindow(QMainWindow):
 
     def _show_welcome_screen(self):
     # Muestra la pantalla de bienvenida
-        self.signal_controller.stop_monitoring()
-        self.analog_controller.stop_monitoring()
+        if not self.pressure_controller.is_active and not self.temperature_controller.is_active:
+            self.signal_controller.stop_monitoring()
+            self.analog_controller.stop_monitoring()
         self.navigation_controller.show_screen(
             WELCOME_SCREEN
         )
@@ -363,14 +418,24 @@ class MainWindow(QMainWindow):
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
         )
-        self.analog_controller.stop_monitoring()
+        if not self.pressure_controller.is_active and not self.temperature_controller.is_active:
+            self.analog_controller.stop_monitoring()
 
     def _show_normal_operation_screen(self):
         """Muestra operación normal e inicia el monitoreo analógico."""
         self.navigation_controller.show_screen(
             NORMAL_OPERATION_SCREEN
         )
+        self.signal_controller.start_monitoring()
         self.analog_controller.start_monitoring()
+
+    def start_recipe_pressure_control(self, recipe):
+        """Punto de entrada para la etapa de presión del coordinador de recetas."""
+        self.pressure_controller.start(recipe.process_pressure)
+
+    def stop_recipe_pressure_control(self):
+        """Detiene el lazo si la secuencia de receta aborta o cambia de etapa."""
+        self.pressure_controller.stop()
 
     def _request_maintainer_access(self):
     # Solicita autenticación antes de ingresar al modo de mantenimiento
@@ -565,6 +630,14 @@ class MainWindow(QMainWindow):
             return
         self._module_access = allowed
         if not allowed:
+            if self.pressure_controller.is_active:
+                self.pressure_controller.abort(
+                    "Se perdió el vacío principal, la confirmación de puerta cerrada o el interlock de venteo."
+                )
+            if self.temperature_controller.is_active:
+                self.temperature_controller.abort(
+                    "Se perdió el vacío principal, la confirmación de puerta cerrada o el interlock de venteo."
+                )
             self.throttle_controller.stop()
             self.mfc_controller.shutdown()
             try:
@@ -587,7 +660,30 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_throttle_moving(False, "detenido")
         self._handle_module_error("Throttle", message)
 
+    def _handle_analog_value(self, signal_name, value):
+        if signal_name == "BARATRON":
+            self.pressure_controller.set_pressure_reading(value)
+        elif signal_name == "CHAMBER_TEMP":
+            self.temperature_controller.set_temperature_reading(value)
+
+    def _handle_analog_error(self, signal_name, message):
+        if signal_name == "BARATRON":
+            self.pressure_controller.invalidate_pressure(message)
+            self.maintainer_screen.set_pressure_reading_unavailable(message)
+        elif signal_name == "CHAMBER_TEMP":
+            self.temperature_controller.invalidate_temperature(message)
+
+    def _handle_pressure_error(self, message):
+        self.maintainer_screen.set_pressure_control_error(message)
+        self._handle_module_error("Presión", message)
+
+    def _handle_temperature_error(self, message):
+        self.maintainer_screen.set_temperature_control_error(message)
+        self._handle_module_error("Temperatura", message)
+
     def _handle_process_alarm(self, message):
+        if self.temperature_controller.is_active:
+            self.temperature_controller.abort("Se abortó el control térmico por una alarma de proceso.")
         QMessageBox.warning(
             self,
             strings.tr("Alarma de seguridad"),

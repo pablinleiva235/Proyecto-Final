@@ -110,8 +110,8 @@ class RecipeEditorDialog(QDialog):
             "o2_flow": (0.0, 10.0),
             "n2_flow": (0.0, 1.0),
             "base_pressure": (float(self._pressure_min), 3.0),
-            "process_pressure": (0.0, 10.0),
-            "process_temperature": (130.0, 190.0),
+            "process_pressure": (0.0, 3.0),
+            "process_temperature": (130.0, 200.0),
         }
         adjusted_values = []
         field_labels = {

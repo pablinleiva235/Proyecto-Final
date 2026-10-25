@@ -39,6 +39,10 @@ class RecipeService:
         "process_temperature",
     )
     FLOW_LIMITS = {"o2_flow": 10.0, "n2_flow": 1.0}
+    BASE_PRESSURE_MAX_TORR = 3.0
+    PROCESS_PRESSURE_MAX_TORR = 3.0
+    PROCESS_TEMPERATURE_MIN_C = 130.0
+    PROCESS_TEMPERATURE_MAX_C = 200.0
 
     def __init__(self, recipes_directory=None):
         package_root = Path(__file__).resolve().parents[1]
@@ -104,6 +108,14 @@ class RecipeService:
                     text.RECIPE_ERROR_O2_RANGE if key == "o2_flow"
                     else text.RECIPE_ERROR_N2_RANGE
                 )
+            if key == "process_pressure" and value > self.PROCESS_PRESSURE_MAX_TORR:
+                raise RecipeError(text.RECIPE_ERROR_PROCESS_PRESSURE_RANGE)
+            if key == "base_pressure" and value > self.BASE_PRESSURE_MAX_TORR:
+                raise RecipeError(text.RECIPE_ERROR_BASE_PRESSURE_RANGE)
+            if key == "process_temperature" and not (
+                self.PROCESS_TEMPERATURE_MIN_C <= value <= self.PROCESS_TEMPERATURE_MAX_C
+            ):
+                raise RecipeError(text.RECIPE_ERROR_PROCESS_TEMPERATURE_RANGE)
 
     def path_for_name(self, name):
         normalized = unicodedata.normalize("NFKD", str(name).strip())

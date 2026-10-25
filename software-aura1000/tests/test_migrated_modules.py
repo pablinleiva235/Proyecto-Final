@@ -8,7 +8,11 @@ from PyQt5.QtWidgets import QApplication
 from controllers.analog_signal_controller import AnalogSignalController
 from controllers.mfc_controller import MFCController
 from controllers.process_controller import ProcessController
+from controllers.pressure_controller import PressureController
 from controllers.throttle_controller import ThrottleController
+from controllers.temperature_controller import TemperatureController
+from gui.maintainer_screen import MaintainerScreen
+from services.recipe_service import Recipe, RecipeError, RecipeService
 from tests.mockScripts.mock_hardware import MockHardware
 
 
@@ -69,6 +73,173 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(controller._timer.isActive())
         controller.stop()
         self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
+
+    def test_pressure_control_homes_and_reaches_legacy_start_position(self):
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        reached = []
+        pressure.setpoint_reached.connect(reached.append)
+        pressure.set_pressure_reading(0.5)
+        pressure.start(1.0)
+
+        self.assertEqual(pressure.state, "posicionando")
+        self.assertFalse(pressure.state == "regulando")
+        throttle._pulse()
+        self.hardware.set_input_state("THROTTLE_OPEN", True)
+        throttle._pulse()
+        self.assertEqual(throttle._position_steps, 0)
+        self.assertEqual(pressure.state, "posicionando")
+
+        pulse_count = 0
+        while (
+            pressure.state == "posicionando"
+            and throttle._timer.isActive()
+            and pulse_count < throttle.REST_POSITION_STEPS * 2 + 2
+        ):
+            throttle._pulse()
+            pulse_count += 1
+
+        self.assertEqual(throttle._position_steps, 400)
+        self.assertEqual(pressure.state, "regulando")
+        self.assertTrue(self.hardware.digital_read("STEPPER_DIR"))
+        self.assertTrue(throttle._timer.isActive())
+        pressure.set_pressure_reading(1.0)
+        self.assertFalse(throttle._timer.isActive())
+        self.assertEqual(reached, [1.0])
+        self.assertTrue(throttle._automatic_mode)
+        pressure.stop()
+        self.assertFalse(throttle._automatic_mode)
+
+    def test_pressure_control_rejects_invalid_and_unreachable_setpoints(self):
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        errors = []
+        pressure.operation_error.connect(errors.append)
+        pressure.set_pressure_reading(1.0)
+
+        pressure.start(3.01)
+        pressure.start(float("nan"))
+        pressure.start(0.9)
+
+        self.assertEqual(len(errors), 3)
+        self.assertEqual(pressure.state, "detenido")
+        self.assertFalse(throttle._timer.isActive())
+
+    def test_pressure_control_stops_when_an_interlock_is_lost(self):
+        allowed = [True]
+        throttle = ThrottleController(self.hardware, can_operate=lambda: allowed[0])
+        pressure = PressureController(throttle, can_operate=lambda: allowed[0])
+        pressure.set_pressure_reading(0.5)
+        pressure.start(1.0)
+        self.assertTrue(throttle._timer.isActive())
+
+        allowed[0] = False
+        pressure._check_runtime_conditions()
+
+        self.assertEqual(pressure.state, "detenido")
+        self.assertFalse(throttle._timer.isActive())
+        self.assertFalse(throttle._automatic_mode)
+
+    def test_pressure_control_does_not_take_over_manual_throttle_motion(self):
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        pressure.set_pressure_reading(0.5)
+        throttle.start(closing=True)
+        self.assertTrue(throttle._timer.isActive())
+
+        pressure.start(1.0)
+
+        self.assertEqual(pressure.state, "detenido")
+        self.assertTrue(throttle._timer.isActive())
+        throttle.stop()
+
+    def test_maintainer_pressure_controls_are_limited_to_three_torr(self):
+        screen = MaintainerScreen()
+        screen.set_module_controls_enabled(True)
+        self.assertEqual(screen.pressure_setpoint.minimum(), 0.0)
+        self.assertEqual(screen.pressure_setpoint.maximum(), 3.0)
+        self.assertTrue(screen.pressure_start_button.isEnabled())
+        self.assertFalse(screen.pressure_stop_button.isEnabled())
+        self.assertEqual(screen.temperature_setpoint.minimum(), 130.0)
+        self.assertEqual(screen.temperature_setpoint.maximum(), 200.0)
+
+    def test_temperature_ramp_and_hysteresis_use_managed_lamp_outputs(self):
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        reached = []
+        temperature.setpoint_reached.connect(reached.append)
+
+        temperature.start(180.0)
+        self.assertTrue(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertTrue(self.hardware.digital_read("LAMP3_ON_CMD"))
+        self.assertEqual(temperature.state, "precalentando")
+
+        for _ in range(11):
+            temperature.set_temperature_reading(172.0)
+        self.assertEqual(temperature.state, "manteniendo")
+        self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
+
+        for _ in range(11):
+            temperature.set_temperature_reading(183.0)
+        self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(177.0)
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertEqual(reached, [180.0])
+
+        temperature.stop()
+        for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD"):
+            self.assertFalse(self.hardware.digital_read(signal))
+
+    def test_temperature_control_aborts_on_lost_interlock_or_reading(self):
+        allowed = [True]
+        process = ProcessController(self.hardware, can_operate=lambda: allowed[0])
+        temperature = TemperatureController(process, can_operate=lambda: allowed[0])
+        errors = []
+        temperature.operation_error.connect(errors.append)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        self.assertTrue(temperature.is_active)
+
+        allowed[0] = False
+        temperature._check_runtime_conditions()
+
+        self.assertFalse(temperature.is_active)
+        self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
+        self.assertTrue(errors)
+
+    def test_recipe_process_pressure_is_limited_to_three_torr(self):
+        service = RecipeService()
+        recipe = Recipe(
+            name="test",
+            description="test recipe",
+            o2_flow=1.0,
+            n2_flow=0.1,
+            base_pressure=0.5,
+            process_pressure=3.01,
+            process_temperature=150.0,
+        )
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
+
+        recipe.process_pressure = 2.0
+        recipe.base_pressure = 3.01
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
+
+        recipe.base_pressure = 0.5
+        recipe.process_temperature = 200.0
+        service.validate(recipe)
+        recipe.process_temperature = 200.1
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
 
     def test_process_fault_turns_off_lamps_and_plasma(self):
         controller = ProcessController(self.hardware, can_operate=lambda: True)

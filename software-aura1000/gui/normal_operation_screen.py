@@ -39,7 +39,7 @@ class NormalOperationScreen(QWidget):
         self._readouts = {}
         self._recipe_service = RecipeService()
         self._active_recipe = None
-        self._recipe_dirty = False
+        self._chamber_pressure = None
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -87,8 +87,6 @@ class NormalOperationScreen(QWidget):
         actions_layout.addWidget(self.active_recipe_name)
         self.new_recipe_button = self._recipe_button(text.NEW_RECIPE_BUTTON)
         self.load_recipe_button = self._recipe_button(text.LOAD_RECIPE_BUTTON)
-        self.save_recipe_button = self._recipe_button(text.SAVE_RECIPE_BUTTON)
-        self.save_recipe_button.setEnabled(False)
         self.start_recipe_button = self._recipe_button(text.START_RECIPE_BUTTON)
         self.start_recipe_button.setEnabled(False)
         self.start_recipe_button.setToolTip(text.START_RECIPE_PENDING_TOOLTIP)
@@ -100,7 +98,6 @@ class NormalOperationScreen(QWidget):
         for button in (
             self.new_recipe_button,
             self.load_recipe_button,
-            self.save_recipe_button,
             self.start_recipe_button,
             self.view_recipe_button,
         ):
@@ -137,7 +134,6 @@ class NormalOperationScreen(QWidget):
         self.back_button.clicked.connect(self.back_requested.emit)
         self.new_recipe_button.clicked.connect(self._new_recipe)
         self.load_recipe_button.clicked.connect(self._load_recipe)
-        self.save_recipe_button.clicked.connect(self._save_recipe)
         self.view_recipe_button.clicked.connect(self._view_recipe)
 
     @staticmethod
@@ -202,6 +198,8 @@ class NormalOperationScreen(QWidget):
         if readout is None:
             return
         value = float(value)
+        if signal_name == "BARATRON":
+            self._chamber_pressure = value
         readout["value"].setProperty("i18nSourceText_text", None)
         readout["value"].setText(f"{value:.{readout['decimals']}f}")
         readout["value"].setToolTip("")
@@ -211,6 +209,8 @@ class NormalOperationScreen(QWidget):
         readout = self._readouts.get(signal_name)
         if readout is None:
             return
+        if signal_name == "BARATRON":
+            self._chamber_pressure = None
         set_localized_text(readout["value"], text.OPERATION_READING_ERROR)
         readout["value"].setToolTip(str(message))
         readout["indicator"].set_state(
@@ -218,8 +218,6 @@ class NormalOperationScreen(QWidget):
         )
 
     def _new_recipe(self):
-        if self._has_unsaved_draft() and not self._confirm_discard_draft():
-            return
         try:
             recipe = replace(
                 self._recipe_service.load_template(),
@@ -230,9 +228,12 @@ class NormalOperationScreen(QWidget):
             self._show_recipe_error(error)
             return
 
-        dialog = RecipeEditorDialog(recipe, self)
+        dialog = RecipeEditorDialog(
+            recipe, self, pressure_min=self._chamber_pressure,
+            save_callback=self._save_recipe_to_disk,
+        )
         if dialog.exec_() == dialog.Accepted:
-            self._set_active_recipe(dialog.recipe, dirty=True)
+            self._set_active_recipe(dialog.recipe)
 
     def _load_recipe(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -243,33 +244,18 @@ class NormalOperationScreen(QWidget):
         )
         if not path:
             return
-        if self._has_unsaved_draft() and not self._confirm_discard_draft():
-            return
         try:
             recipe = self._recipe_service.load_file(path)
         except RecipeError as error:
             self._show_recipe_error(error)
             return
-        self._set_active_recipe(recipe, dirty=False)
+        self._set_active_recipe(recipe)
 
-    def _save_recipe(self):
-        recipe = self._active_recipe
-        if recipe is None:
-            self._show_no_active_recipe()
-            return
-
-        if recipe.source_path == self._recipe_service.template_path:
-            dialog = RecipeEditorDialog(replace(recipe, name="", source_path=None), self)
-            if dialog.exec_() != dialog.Accepted:
-                return
-            recipe = dialog.recipe
-            self._active_recipe = recipe
-            self._recipe_dirty = True
-
+    def _save_recipe_to_disk(self, recipe):
         try:
             path = self._recipe_service.path_for_name(recipe.name)
-            overwrite = False
-            if path.exists():
+            overwrite = path.exists()
+            if overwrite:
                 answer = QMessageBox.question(
                     self,
                     text.tr(text.RECIPE_OVERWRITE_TITLE),
@@ -278,34 +264,10 @@ class NormalOperationScreen(QWidget):
                     QMessageBox.No,
                 )
                 if answer != QMessageBox.Yes:
-                    return
-                overwrite = True
-            saved_recipe = self._recipe_service.save(recipe, overwrite=overwrite)
-        except FileExistsError:
-            answer = QMessageBox.question(
-                self,
-                text.tr(text.RECIPE_OVERWRITE_TITLE),
-                text.tr(text.RECIPE_OVERWRITE_MESSAGE),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if answer != QMessageBox.Yes:
-                return
-            try:
-                saved_recipe = self._recipe_service.save(recipe, overwrite=True)
-            except RecipeError as error:
-                self._show_recipe_error(error)
-                return
+                    return None
+            return self._recipe_service.save(recipe, overwrite=overwrite)
         except (RecipeError, OSError) as error:
-            self._show_recipe_error(error)
-            return
-
-        self._set_active_recipe(saved_recipe, dirty=False)
-        QMessageBox.information(
-            self,
-            text.tr(text.RECIPE_SAVED_TITLE),
-            text.tr(text.RECIPE_SAVED_MESSAGE),
-        )
+            raise RecipeError(str(error)) from error
 
     def _view_recipe(self):
         if self._active_recipe is None:
@@ -323,30 +285,17 @@ class NormalOperationScreen(QWidget):
                 recipe_to_edit,
                 self,
                 allow_name_edit=is_template,
+                pressure_min=self._chamber_pressure,
+                save_callback=self._save_recipe_to_disk,
             )
             if editor.exec_() == editor.Accepted:
-                self._set_active_recipe(editor.recipe, dirty=True)
+                self._set_active_recipe(editor.recipe)
 
-    def _set_active_recipe(self, recipe, dirty=False):
+    def _set_active_recipe(self, recipe):
         self._active_recipe = recipe
-        self._recipe_dirty = bool(dirty)
         self.active_recipe_name.setProperty("i18nSourceText_text", None)
         self.active_recipe_name.setText(recipe.name or text.tr(text.NO_ACTIVE_RECIPE))
-        self.save_recipe_button.setEnabled(True)
         self.view_recipe_button.setEnabled(True)
-
-    def _has_unsaved_draft(self):
-        return self._active_recipe is not None and self._recipe_dirty
-
-    def _confirm_discard_draft(self):
-        answer = QMessageBox.question(
-            self,
-            text.tr(text.RECIPE_DISCARD_TITLE),
-            text.tr(text.RECIPE_DISCARD_MESSAGE),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        return answer == QMessageBox.Yes
 
     def _show_no_active_recipe(self):
         QMessageBox.information(

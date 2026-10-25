@@ -29,9 +29,18 @@ class RecipeEditorDialog(QDialog):
         ("process_temperature", text.RECIPE_PROCESS_TEMPERATURE_LABEL, "°C"),
     )
 
-    def __init__(self, recipe, parent=None, allow_name_edit=True):
+    def __init__(
+        self,
+        recipe,
+        parent=None,
+        allow_name_edit=True,
+        pressure_min=None,
+        save_callback=None,
+    ):
         super().__init__(parent)
         self._recipe = recipe
+        self._pressure_min = pressure_min
+        self._save_callback = save_callback
         self.setObjectName("RecipeEditorDialog")
         self.setWindowTitle(text.tr(text.RECIPE_EDITOR_TITLE))
 
@@ -85,24 +94,69 @@ class RecipeEditorDialog(QDialog):
             except ValueError:
                 self._show_invalid(text.RECIPE_ERROR_INVALID_VALUES)
                 return
-            if not math.isfinite(value) or value < 0:
-                self._show_invalid(text.RECIPE_ERROR_NONNEGATIVE)
+            if not math.isfinite(value):
+                self._show_invalid(text.RECIPE_ERROR_INVALID_VALUES)
                 return
             values[key] = value
 
-        if values["o2_flow"] > 10:
-            self._show_invalid(text.RECIPE_ERROR_O2_RANGE)
+        if self._pressure_min is None or not math.isfinite(float(self._pressure_min)):
+            self._show_invalid(text.RECIPE_ERROR_PRESSURE_UNAVAILABLE)
             return
-        if values["n2_flow"] > 1:
-            self._show_invalid(text.RECIPE_ERROR_N2_RANGE)
+        if self._pressure_min > 3:
+            self._show_invalid(text.RECIPE_ERROR_BASE_PRESSURE_MINIMUM)
             return
 
-        self._recipe = Recipe(
+        limits = {
+            "o2_flow": (0.0, 10.0),
+            "n2_flow": (0.0, 1.0),
+            "base_pressure": (float(self._pressure_min), 3.0),
+            "process_pressure": (0.0, 10.0),
+            "process_temperature": (130.0, 190.0),
+        }
+        adjusted_values = []
+        field_labels = {
+            key: (label, unit)
+            for key, label, unit in self.FIELDS
+        }
+        for key, (minimum, maximum) in limits.items():
+            original_value = values[key]
+            clamped_value = min(maximum, max(minimum, values[key]))
+            if clamped_value != original_value:
+                label, unit = field_labels[key]
+                adjusted_values.append(
+                    text.tr(text.RECIPE_VALUE_RANGE_DETAIL).format(
+                        label=text.tr(label),
+                        value=self._format_number(original_value),
+                        unit=unit,
+                        minimum=self._format_number(minimum),
+                        maximum=self._format_number(maximum),
+                    )
+                )
+            values[key] = clamped_value
+            self.parameter_edits[key].setText(self._format_number(values[key]))
+
+        if adjusted_values:
+            message = text.tr(text.RECIPE_VALUES_CLAMPED_MESSAGE).format(
+                details="\n".join(adjusted_values)
+            )
+            self._show_invalid(message)
+            return
+
+        recipe = Recipe(
             name=name,
             description=description,
             source_path=self._recipe.source_path,
             **values,
         )
+        if self._save_callback is not None:
+            try:
+                recipe = self._save_callback(recipe)
+            except (ValueError, OSError) as error:
+                self._show_invalid(str(error))
+                return
+            if recipe is None:
+                return
+        self._recipe = recipe
         self.accept()
 
     def _show_invalid(self, message):

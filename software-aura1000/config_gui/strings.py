@@ -88,7 +88,6 @@ SIMULATED_ON = "ACTIVO"
 SIMULATED_OFF = "INACTIVO"
 SIMULATED_START_BUTTON = "Iniciar"
 SIMULATED_STOP_BUTTON = "Detener"
-SAVE_RECIPE_BUTTON = "Guardar receta"
 LOAD_RECIPE_BUTTON = "Cargar receta"
 START_PROCESS_BUTTON = "Iniciar proceso"
 RECIPE_FEATURE_PENDING_TITLE = "Función pendiente"
@@ -134,12 +133,8 @@ RECIPE_SAVE_BUTTON = "Guardar"
 RECIPE_CANCEL_BUTTON = "Cancelar"
 RECIPE_CLOSE_BUTTON = "Cerrar"
 RECIPE_EDIT_BUTTON = "Editar receta"
-RECIPE_SAVED_TITLE = "Receta guardada"
-RECIPE_SAVED_MESSAGE = "La receta se guardó correctamente."
 RECIPE_OVERWRITE_TITLE = "Confirmar sobrescritura"
 RECIPE_OVERWRITE_MESSAGE = "Ya existe una receta con ese nombre. ¿Desea reemplazarla?"
-RECIPE_DISCARD_TITLE = "Descartar cambios"
-RECIPE_DISCARD_MESSAGE = "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?"
 RECIPE_NO_ACTIVE_TITLE = "Sin receta activa"
 RECIPE_NO_ACTIVE_MESSAGE = "Cree o cargue una receta antes de continuar."
 RECIPE_INVALID_TITLE = "Receta no válida"
@@ -148,6 +143,10 @@ RECIPE_ERROR_INVALID_VALUES = "Todos los parámetros deben contener números vá
 RECIPE_ERROR_NONNEGATIVE = "Los parámetros deben ser finitos y no negativos."
 RECIPE_ERROR_O2_RANGE = "El flujo de O₂ debe estar entre 0 y 10 SLPM."
 RECIPE_ERROR_N2_RANGE = "El flujo de N₂ debe estar entre 0 y 1 SLPM."
+RECIPE_ERROR_PRESSURE_UNAVAILABLE = "No hay una lectura actual de presión de cámara para definir el mínimo de presión base."
+RECIPE_ERROR_BASE_PRESSURE_MINIMUM = "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta."
+RECIPE_VALUES_CLAMPED_MESSAGE = "Estos valores estaban fuera de rango y se ajustaron al límite permitido:\n{details}\nRevise los valores y pulse Guardar nuevamente para guardar la receta."
+RECIPE_VALUE_RANGE_DETAIL = "{label}: ingresado {value} {unit}; rango permitido {minimum}–{maximum} {unit}."
 RECIPE_ERROR_INVALID_LOCATION = "Las recetas deben estar dentro de la carpeta recipies."
 RECIPE_ERROR_FILE_NOT_FOUND = "No se encontró un archivo de receta .txt."
 RECIPE_ERROR_READ = "No se pudo leer la receta. Verifique el archivo y sus permisos."
@@ -387,12 +386,8 @@ _SPANISH_TO_ENGLISH = {
     "Cerrar": "Close",
     "Editar receta": "Edit recipe",
     "Recetas (*.txt)": "Recipes (*.txt)",
-    "Receta guardada": "Recipe saved",
-    "La receta se guardó correctamente.": "The recipe was saved successfully.",
     "Confirmar sobrescritura": "Confirm overwrite",
     "Ya existe una receta con ese nombre. ¿Desea reemplazarla?": "A recipe with that name already exists. Do you want to replace it?",
-    "Descartar cambios": "Discard changes",
-    "Hay cambios sin guardar en la receta actual. ¿Desea descartarlos?": "There are unsaved changes in the current recipe. Do you want to discard them?",
     "Sin receta activa": "No active recipe",
     "Cree o cargue una receta antes de continuar.": "Create or load a recipe before continuing.",
     "Receta no válida": "Invalid recipe",
@@ -401,6 +396,10 @@ _SPANISH_TO_ENGLISH = {
     "Los parámetros deben ser finitos y no negativos.": "Parameters must be finite and non-negative.",
     "El flujo de O₂ debe estar entre 0 y 10 SLPM.": "O₂ flow must be between 0 and 10 SLPM.",
     "El flujo de N₂ debe estar entre 0 y 1 SLPM.": "N₂ flow must be between 0 and 1 SLPM.",
+    "No hay una lectura actual de presión de cámara para definir el mínimo de presión base.": "A current chamber pressure reading is required to set the minimum base pressure.",
+    "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta.": "Chamber pressure must be 3 Torr or less before saving the recipe.",
+    "Estos valores estaban fuera de rango y se ajustaron al límite permitido:\n{details}\nRevise los valores y pulse Guardar nuevamente para guardar la receta.": "These values were out of range and have been adjusted to the allowed limit:\n{details}\nReview them and click Save again to save the recipe.",
+    "{label}: ingresado {value} {unit}; rango permitido {minimum}–{maximum} {unit}.": "{label}: entered {value} {unit}; allowed range {minimum}–{maximum} {unit}.",
     "Las recetas deben estar dentro de la carpeta recipies.": "Recipes must be inside the recipies folder.",
     "No se encontró un archivo de receta .txt.": "Recipe .txt file was not found.",
     "No se pudo leer la receta. Verifique el archivo y sus permisos.": "Could not read the recipe. Check the file and permissions.",

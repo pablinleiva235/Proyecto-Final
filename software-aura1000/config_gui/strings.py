@@ -115,6 +115,27 @@ NEW_RECIPE_BUTTON = "Nueva receta"
 START_RECIPE_BUTTON = "Iniciar receta"
 VIEW_RECIPE_BUTTON = "Visualizar receta"
 START_RECIPE_PENDING_TOOLTIP = "Pendiente de integrar las recetas y la secuencia real del proceso."
+STOP_RECIPE_BUTTON = "Detener receta"
+RECIPE_IDLE_STATUS = "Sin receta en ejecución."
+START_RECIPE_CONFIRM_TITLE = "Confirmar inicio de receta"
+WAFER_CONFIRM_TITLE = "Carga de oblea"
+WAFER_CONFIRM_MESSAGE = "Inserte la oblea en la cámara y confirme para continuar."
+RECIPE_STATE_LABELS = {
+    "waiting_for_wafer": "Esperando confirmación de carga de oblea.",
+    "closing_door": "Cerrando puerta.",
+    "verifying_door_closed": "Esperando confirmación de puerta cerrada.",
+    "starting_soft_vacuum": "Iniciando Soft Vacuum.",
+    "starting_main_vacuum": "Iniciando Main Vacuum.",
+    "pumping_to_base": "Esperando presión base.",
+    "starting_gas_flow": "Configurando caudales de gases.",
+    "controlling_pressure": "Regulando presión de proceso.",
+    "controlling_temperature": "Regulando temperatura.",
+    "running_plasma": "Proceso de plasma en curso; esperando fin EOP (< 2 V).",
+    "stopping_process": "Apagando proceso de forma segura.",
+    "venting": "Venteando cámara; esperando ATM estable.",
+    "completed": "Receta completada.",
+    "error": "Receta finalizada con error.",
+}
 ACTIVE_RECIPE_LABEL = "Receta activa"
 NO_ACTIVE_RECIPE = "Ninguna"
 RECIPE_EDITOR_TITLE = "Nueva receta"
@@ -391,6 +412,25 @@ _SPANISH_TO_ENGLISH = {
     "Recetas": "Recipes",
     "Nueva receta": "New recipe",
     "Iniciar receta": "Start recipe",
+    "Detener receta": "Stop recipe",
+    "Sin receta en ejecuciÃ³n.": "No recipe is running.",
+    "Confirmar inicio de receta": "Confirm recipe start",
+    "Carga de oblea": "Wafer loading",
+    "Inserte la oblea en la cÃ¡mara y confirme para continuar.": "Insert the wafer into the chamber and confirm to continue.",
+    "Esperando confirmaciÃ³n de carga de oblea.": "Waiting for wafer loading confirmation.",
+    "Cerrando puerta.": "Closing door.",
+    "Esperando confirmaciÃ³n de puerta cerrada.": "Waiting for door closed confirmation.",
+    "Iniciando Soft Vacuum.": "Starting Soft Vacuum.",
+    "Iniciando Main Vacuum.": "Starting Main Vacuum.",
+    "Esperando presiÃ³n base.": "Waiting for base pressure.",
+    "Configurando caudales de gases.": "Setting gas flows.",
+    "Regulando presiÃ³n de proceso.": "Controlling process pressure.",
+    "Regulando temperatura.": "Controlling temperature.",
+    "Proceso de plasma en curso; esperando fin EOP (< 2 V).": "Plasma process running; waiting for EOP end (< 2 V).",
+    "Apagando proceso de forma segura.": "Safely shutting down process.",
+    "Venteando cÃ¡mara; esperando ATM estable.": "Venting chamber; waiting for stable ATM.",
+    "Receta completada.": "Recipe completed.",
+    "Receta finalizada con error.": "Recipe finished with an error.",
     "Visualizar receta": "View recipe",
     "Pendiente de integrar las recetas y la secuencia real del proceso.": "Recipe handling and the real process sequence have not been integrated yet.",
     "Receta activa": "Active recipe",

@@ -319,6 +319,18 @@ class MainWindow(QMainWindow):
         self.vent_sequence.state_changed.connect(
             self._handle_vent_state_changed
         )
+        self.door_sequence.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Puerta", state)
+        )
+        self.soft_vacuum_sequence.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Soft Vacuum", state)
+        )
+        self.main_vacuum_sequence.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Main Vacuum", state)
+        )
+        self.vent_sequence.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Venteo", state)
+        )
         self.vent_sequence.vent_completed.connect(
             self._handle_vent_completed
         )
@@ -336,6 +348,9 @@ class MainWindow(QMainWindow):
             self.normal_operation_screen.set_analog_value
         )
         self.analog_controller.signal_value_changed.connect(
+            self.recipe_sequence.cache_analog
+        )
+        self.analog_controller.signal_value_changed.connect(
             self._handle_analog_value
         )
         self.analog_controller.signal_value_changed.connect(
@@ -346,6 +361,9 @@ class MainWindow(QMainWindow):
         )
         self.analog_controller.signal_error.connect(
             self.normal_operation_screen.set_analog_error
+        )
+        self.analog_controller.signal_error.connect(
+            self.recipe_sequence.cache_analog_error
         )
         self.analog_controller.signal_error.connect(
             self._handle_analog_error
@@ -359,11 +377,26 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.mfc_valve_requested.connect(self.mfc_controller.set_valve)
         self.mfc_controller.flow_applied.connect(self.maintainer_screen.set_mfc_flow)
         self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
+        self.mfc_controller.flow_applied.connect(
+            lambda name, value: self.recipe_sequence.module_action_confirmed(
+                f"{name} flow", f"{value:g} SLPM"
+            )
+        )
+        self.mfc_controller.valve_state_changed.connect(
+            lambda name, opened: self.recipe_sequence.module_action_confirmed(
+                f"{name} valve", "open" if opened else "closed"
+            )
+        )
         self.mfc_controller.operation_error.connect(self._handle_module_error)
         self.mfc_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
         self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
+        self.throttle_controller.movement_changed.connect(
+            lambda moving, direction: self.recipe_sequence.module_action_confirmed(
+                "Throttle", direction if moving else "stopped"
+            )
+        )
         self.throttle_controller.operation_error.connect(self._handle_throttle_error)
         self.throttle_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.maintainer_screen.pressure_start_requested.connect(
@@ -380,6 +413,9 @@ class MainWindow(QMainWindow):
         )
         self.pressure_controller.state_changed.connect(
             self.maintainer_screen.set_pressure_control_state
+        )
+        self.pressure_controller.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Control de presión", state)
         )
         self.pressure_controller.operation_error.connect(
             self._handle_pressure_error
@@ -401,6 +437,9 @@ class MainWindow(QMainWindow):
         self.temperature_controller.state_changed.connect(
             self.maintainer_screen.set_temperature_control_state
         )
+        self.temperature_controller.state_changed.connect(
+            lambda state: self.recipe_sequence.module_state_changed("Control de temperatura", state)
+        )
         self.temperature_controller.operation_error.connect(
             self._handle_temperature_error
         )
@@ -410,6 +449,7 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.lamp2_requested.connect(self.process_controller.set_lamp2)
         self.maintainer_screen.plasma_requested.connect(self.process_controller.set_plasma)
         self.process_controller.state_changed.connect(self.maintainer_screen.set_process_state)
+        self.process_controller.state_changed.connect(self.recipe_sequence.process_state_changed)
         self.process_controller.operation_error.connect(self._handle_module_error)
         self.process_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.process_controller.alarm_raised.connect(self._handle_process_alarm)
@@ -511,11 +551,25 @@ class MainWindow(QMainWindow):
         self.normal_operation_screen.set_recipe_running(False)
         self.maintainer_screen.set_manual_controls_locked(False)
         self._sync_module_permissions()
-        QMessageBox.information(
-            self,
-            strings.tr(strings.START_RECIPE_BUTTON),
-            strings.tr(message),
-        )
+        if self.recipe_sequence.log_saved:
+            message += "\n\n" + strings.tr(strings.RECIPE_LOG_SAVED_MESSAGE).format(
+                path=self.recipe_sequence.log_path
+            )
+        else:
+            message += "\n\n" + strings.tr(strings.RECIPE_LOG_FAILED_MESSAGE).format(
+                path=self.recipe_sequence.log_path
+            )
+        if self.recipe_sequence.data_log_saved:
+            message += "\n\n" + strings.tr(strings.RECIPE_DATA_SAVED_MESSAGE).format(
+                path=self.recipe_sequence.data_log_path
+            )
+        else:
+            message += "\n\n" + strings.tr(strings.RECIPE_DATA_FAILED_MESSAGE).format(
+                path=self.recipe_sequence.data_log_path
+            )
+        all_logs_saved = self.recipe_sequence.log_saved and self.recipe_sequence.data_log_saved
+        dialog = QMessageBox.information if success and all_logs_saved else QMessageBox.warning
+        dialog(self, strings.tr(strings.START_RECIPE_BUTTON), strings.tr(message))
 
     def start_recipe_pressure_control(self, recipe):
         """Punto de entrada para la etapa de presión del coordinador de recetas."""
@@ -666,7 +720,10 @@ class MainWindow(QMainWindow):
     def _handle_main_vacuum_started(self):
         #Coordina las acciones necesarias después del arranque de Main Vacuum.
         if (self.soft_vacuum_sequence.state == SoftVacuumState.RUNNING):
-            self.soft_vacuum_sequence.stop()
+            if self.recipe_sequence.is_active:
+                self.recipe_sequence.main_vacuum_started()
+            else:
+                self.soft_vacuum_sequence.stop()
 
     def _handle_main_vacuum_sequence_error(self,message):
         print(

@@ -120,6 +120,10 @@ RECIPE_IDLE_STATUS = "Sin receta en ejecución."
 START_RECIPE_CONFIRM_TITLE = "Confirmar inicio de receta"
 WAFER_CONFIRM_TITLE = "Carga de oblea"
 WAFER_CONFIRM_MESSAGE = "Inserte la oblea en la cámara y confirme para continuar."
+RECIPE_LOG_SAVED_MESSAGE = "Registro guardado en:\n{path}"
+RECIPE_LOG_FAILED_MESSAGE = "No se pudo guardar el registro. Ruta intentada:\n{path}"
+RECIPE_DATA_SAVED_MESSAGE = "Datos de presión y temperatura guardados en:\n{path}"
+RECIPE_DATA_FAILED_MESSAGE = "No se pudieron guardar los datos de presión y temperatura. Ruta intentada:\n{path}"
 RECIPE_STATE_LABELS = {
     "waiting_for_wafer": "Esperando confirmación de carga de oblea.",
     "closing_door": "Cerrando puerta.",
@@ -413,6 +417,10 @@ _SPANISH_TO_ENGLISH = {
     "Nueva receta": "New recipe",
     "Iniciar receta": "Start recipe",
     "Detener receta": "Stop recipe",
+    "Registro guardado en:\n{path}": "Recipe log saved at:\n{path}",
+    "No se pudo guardar el registro. Ruta intentada:\n{path}": "Could not save the recipe log. Attempted path:\n{path}",
+    "Datos de presión y temperatura guardados en:\n{path}": "Pressure and temperature data saved at:\n{path}",
+    "No se pudieron guardar los datos de presión y temperatura. Ruta intentada:\n{path}": "Could not save pressure and temperature data. Attempted path:\n{path}",
     "Sin receta en ejecuciÃ³n.": "No recipe is running.",
     "Confirmar inicio de receta": "Confirm recipe start",
     "Carga de oblea": "Wafer loading",

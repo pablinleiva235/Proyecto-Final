@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from PyQt5.QtWidgets import QApplication
 
@@ -9,6 +11,7 @@ from logic.soft_vacuum_sequence import SoftVacuumState
 from logic.vent_sequence import VentState
 from gui.maintainer_screen import MaintainerScreen
 from services.recipe_service import Recipe
+from services.recipe_log import RecipeDataLog, RecipeLog
 
 
 class Door:
@@ -99,6 +102,9 @@ class RecipeSequenceTests(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
+        self.tempdir = TemporaryDirectory()
+        self.log_path = Path(self.tempdir.name) / "recipe.log"
+        self.data_log_path = Path(self.tempdir.name) / "recipe_data.csv"
         self.door = Door()
         self.soft = Vacuum(SoftVacuumState.IDLE, SoftVacuumState.RUNNING)
         self.main = Vacuum(MainVacuumState.IDLE, MainVacuumState.RUNNING)
@@ -111,8 +117,13 @@ class RecipeSequenceTests(unittest.TestCase):
             self.door, self.soft, self.main, self.vent, self.mfc,
             self.pressure, self.temperature, self.process,
             digital_state_getter=lambda name: name == "DOOR_CLOSE",
+            recipe_log_factory=lambda: RecipeLog(self.log_path),
+            recipe_data_log_factory=lambda: RecipeDataLog(self.data_log_path),
         )
         self.recipe = Recipe("test", "test", 2, 0.2, 1, 1.5, 150)
+
+    def tearDown(self):
+        self.tempdir.cleanup()
 
     def test_recipe_waits_for_base_pressure_and_eop_below_two_volts(self):
         self.sequence.start(self.recipe)
@@ -135,6 +146,84 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.vent_completed()
         self.assertEqual(self.door.state, DoorState.OPEN)
         self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
+        contents = self.log_path.read_text(encoding="utf-8")
+        door_open = next(line for line in contents.splitlines() if "ACCION: Abrir puerta para cargar" in line)
+        self.assertIn("DOOR_CLOSE_CMD=INACTIVO", door_open)
+        self.assertIn("DOOR_OPEN_CMD=ACTIVO", door_open)
+        door_close = next(line for line in contents.splitlines() if "ACCION: Cerrar puerta" in line)
+        self.assertIn("DOOR_OPEN_CMD=INACTIVO", door_close)
+        self.assertIn("DOOR_CLOSE_CMD=ACTIVO", door_close)
+        self.assertIn("EOP=1.99 V", contents)
+        self.assertIn("ACCION: Desactivar RF/plasma", contents)
+        rf_shutdown = next(
+            line for line in contents.splitlines()
+            if "ACCION: Desactivar RF/plasma" in line
+        )
+        self.assertIn("EOP=1.99 V", rf_shutdown)
+        self.assertIn("FIN DE RECETA | resultado=OK", contents)
+        self.assertIn("NO DISPONIBLE", contents)
+        self.assertTrue(self.sequence.log_saved)
+        self.assertTrue(self.sequence.data_log_saved)
+        csv_text = self.data_log_path.read_text(encoding="utf-8")
+        self.assertIn(",BARATRON,1,Torr", csv_text)
+
+    def test_process_data_csv_records_pressure_and_temperature_during_recipe(self):
+        self.sequence.start(self.recipe)
+        self.sequence.update_analog("BARATRON", 0.7)
+        self.sequence.update_analog("CHAMBER_TEMP", 143.25)
+        rows = self.data_log_path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(rows[0], "timestamp,señal,valor,unidad")
+        self.assertTrue(any(",BARATRON,0.7,Torr" in row for row in rows))
+        self.assertTrue(any(",CHAMBER_TEMP,143.25,°C" in row for row in rows))
+        self.sequence.confirm_wafer_loaded(False)
+
+    def test_data_log_write_failure_runs_safe_shutdown(self):
+        class FailingDataLog:
+            def __init__(inner_self):
+                inner_self.path = self.data_log_path
+                inner_self.error = None
+                inner_self.available = True
+
+            def record(inner_self, *_args):
+                inner_self.error = "disco lleno"
+                inner_self.available = False
+                return False
+
+            def close(inner_self):
+                pass
+
+        self.sequence._recipe_data_log_factory = FailingDataLog
+        finished = []
+        self.sequence.finished.connect(lambda success, message: finished.append((success, message)))
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 0.5)
+
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertEqual(self.main.state, MainVacuumState.IDLE)
+        self.sequence.vent_completed()
+        self.assertEqual(self.sequence.state, RecipeState.ERROR)
+        self.assertFalse(finished[0][0])
+        self.assertIn(str(self.data_log_path), finished[0][1])
+
+    def test_data_log_creation_failure_blocks_recipe_start(self):
+        class UnavailableDataLog:
+            path = self.data_log_path
+            available = False
+            error = "acceso denegado"
+
+            def close(self):
+                pass
+
+        results = []
+        self.sequence._recipe_data_log_factory = UnavailableDataLog
+        self.sequence.finished.connect(lambda success, message: results.append((success, message)))
+
+        self.assertFalse(self.sequence.start(self.recipe))
+        self.assertEqual(self.sequence.state, RecipeState.ERROR)
+        self.assertEqual(self.door.state, DoorState.CLOSED)
+        self.assertFalse(results[0][0])
+        self.assertIn(str(self.data_log_path), results[0][1])
 
     def test_stop_during_process_turns_modules_off_and_starts_vent(self):
         self.sequence.start(self.recipe)
@@ -181,6 +270,39 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.sequence.state, RecipeState.ERROR)
         self.assertFalse(results[0][0])
         self.assertIn("sensor desconectado", results[0][1])
+
+    def test_log_write_failure_stops_progress_and_runs_safe_shutdown(self):
+        class FailingLog:
+            def __init__(inner_self):
+                inner_self.path = self.log_path
+                inner_self.error = None
+                inner_self.available = True
+                inner_self.closed = False
+
+            def record(inner_self, event, _readings, outputs=None):
+                if event.startswith("ACCION: Activar Main Vacuum"):
+                    inner_self.error = "disco lleno"
+                    inner_self.available = False
+                    return False
+                return True
+
+            def close(inner_self):
+                inner_self.closed = True
+
+        self.sequence._recipe_log_factory = FailingLog
+        finished = []
+        self.sequence.finished.connect(lambda success, message: finished.append((success, message)))
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+
+        self.assertEqual(self.main.state, MainVacuumState.IDLE)
+        self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
+        self.assertEqual(self.vent.state, VentState.RUNNING)
+        self.sequence.vent_completed()
+        self.assertEqual(self.sequence.state, RecipeState.ERROR)
+        self.assertFalse(finished[0][0])
+        self.assertFalse(self.sequence.log_saved)
+        self.assertIn(str(self.log_path), finished[0][1])
 
 
 if __name__ == "__main__":

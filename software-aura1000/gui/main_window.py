@@ -511,6 +511,7 @@ class MainWindow(QMainWindow):
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
         )
+        self.statistics_screen.refresh_data()
         if not self.pressure_controller.is_active and not self.temperature_controller.is_active:
             self.analog_controller.stop_monitoring()
 

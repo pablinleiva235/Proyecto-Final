@@ -38,6 +38,7 @@ from logic.door_sequence import DoorSequence
 from logic.soft_vacuum_sequence import (SoftVacuumSequence, SoftVacuumState)
 from logic.main_vacuum_sequence import (MainVacuumSequence, MainVacuumState)
 from logic.vent_sequence import (VentSequence, VentState)
+from logic.recipe_sequence import RecipeSequence, RecipeState
 
 # gui-developement
 class MainWindow(QMainWindow):
@@ -160,6 +161,18 @@ class MainWindow(QMainWindow):
             can_operate=self._can_control_process_modules,
             parent=self,
         )
+        self.recipe_sequence = RecipeSequence(
+            door_sequence=self.door_sequence,
+            soft_vacuum_sequence=self.soft_vacuum_sequence,
+            main_vacuum_sequence=self.main_vacuum_sequence,
+            vent_sequence=self.vent_sequence,
+            mfc_controller=self.mfc_controller,
+            pressure_controller=self.pressure_controller,
+            temperature_controller=self.temperature_controller,
+            process_controller=self.process_controller,
+            digital_state_getter=self.signal_controller.get_last_state,
+            parent=self,
+        )
         self.module_monitor_timer = QTimer(self)
         self.module_monitor_timer.setInterval(100)
         self.module_monitor_timer.timeout.connect(self._monitor_migrated_modules)
@@ -216,6 +229,12 @@ class MainWindow(QMainWindow):
         self.normal_operation_screen.back_requested.connect(
             self._show_welcome_screen
         )
+        self.normal_operation_screen.start_recipe_requested.connect(self._start_recipe)
+        self.normal_operation_screen.stop_recipe_requested.connect(self.recipe_sequence.stop)
+        self.recipe_sequence.state_changed.connect(self._handle_recipe_state)
+        self.recipe_sequence.wafer_confirmation_requested.connect(self._confirm_recipe_wafer)
+        self.recipe_sequence.error_raised.connect(self._handle_recipe_error)
+        self.recipe_sequence.finished.connect(self._handle_recipe_finished)
 
         # Solicitud global de salida
         self.top_bar.exit_requested.connect(
@@ -246,9 +265,15 @@ class MainWindow(QMainWindow):
         self.signal_controller.signal_state_changed.connect(
             self._handle_digital_signal_changed
         )
+        self.signal_controller.signal_state_changed.connect(
+            self.recipe_sequence.digital_value
+        )
         # Manejo temporal de errores.
         self.signal_controller.signal_error.connect(
             self._handle_signal_error
+        )
+        self.signal_controller.signal_error.connect(
+            self.recipe_sequence.digital_error
         )
 
         # ====================
@@ -264,6 +289,7 @@ class MainWindow(QMainWindow):
         self.door_sequence.sequence_error.connect(
             self._handle_door_sequence_error
         )
+        self.door_sequence.sequence_error.connect(self.recipe_sequence.controller_error)
     # Soft Vacuum
         self.maintainer_screen.soft_vacuum_sequence_requested.connect(
             self.soft_vacuum_sequence.toggle
@@ -274,6 +300,7 @@ class MainWindow(QMainWindow):
         self.soft_vacuum_sequence.sequence_error.connect(
             self._handle_soft_vacuum_sequence_error
         )
+        self.soft_vacuum_sequence.sequence_error.connect(self.recipe_sequence.controller_error)
     # Main Vacuum
         self.maintainer_screen.main_vacuum_sequence_requested.connect(
             self.main_vacuum_sequence.toggle
@@ -284,6 +311,7 @@ class MainWindow(QMainWindow):
         self.main_vacuum_sequence.sequence_error.connect(
             self._handle_main_vacuum_sequence_error
         )
+        self.main_vacuum_sequence.sequence_error.connect(self.recipe_sequence.controller_error)
     # Vent sequence
         self.maintainer_screen.vent_chamber_sequence_requested.connect(
             self.vent_sequence.toggle
@@ -294,9 +322,11 @@ class MainWindow(QMainWindow):
         self.vent_sequence.vent_completed.connect(
             self._handle_vent_completed
         )
+        self.vent_sequence.vent_completed.connect(self.recipe_sequence.vent_completed)
         self.vent_sequence.sequence_error.connect(
             self._handle_vent_sequence_error
         )
+        self.vent_sequence.sequence_error.connect(self.recipe_sequence.controller_error)
 
         # Lecturas analógicas de mantenimiento.
         self.analog_controller.signal_value_changed.connect(
@@ -308,6 +338,9 @@ class MainWindow(QMainWindow):
         self.analog_controller.signal_value_changed.connect(
             self._handle_analog_value
         )
+        self.analog_controller.signal_value_changed.connect(
+            self.recipe_sequence.update_analog
+        )
         self.analog_controller.signal_error.connect(
             self.maintainer_screen.set_analog_error
         )
@@ -317,6 +350,9 @@ class MainWindow(QMainWindow):
         self.analog_controller.signal_error.connect(
             self._handle_analog_error
         )
+        self.analog_controller.signal_error.connect(
+            self.recipe_sequence.analog_error
+        )
 
         # Controles de MFC, throttle, lámparas y plasma.
         self.maintainer_screen.mfc_flow_requested.connect(self.mfc_controller.set_flow)
@@ -324,10 +360,12 @@ class MainWindow(QMainWindow):
         self.mfc_controller.flow_applied.connect(self.maintainer_screen.set_mfc_flow)
         self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
         self.mfc_controller.operation_error.connect(self._handle_module_error)
+        self.mfc_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
         self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
         self.throttle_controller.operation_error.connect(self._handle_throttle_error)
+        self.throttle_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.maintainer_screen.pressure_start_requested.connect(
             self.pressure_controller.start
         )
@@ -346,6 +384,8 @@ class MainWindow(QMainWindow):
         self.pressure_controller.operation_error.connect(
             self._handle_pressure_error
         )
+        self.pressure_controller.operation_error.connect(self.recipe_sequence.controller_error)
+        self.pressure_controller.setpoint_reached.connect(self.recipe_sequence.pressure_reached)
         self.maintainer_screen.temperature_start_requested.connect(
             self.temperature_controller.start
         )
@@ -364,12 +404,16 @@ class MainWindow(QMainWindow):
         self.temperature_controller.operation_error.connect(
             self._handle_temperature_error
         )
+        self.temperature_controller.operation_error.connect(self.recipe_sequence.controller_error)
+        self.temperature_controller.setpoint_reached.connect(self.recipe_sequence.temperature_reached)
         self.maintainer_screen.lamps13_requested.connect(self.process_controller.start_lamps13)
         self.maintainer_screen.lamp2_requested.connect(self.process_controller.set_lamp2)
         self.maintainer_screen.plasma_requested.connect(self.process_controller.set_plasma)
         self.process_controller.state_changed.connect(self.maintainer_screen.set_process_state)
         self.process_controller.operation_error.connect(self._handle_module_error)
+        self.process_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.process_controller.alarm_raised.connect(self._handle_process_alarm)
+        self.process_controller.alarm_raised.connect(self.recipe_sequence.interlock_lost)
         self.process_controller.warning_raised.connect(self._handle_process_warning)
         self.module_monitor_timer.start()
         self.maintainer_screen.set_module_controls_enabled(False)
@@ -396,6 +440,8 @@ class MainWindow(QMainWindow):
 
 
     def _show_welcome_screen(self):
+        if self.recipe_sequence.is_active:
+            return
     # Muestra la pantalla de bienvenida
         if not self.pressure_controller.is_active and not self.temperature_controller.is_active:
             self.signal_controller.stop_monitoring()
@@ -405,6 +451,8 @@ class MainWindow(QMainWindow):
         )
 
     def _show_maintainer_screen(self):
+        if self.recipe_sequence.is_active:
+            return
     # Muestra la pantalla de mantenimiento e inicia el monitoreo de señales
         self.navigation_controller.show_screen(
             MAINTAINER_SCREEN
@@ -414,6 +462,8 @@ class MainWindow(QMainWindow):
         self._sync_module_permissions()
 
     def _show_statistics_screen(self):
+        if self.recipe_sequence.is_active:
+            return
     # Muestra la pantalla de estadísticas
         self.navigation_controller.show_screen(
             STATISTICS_SCREEN
@@ -429,6 +479,44 @@ class MainWindow(QMainWindow):
         self.signal_controller.start_monitoring()
         self.analog_controller.start_monitoring()
 
+    def _start_recipe(self, recipe):
+        self.signal_controller.start_monitoring()
+        self.analog_controller.start_monitoring()
+        self.signal_controller.refresh_signals()
+        self.recipe_sequence.start(recipe)
+
+    def _confirm_recipe_wafer(self):
+        self.recipe_sequence.confirm_wafer_loaded(
+            self.normal_operation_screen.confirm_wafer_loaded()
+        )
+
+    def _handle_recipe_state(self, state):
+        label = strings.RECIPE_STATE_LABELS.get(state.value, state.value)
+        self.normal_operation_screen.set_recipe_status(label)
+        running = self.recipe_sequence.is_active
+        can_stop = state not in (RecipeState.STOPPING_PROCESS, RecipeState.VENTING)
+        self.normal_operation_screen.set_recipe_running(running, can_stop=can_stop)
+        self.maintainer_screen.set_manual_controls_locked(running)
+
+    def _handle_recipe_error(self, message):
+        self.normal_operation_screen.set_recipe_status(message)
+        QMessageBox.warning(
+            self, strings.tr(strings.RECIPE_INVALID_TITLE), strings.tr(message)
+        )
+
+    def _handle_recipe_finished(self, success, message):
+        self.normal_operation_screen.set_recipe_status(
+            strings.RECIPE_STATE_LABELS["completed" if success else "error"]
+        )
+        self.normal_operation_screen.set_recipe_running(False)
+        self.maintainer_screen.set_manual_controls_locked(False)
+        self._sync_module_permissions()
+        QMessageBox.information(
+            self,
+            strings.tr(strings.START_RECIPE_BUTTON),
+            strings.tr(message),
+        )
+
     def start_recipe_pressure_control(self, recipe):
         """Punto de entrada para la etapa de presión del coordinador de recetas."""
         self.pressure_controller.start(recipe.process_pressure)
@@ -438,6 +526,8 @@ class MainWindow(QMainWindow):
         self.pressure_controller.stop()
 
     def _request_maintainer_access(self):
+        if self.recipe_sequence.is_active:
+            return
     # Solicita autenticación antes de ingresar al modo de mantenimiento
         login_dialog = LoginDialog(self)
         login_dialog.update_texts()
@@ -462,6 +552,8 @@ class MainWindow(QMainWindow):
 
     def _can_toggle_manual_output(self, signal_name, requested_state):
         """Aplica los permisos existentes a las salidas manuales asociadas."""
+        if self.recipe_sequence.is_active:
+            raise RuntimeError("Los controles manuales estÃ¡n bloqueados durante una receta.")
         if (
             signal_name in ("MFC3_OPEN", "MFC4_OPEN")
             and requested_state
@@ -630,6 +722,11 @@ class MainWindow(QMainWindow):
             return
         self._module_access = allowed
         if not allowed:
+            if self.recipe_sequence.state in (
+                RecipeState.STOPPING_PROCESS,
+                RecipeState.VENTING,
+            ):
+                return
             if self.pressure_controller.is_active:
                 self.pressure_controller.abort(
                     "Se perdió el vacío principal, la confirmación de puerta cerrada o el interlock de venteo."

@@ -25,6 +25,8 @@ class NormalOperationScreen(QWidget):
     """Lecturas analógicas activas, esquema reservado y acciones de receta."""
 
     back_requested = pyqtSignal()
+    start_recipe_requested = pyqtSignal(object)
+    stop_recipe_requested = pyqtSignal()
 
     ANALOG_READOUTS = {
         "CHAMBER_TEMP": (text.OPERATION_TEMPERATURE_LABEL, "°C", 1),
@@ -40,6 +42,7 @@ class NormalOperationScreen(QWidget):
         self._recipe_service = RecipeService()
         self._active_recipe = None
         self._chamber_pressure = None
+        self._recipe_running = False
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -95,13 +98,20 @@ class NormalOperationScreen(QWidget):
         )
         self.view_recipe_button = self._recipe_button(text.VIEW_RECIPE_BUTTON)
         self.view_recipe_button.setEnabled(False)
+        self.stop_recipe_button = self._recipe_button(text.STOP_RECIPE_BUTTON)
+        self.stop_recipe_button.setEnabled(False)
+        self.recipe_status_label = QLabel(text.RECIPE_IDLE_STATUS)
+        self.recipe_status_label.setObjectName("OperationReadoutLabel")
+        self.recipe_status_label.setWordWrap(True)
         for button in (
             self.new_recipe_button,
             self.load_recipe_button,
             self.start_recipe_button,
             self.view_recipe_button,
+            self.stop_recipe_button,
         ):
             actions_layout.addWidget(button)
+        actions_layout.addWidget(self.recipe_status_label)
         actions_layout.addStretch(1)
 
         self.back_button = QPushButton(text.BACK_BUTTON_TEXT)
@@ -135,6 +145,8 @@ class NormalOperationScreen(QWidget):
         self.new_recipe_button.clicked.connect(self._new_recipe)
         self.load_recipe_button.clicked.connect(self._load_recipe)
         self.view_recipe_button.clicked.connect(self._view_recipe)
+        self.start_recipe_button.clicked.connect(self._start_recipe_requested)
+        self.stop_recipe_button.clicked.connect(self.stop_recipe_requested.emit)
 
     @staticmethod
     def _make_panel(title):
@@ -296,6 +308,55 @@ class NormalOperationScreen(QWidget):
         self.active_recipe_name.setProperty("i18nSourceText_text", None)
         self.active_recipe_name.setText(recipe.name or text.tr(text.NO_ACTIVE_RECIPE))
         self.view_recipe_button.setEnabled(True)
+        self.start_recipe_button.setEnabled(not self._recipe_running)
+        self.start_recipe_button.setToolTip("")
+        self.start_recipe_button.setAccessibleDescription("")
+
+    def _start_recipe_requested(self):
+        if self._active_recipe is None:
+            self._show_no_active_recipe()
+            return
+        try:
+            self._recipe_service.validate(self._active_recipe, require_name=True)
+        except RecipeError as error:
+            self._show_recipe_error(error)
+            return
+        recipe = self._active_recipe
+        details = (
+            f"{text.tr(text.RECIPE_NAME_LABEL)}: {recipe.name}\n"
+            f"{text.tr(text.RECIPE_DESCRIPTION_LABEL)}: {recipe.description}\n"
+            f"{text.tr(text.RECIPE_O2_FLOW_LABEL)}: {recipe.o2_flow:g} SLPM\n"
+            f"{text.tr(text.RECIPE_N2_FLOW_LABEL)}: {recipe.n2_flow:g} SLPM\n"
+            f"{text.tr(text.RECIPE_BASE_PRESSURE_LABEL)}: {recipe.base_pressure:g} Torr\n"
+            f"{text.tr(text.RECIPE_PROCESS_PRESSURE_LABEL)}: {recipe.process_pressure:g} Torr\n"
+            f"{text.tr(text.RECIPE_PROCESS_TEMPERATURE_LABEL)}: {recipe.process_temperature:g} °C"
+        )
+        answer = QMessageBox.question(
+            self, text.tr(text.START_RECIPE_CONFIRM_TITLE), details,
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if answer == QMessageBox.Yes:
+            self.start_recipe_requested.emit(recipe)
+
+    def set_recipe_running(self, running, can_stop=True):
+        self._recipe_running = bool(running)
+        self.back_button.setEnabled(not running)
+        self.new_recipe_button.setEnabled(not running)
+        self.load_recipe_button.setEnabled(not running)
+        self.view_recipe_button.setEnabled(not running and self._active_recipe is not None)
+        self.start_recipe_button.setEnabled(not running and self._active_recipe is not None)
+        self.stop_recipe_button.setEnabled(running and can_stop)
+
+    def set_recipe_status(self, status):
+        set_localized_text(self.recipe_status_label, status)
+
+    def confirm_wafer_loaded(self):
+        answer = QMessageBox.question(
+            self, text.tr(text.WAFER_CONFIRM_TITLE),
+            text.tr(text.WAFER_CONFIRM_MESSAGE),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        return answer == QMessageBox.Yes
 
     def _show_no_active_recipe(self):
         QMessageBox.information(

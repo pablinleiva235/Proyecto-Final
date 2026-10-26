@@ -88,6 +88,8 @@ class MaintainerScreen(QWidget):
         self._input_widgets: List[SignalWidget] = []
         self._output_widgets: List[SignalWidget] = []
         self._analog_values = {}
+        self._manual_controls_locked = False
+        self._sequence_button_permissions = {}
 
         self.create_widgets()
         self.setup_layout()
@@ -698,7 +700,7 @@ class MaintainerScreen(QWidget):
         )
 
     def set_module_controls_enabled(self, enabled):
-        enabled = bool(enabled)
+        enabled = bool(enabled) and not self._manual_controls_locked
         self.mfc1_card.set_controls_enabled(enabled)
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
@@ -715,6 +717,7 @@ class MaintainerScreen(QWidget):
         self.pressure_start_button.setEnabled(
             enabled and not pressure_active
         )
+        self.pressure_stop_button.setEnabled(enabled and pressure_active)
         self.throttle_open_button.setEnabled(enabled and not pressure_active)
         self.throttle_close_button.setEnabled(enabled and not pressure_active)
         self.pressure_setpoint.setEnabled(enabled and not pressure_active)
@@ -1092,9 +1095,22 @@ class MaintainerScreen(QWidget):
         )
 
         if button is not None:
+            self._sequence_button_permissions[sequence_name] = bool(enabled)
+            button.setEnabled(bool(enabled) and not self._manual_controls_locked)
+
+    def set_manual_controls_locked(self, locked):
+        """Bloquea acciones manuales durante la ejecución de una receta."""
+        self._manual_controls_locked = bool(locked)
+        self.back_button.setEnabled(not locked)
+        for widget in self._output_widgets:
+            widget.setEnabled(not locked)
+        for name, button in self._sequence_buttons.items():
             button.setEnabled(
-                enabled
+                not locked and self._sequence_button_permissions.get(name, False)
             )
+        self.set_module_controls_enabled(
+            getattr(self, "_module_controls_enabled", False)
+        )
 
 
     # =========================================================================

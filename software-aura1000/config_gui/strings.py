@@ -37,7 +37,7 @@ STARTUP_ERROR_MESSAGE = (
 # Pantalla Principal
 # =============================================================================
 
-WELCOME_TITLE = "PLASMA ASHER AURA 1000"
+WELCOME_TITLE = "PLASMA ASHER\nAURA 1000"
 
 NORMAL_OPERATION_BUTTON_TEXT = "Operación normal"
 MAINTAINER_BUTTON_TEXT = "Mantenimiento"
@@ -252,8 +252,8 @@ BACK_BUTTON_TEXT = "Volver"
 # =============================================================================
 
 MAINTAINER_SECUENCES_TAB = "Modulos"
-MAINTAINER_SIGNALS_TAB = "DIO - Digital Input Output"
-MAINTAINER_ANALOG_TAB = "ADC - Lecturas analógicas"
+MAINTAINER_SIGNALS_TAB = "DIO"
+MAINTAINER_ANALOG_TAB = "ADC"
 MAINTAINER_MFC_TITLE = "Control de MFC"
 MAINTAINER_APPLY_FLOW = "Aplicar flujo"
 MAINTAINER_OPEN_VALVE = "Abrir válvula"
@@ -341,8 +341,8 @@ SETTINGS_CLOSE_BUTTON = "Cerrar"
 SETTINGS_BUTTON_TOOLTIP = "Configuración de idioma y tema"
 
 # Marcadores provisionales para completar con los nombres confirmados.
-DEVELOPER_NAMES = ("Nombre del desarrollador 1", "Nombre del desarrollador 2")
-TUTOR_NAMES = ("Nombre del tutor 1", "Nombre del tutor 2")
+DEVELOPER_NAMES = ("Pablo M. Leiva", "Carolina V. Kupcevich")
+TUTOR_NAMES = ("Ing. Andres L. Di Donato", "Nombre del tutor 2")
 
 _ACTIVE_LANGUAGE = "es"
 _SPANISH_TO_ENGLISH = {

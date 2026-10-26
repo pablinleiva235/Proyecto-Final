@@ -111,9 +111,12 @@ class SignalWidget(QFrame):
         self._set_visual_state(self._visual_state)
 
     def create_widgets(self) -> None:
-        self._name_label = QLabel(self._display_name)
+        name_with_breaks = self._display_name.replace("_", "_\u200b")
+        self._name_label = QLabel(name_with_breaks)
         self._name_label.setObjectName("signalNameLabel")
-        self._state_indicator = StatusIndicatorWidget("off", self._display_name)
+        self._name_label.setWordWrap(True)
+        self._name_label.setAccessibleName(self._display_name)
+        self._state_indicator = StatusIndicatorWidget("off", self._display_name, size=32)
 
         self._status_label = QLabel()
         self._status_label.setObjectName("signalStatusLabel")
@@ -129,6 +132,7 @@ class SignalWidget(QFrame):
         )
         self._footer_label = QLabel(footer_text)
         self._footer_label.setObjectName("signalFooterLabel")
+        self._footer_label.setWordWrap(True)
 
     def setup_layout(self) -> None:
         details = QVBoxLayout()
@@ -138,8 +142,8 @@ class SignalWidget(QFrame):
         details.addWidget(self._footer_label)
 
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(16, 12, 16, 12)
-        main_layout.setSpacing(14)
+        main_layout.setContentsMargins(8, 6, 8, 6)
+        main_layout.setSpacing(8)
         main_layout.addWidget(self._state_indicator)
         main_layout.addLayout(details, 1)
         main_layout.addWidget(self._status_label)

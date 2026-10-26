@@ -29,7 +29,7 @@ class WelcomeScreen(QWidget):
 
     def create_widgets(self):
         self.title_label = QLabel(WELCOME_TITLE)
-        self.title_label.setObjectName("TitleLabel")
+        self.title_label.setObjectName("WelcomeTitle")
         self.title_label.setAlignment(Qt.AlignCenter)
 
         self.subtitle_label = QLabel(APP_SUBTITLE)
@@ -49,11 +49,12 @@ class WelcomeScreen(QWidget):
     def setup_layout(self):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(30)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(16)
 
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
-        layout.addSpacing(60)
+        layout.addSpacing(24)
         layout.addWidget(self.normal_button)
         layout.addWidget(self.maintainer_button)
         layout.addWidget(self.statistics_button)

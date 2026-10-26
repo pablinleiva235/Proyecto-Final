@@ -124,6 +124,24 @@ QLabel#TitleLabel {{
     color: {TEXT_COLOR};
 }}
 
+QLabel#WelcomeTitle {{
+    font-size: 42px;
+    font-weight: bold;
+    color: {TEXT_COLOR};
+}}
+
+QLabel#MaintainerTitle {{
+    font-size: 28px;
+    font-weight: bold;
+    color: {TEXT_COLOR};
+}}
+
+QLabel#StatisticsTitle {{
+    font-size: 30px;
+    font-weight: bold;
+    color: {TEXT_COLOR};
+}}
+
 QLabel#SubtitleLabel {{
     font-size: {SUBTITLE_FONT_SIZE}px;
     color: {TEXT_MUTED_COLOR};
@@ -141,7 +159,7 @@ QWidget#TopBar {{
 QLabel#TopBarTitle {{
     background-color: transparent;
     color: {TEXT_COLOR};
-    font-size: {SUBTITLE_FONT_SIZE}px;
+    font-size: 16px;
     font-weight: bold;
 }}
 
@@ -158,6 +176,12 @@ QLabel#TopBarTime {{
     font-size: {TEXT_FONT_SIZE}px;
     font-weight: bold;
     min-width: 80px;
+}}
+
+QWidget#TopBar QPushButton#SettingsButton,
+QWidget#TopBar QPushButton#ExitButton {{
+    padding: 4px 8px;
+    font-size: 14px;
 }}
 
 QFrame#OperationCard {{
@@ -552,12 +576,12 @@ QTabWidget#MaintainerTabs QTabBar::tab {{
     border: 2px solid {BORDER_COLOR};
     border-bottom: none;
 
-    padding: 12px 28px;
+    padding: 8px 12px;
     margin-right: 4px;
 
-    min-width: 180px;
+    min-width: 100px;
 
-    font-size: 18px;
+    font-size: 14px;
     font-weight: bold;
 }}
 
@@ -621,13 +645,18 @@ QLabel#signalNameLabel {{
     font-weight: 600;
 }}
 
+QWidget#MaintainerSignalsTab QLabel#SectionTitleLabel {{
+    font-size: 14px;
+    font-weight: bold;
+}}
+
 QLabel#signalStatusLabel {{
     background-color: {SURFACE_COLOR};
     color: {TEXT_MUTED_COLOR};
     border-radius: 12px;
-    padding: 5px 10px;
+    padding: 4px 6px;
     border: none;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
 }}
 
@@ -743,10 +772,10 @@ QGroupBox#MaintainerCardGroup {{
     background-color: {SURFACE_COLOR};
     border: 1px solid {BORDER_COLOR};
     border-radius: 18px;
-    margin-top: 20px;
-    padding: 18px 12px 12px 12px;
+    margin-top: 14px;
+    padding: 12px 8px 8px 8px;
     color: {TEXT_COLOR};
-    font-size: 16px;
+    font-size: 9px;
     font-weight: bold;
 }}
 
@@ -877,8 +906,8 @@ QPushButton#MaintainerSequenceButton {{
     border: 1px solid {BORDER_COLOR};
     border-radius: 14px;
     color: {TEXT_COLOR};
-    padding: 14px 16px;
-    font-size: 16px;
+    padding: 8px 10px;
+    font-size: 14px;
     font-weight: 600;
 }}
 

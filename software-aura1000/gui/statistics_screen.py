@@ -33,30 +33,45 @@ class ProcessPlot(QWidget):
     def paintEvent(self, _event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(self.palette().text().color())
-        painter.drawText(8, 22, f"{strings.tr(self.title)} ({self.unit})")
+        metrics = painter.fontMetrics()
+        values = [value for _, value in self.points]
+        if values:
+            low, high = min(values), max(values)
+            if low == high:
+                margin = max(abs(low) * 0.05, 1.0)
+                low, high = low - margin, high + margin
+            tick_width = max(
+                metrics.horizontalAdvance(f"{low + fraction * (high - low):.3g}")
+                for fraction in (0, .25, .5, .75, 1)
+            )
+        else:
+            low = high = None
+            tick_width = metrics.horizontalAdvance("0")
 
-        left, top, right, bottom = 58, 36, self.width() - 18, self.height() - 34
+        left = tick_width + 18
+        top = metrics.height() + 18
+        right = self.width() - 16
+        bottom = self.height() - metrics.height() - 12
+
+        painter.setPen(self.palette().text().color())
+        painter.drawText(left, metrics.ascent() + 4, f"{strings.tr(self.title)} ({self.unit})")
         if right <= left or bottom <= top:
             return
-        values = [value for _, value in self.points]
         if not values:
             painter.setPen(self.palette().mid().color())
             painter.drawText(left, (top + bottom) // 2, STATISTICS_PLACEHOLDER)
             return
 
-        low, high = min(values), max(values)
-        if low == high:
-            margin = max(abs(low) * 0.05, 1.0)
-            low, high = low - margin, high + margin
         t_end = max(self.points[-1][0], 1.0)
         painter.setPen(QPen(self.palette().mid().color(), 1))
         for fraction in (0, .25, .5, .75, 1):
             y = bottom - fraction * (bottom - top)
             painter.drawLine(left, int(y), right, int(y))
-            painter.drawText(2, int(y + 5), f"{low + fraction * (high-low):.3g}")
-        painter.drawText(left, self.height() - 8, "0 s")
-        painter.drawText(right - 42, self.height() - 8, f"{t_end:.0f} s")
+            label = f"{low + fraction * (high-low):.3g}"
+            painter.drawText(left - metrics.horizontalAdvance(label) - 8, int(y + metrics.ascent() / 2), label)
+        painter.drawText(left, self.height() - metrics.descent() - 2, "0 s")
+        end_label = f"{t_end:.0f} s"
+        painter.drawText(right - metrics.horizontalAdvance(end_label), self.height() - metrics.descent() - 2, end_label)
 
         path = QPainterPath()
         for index, (seconds, value) in enumerate(self.points):
@@ -84,11 +99,12 @@ class StatisticsScreen(QWidget):
 
     def create_widgets(self):
         self.title_label = QLabel(STATISTICS_TITLE)
-        self.title_label.setObjectName("TitleLabel")
+        self.title_label.setObjectName("StatisticsTitle")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.subtitle_label = QLabel(STATISTICS_PLACEHOLDER)
         self.subtitle_label.setObjectName("SubtitleLabel")
         self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setWordWrap(True)
         self.pressure_plot = ProcessPlot("Presión", "Torr", "#38BDF8")
         self.temperature_plot = ProcessPlot("Temperatura", "°C", "#FACC15")
         self.refresh_button = QPushButton("Actualizar gráficos")
@@ -96,7 +112,8 @@ class StatisticsScreen(QWidget):
 
     def setup_layout(self):
         layout = QVBoxLayout()
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 8, 16, 10)
+        layout.setSpacing(6)
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
         layout.addWidget(self.pressure_plot, 1)

@@ -99,7 +99,7 @@ class MaintainerScreen(QWidget):
         """Crea los componentes visuales de la pantalla."""
 
         self.title_label = QLabel(myStr.MAINTAINER_TITLE)
-        self.title_label.setObjectName("TitleLabel")
+        self.title_label.setObjectName("MaintainerTitle")
         self.title_label.setAlignment(Qt.AlignCenter)
 
         self.tabs = QTabWidget()
@@ -107,6 +107,17 @@ class MaintainerScreen(QWidget):
 
         self.sequences_tab = QWidget()
         self.sequences_tab.setObjectName("MaintainerSequencesTab")
+        self.sequences_tab.setStyleSheet(
+            "QWidget#MaintainerSequencesTab QLabel { font-size: 12px; }"
+            "QWidget#MaintainerSequencesTab QPushButton#MaintenanceActionButton {"
+            " padding: 4px 6px; font-size: 12px; }"
+            "QWidget#MaintainerSequencesTab QPushButton#MFCControlButton {"
+            " padding: 4px 6px; font-size: 12px; }"
+            "QWidget#MaintainerSequencesTab QDoubleSpinBox#MaintenanceSetpointInput {"
+            " padding: 3px 5px; font-size: 12px; }"
+            "QWidget#MaintainerSequencesTab QLabel#OperationReadoutLabel {"
+            " font-size: 10px; }"
+        )
 
         self.signals_tab = QWidget()
         self.signals_tab.setObjectName("MaintainerSignalsTab")
@@ -123,6 +134,8 @@ class MaintainerScreen(QWidget):
             myStr.MAINTAINER_SIGNALS_TAB,
         )
         self.tabs.addTab(self.analog_tab, myStr.MAINTAINER_ANALOG_TAB)
+        self.tabs.setTabToolTip(1, "Entradas y salidas digitales")
+        self.tabs.setTabToolTip(2, "Lecturas analógicas")
 
         # ---------------------------------------------------------------------
         # Pestaña de módulos funcionales
@@ -219,13 +232,8 @@ class MaintainerScreen(QWidget):
         )
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(
-            48,
-            32,
-            48,
-            32,
-        )
-        main_layout.setSpacing(24)
+        main_layout.setContentsMargins(16, 8, 16, 8)
+        main_layout.setSpacing(8)
 
         main_layout.addWidget(
             self.title_label
@@ -305,15 +313,9 @@ class MaintainerScreen(QWidget):
             sequences_content
         )
 
-        sequences_layout.setContentsMargins(
-            40,
-            40,
-            40,
-            40,
-        )
-
-        sequences_layout.setHorizontalSpacing(30)
-        sequences_layout.setVerticalSpacing(30)
+        sequences_layout.setContentsMargins(12, 12, 12, 12)
+        sequences_layout.setHorizontalSpacing(12)
+        sequences_layout.setVerticalSpacing(12)
 
         sequences_layout.addWidget(
             self.door_sequence_button,
@@ -343,7 +345,7 @@ class MaintainerScreen(QWidget):
         sequences_layout.addWidget(self.mfc2_card, 2, 1)
         sequences_layout.addWidget(self.throttle_group, 3, 0)
         sequences_layout.addWidget(self.process_group, 3, 1)
-        sequences_layout.addWidget(self.temperature_group, 4, 0, 1, 2)
+        sequences_layout.addWidget(self.temperature_group, 4, 0)
 
         sequences_layout.setColumnStretch(
             0,
@@ -400,16 +402,16 @@ class MaintainerScreen(QWidget):
         outputs_layout.addWidget(self.outputs_scroll_area)
 
         columns_layout = QHBoxLayout()
-        columns_layout.setContentsMargins(24, 24, 24, 24)
-        columns_layout.setSpacing(24)
+        columns_layout.setContentsMargins(8, 8, 8, 8)
+        columns_layout.setSpacing(8)
         columns_layout.addWidget(inputs_column, 1)
         columns_layout.addWidget(outputs_column, 1)
         self.signals_tab.setLayout(columns_layout)
 
     def _create_signal_scroll_area(self, widgets: List[SignalWidget]) -> QScrollArea:
-        """Crea una grilla con viewport para cuatro filas de dos señales."""
+        """Crea una grilla desplazable para las señales de una categoría."""
 
-        grid_layout = self._create_signal_grid(widgets, columns=2)
+        grid_layout = self._create_signal_grid(widgets, columns=1)
         content = QWidget()
         content.setLayout(grid_layout)
 
@@ -419,20 +421,7 @@ class MaintainerScreen(QWidget):
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setWidget(content)
 
-        # Cuatro filas por dos columnas mantienen visibles hasta ocho señales.
-        card_height = max(
-            (widget.sizeHint().height() for widget in widgets),
-            default=0,
-        )
-        margins = grid_layout.contentsMargins()
-        visible_height = (
-            4 * card_height
-            + 3 * grid_layout.verticalSpacing()
-            + margins.top()
-            + margins.bottom()
-            + 2 * scroll_area.frameWidth()
-        )
-        scroll_area.setFixedHeight(visible_height)
+        scroll_area.setMinimumHeight(100)
         return scroll_area
 
     def _create_module_controls(self):
@@ -447,21 +436,25 @@ class MaintainerScreen(QWidget):
 
         self.throttle_group = QGroupBox(myStr.MAINTAINER_THROTTLE_TITLE)
         self.throttle_group.setObjectName("MaintainerCardGroup")
-        throttle_layout = QHBoxLayout(self.throttle_group)
+        throttle_layout = QVBoxLayout(self.throttle_group)
+        throttle_buttons = QVBoxLayout()
         self.throttle_open_button = QPushButton(myStr.MAINTAINER_THROTTLE_OPEN)
         self.throttle_close_button = QPushButton(myStr.MAINTAINER_THROTTLE_CLOSE)
         self.throttle_open_button.setObjectName("MaintenanceActionButton")
         self.throttle_close_button.setObjectName("MaintenanceActionButton")
-        throttle_layout.addWidget(self.throttle_open_button)
-        throttle_layout.addWidget(self.throttle_close_button)
+        throttle_buttons.addWidget(self.throttle_open_button)
+        throttle_buttons.addWidget(self.throttle_close_button)
         self.throttle_state_label = QLabel("DETENIDO")
         self.throttle_state_label.setObjectName("MaintenancePill")
         self.throttle_state_label.setProperty("state", "inactive")
+        throttle_layout.addLayout(throttle_buttons)
         throttle_layout.addWidget(self.throttle_state_label)
 
         pressure_controls = QVBoxLayout()
         pressure_title = QLabel(myStr.MAINTAINER_PRESSURE_TITLE)
         pressure_title.setObjectName("OperationReadoutLabel")
+        pressure_title.setWordWrap(True)
+        pressure_title.setMaximumWidth(280)
         pressure_controls.addWidget(pressure_title)
         pressure_setpoint_row = QHBoxLayout()
         pressure_setpoint_row.addWidget(QLabel(myStr.MAINTAINER_PRESSURE_SETPOINT))
@@ -473,7 +466,7 @@ class MaintainerScreen(QWidget):
         self.pressure_setpoint.setObjectName("MaintenanceSetpointInput")
         pressure_setpoint_row.addWidget(self.pressure_setpoint)
         pressure_controls.addLayout(pressure_setpoint_row)
-        pressure_buttons = QHBoxLayout()
+        pressure_buttons = QVBoxLayout()
         self.pressure_start_button = QPushButton(myStr.MAINTAINER_PRESSURE_START)
         self.pressure_start_button.setObjectName("MaintenanceActionButton")
         self.pressure_stop_button = QPushButton(myStr.MAINTAINER_PRESSURE_STOP)
@@ -483,15 +476,17 @@ class MaintainerScreen(QWidget):
         pressure_buttons.addWidget(self.pressure_stop_button)
         pressure_controls.addLayout(pressure_buttons)
         self.pressure_reading_label = QLabel(myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE)
+        self.pressure_reading_label.setWordWrap(True)
+        self.pressure_reading_label.setMaximumWidth(280)
         self.pressure_state_label = QLabel(myStr.MAINTAINER_PRESSURE_IDLE)
         self.pressure_state_label.setWordWrap(True)
         pressure_controls.addWidget(self.pressure_reading_label)
         pressure_controls.addWidget(self.pressure_state_label)
-        throttle_layout.addLayout(pressure_controls, 1)
+        throttle_layout.addLayout(pressure_controls)
 
         self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
         self.process_group.setObjectName("MaintainerCardGroup")
-        process_layout = QHBoxLayout(self.process_group)
+        process_layout = QVBoxLayout(self.process_group)
         self.lamps13_duration = QDoubleSpinBox()
         self.lamps13_duration.setRange(0.1, 28.0)
         self.lamps13_duration.setDecimals(1)
@@ -549,14 +544,15 @@ class MaintainerScreen(QWidget):
         plasma_layout.addLayout(plasma_status)
         plasma_layout.addWidget(self.plasma_button)
 
-        process_layout.addWidget(lamps13_column, 2)
-        process_layout.addWidget(lamp2_column, 1)
-        process_layout.addWidget(plasma_column, 1)
+        process_layout.addWidget(lamps13_column)
+        process_layout.addWidget(lamp2_column)
+        process_layout.addWidget(plasma_column)
 
         self.temperature_group = QGroupBox(myStr.MAINTAINER_TEMPERATURE_TITLE)
         self.temperature_group.setObjectName("MaintainerCardGroup")
-        temperature_layout = QHBoxLayout(self.temperature_group)
-        temperature_layout.addWidget(QLabel(myStr.MAINTAINER_TEMPERATURE_SETPOINT))
+        temperature_layout = QVBoxLayout(self.temperature_group)
+        temperature_setpoint_row = QVBoxLayout()
+        temperature_setpoint_row.addWidget(QLabel(myStr.MAINTAINER_TEMPERATURE_SETPOINT))
         self.temperature_setpoint = QDoubleSpinBox()
         self.temperature_setpoint.setRange(130.0, 200.0)
         self.temperature_setpoint.setDecimals(1)
@@ -564,19 +560,25 @@ class MaintainerScreen(QWidget):
         self.temperature_setpoint.setValue(180.0)
         self.temperature_setpoint.setSuffix(" °C")
         self.temperature_setpoint.setObjectName("MaintenanceSetpointInput")
-        temperature_layout.addWidget(self.temperature_setpoint)
+        temperature_setpoint_row.addWidget(self.temperature_setpoint)
+        temperature_layout.addLayout(temperature_setpoint_row)
         self.temperature_start_button = QPushButton(myStr.MAINTAINER_TEMPERATURE_START)
         self.temperature_start_button.setObjectName("MaintenanceActionButton")
         self.temperature_stop_button = QPushButton(myStr.MAINTAINER_TEMPERATURE_STOP)
         self.temperature_stop_button.setObjectName("MaintenanceActionButton")
         self.temperature_stop_button.setEnabled(False)
-        temperature_layout.addWidget(self.temperature_start_button)
-        temperature_layout.addWidget(self.temperature_stop_button)
+        temperature_buttons = QVBoxLayout()
+        temperature_buttons.addWidget(self.temperature_start_button)
+        temperature_buttons.addWidget(self.temperature_stop_button)
+        temperature_layout.addLayout(temperature_buttons)
         self.temperature_reading_label = QLabel(myStr.MAINTAINER_TEMPERATURE_CURRENT_UNAVAILABLE)
+        self.temperature_reading_label.setWordWrap(True)
         self.temperature_state_label = QLabel(myStr.MAINTAINER_TEMPERATURE_IDLE)
         self.temperature_state_label.setWordWrap(True)
-        temperature_layout.addWidget(self.temperature_reading_label)
-        temperature_layout.addWidget(self.temperature_state_label, 1)
+        temperature_readouts = QVBoxLayout()
+        temperature_readouts.addWidget(self.temperature_reading_label)
+        temperature_readouts.addWidget(self.temperature_state_label)
+        temperature_layout.addLayout(temperature_readouts)
 
     def _create_analog_readouts(self):
         names = (
@@ -929,8 +931,8 @@ class MaintainerScreen(QWidget):
             0,
         )
 
-        grid_layout.setHorizontalSpacing(24)
-        grid_layout.setVerticalSpacing(24)
+        grid_layout.setHorizontalSpacing(12)
+        grid_layout.setVerticalSpacing(12)
 
         for index, widget in enumerate(
             widgets

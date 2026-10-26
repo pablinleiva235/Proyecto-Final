@@ -57,7 +57,7 @@ class MFCControlCard(QFrame):
         self.progress.setTextVisible(False)
         self.progress.hide()
 
-        setpoint_row = QHBoxLayout()
+        setpoint_row = QVBoxLayout()
         self.setpoint_label = QLabel("Flujo deseado")
         self.setpoint_label.setObjectName("MaintenanceCardFooter")
         self.setpoint = QDoubleSpinBox()
@@ -70,9 +70,10 @@ class MFCControlCard(QFrame):
         self.apply_button = QPushButton("Aplicar")
         self.apply_button.setObjectName("MFCControlButton")
         setpoint_row.addWidget(self.setpoint_label)
-        setpoint_row.addStretch()
-        setpoint_row.addWidget(self.setpoint)
-        setpoint_row.addWidget(self.apply_button)
+        setpoint_controls = QHBoxLayout()
+        setpoint_controls.addWidget(self.setpoint, 1)
+        setpoint_controls.addWidget(self.apply_button)
+        setpoint_row.addLayout(setpoint_controls)
 
         self.valve_button = QPushButton("Abrir válvula")
         self.valve_button.setObjectName("MFCControlButton")
@@ -81,22 +82,21 @@ class MFCControlCard(QFrame):
             self.valve_button.fontMetrics().horizontalAdvance("Cerrar válvula") + 32
         )
 
+        self.valve_button.setMinimumWidth(0)
+
         details = QVBoxLayout()
         details.setContentsMargins(0, 0, 0, 0)
         details.setSpacing(6)
+        header.addWidget(self.status_indicator)
+        header.addStretch()
+        header.addWidget(self.valve_status)
         details.addLayout(header)
         details.addLayout(reading)
 
-        overview = QHBoxLayout()
-        overview.setSpacing(14)
-        overview.addWidget(self.status_indicator)
-        overview.addLayout(details, 1)
-        overview.addWidget(self.valve_status)
-
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 14, 18, 14)
-        layout.setSpacing(10)
-        layout.addLayout(overview)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(6)
+        layout.addLayout(details)
         layout.addWidget(self.progress)
         layout.addLayout(setpoint_row)
         layout.addWidget(self.valve_button)

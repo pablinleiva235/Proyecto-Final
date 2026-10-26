@@ -97,12 +97,12 @@ class TopBarWidget(QWidget):
 
         layout = QHBoxLayout()
         layout.setContentsMargins(
-            24,
-            12,
-            24,
-            12,
+            10,
+            6,
+            10,
+            6,
         )
-        layout.setSpacing(18)
+        layout.setSpacing(8)
 
         layout.addWidget(self.title_label)
 

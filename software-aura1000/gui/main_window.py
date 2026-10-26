@@ -268,6 +268,9 @@ class MainWindow(QMainWindow):
         self.signal_controller.signal_state_changed.connect(
             self.recipe_sequence.digital_value
         )
+        self.signal_controller.signal_sampled.connect(
+            self._handle_digital_signal_sampled
+        )
         # Manejo temporal de errores.
         self.signal_controller.signal_error.connect(
             self._handle_signal_error
@@ -621,12 +624,12 @@ class MainWindow(QMainWindow):
         signal_name,
         active,
     ):
-        if signal_name == "ATM_SWITCH":
-            self.vent_sequence.update_atmospheric_state(
-                active
-            )
         if signal_name in ("DOOR_OPEN", "DOOR_CLOSE"):
             self._sync_module_permissions()
+
+    def _handle_digital_signal_sampled(self, signal_name, active):
+        if signal_name == "ATM_SWITCH":
+            self.vent_sequence.update_atmospheric_state(active)
     """
     def _confirm_exit(self):
     # Confirma con el usuario antes de cerrar la aplicación
@@ -738,12 +741,6 @@ class MainWindow(QMainWindow):
         )
         self.maintainer_screen.set_vent_state(state)
         self._sync_module_permissions()
-        if state == VentState.RUNNING:
-            atm_active = (
-                self.signal_controller.get_last_state("ATM_SWITCH")
-            )
-            if atm_active is not None:
-                self.vent_sequence.update_atmospheric_state(atm_active)
         self._update_sequence_permissions()
 
 #Venteo

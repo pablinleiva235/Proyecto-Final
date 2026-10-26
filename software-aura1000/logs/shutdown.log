@@ -1,56 +1,56 @@
-2026-10-26T08:51:04-03:00 | Inicio del apagado seguro
-2026-10-26T08:51:04-03:00 | Venteo: inicio
-2026-10-26T08:51:04-03:00 | Venteo: OK
-2026-10-26T08:51:04-03:00 | Vacío principal: inicio
-2026-10-26T08:51:04-03:00 | Vacío principal: OK
-2026-10-26T08:51:04-03:00 | Soft Vacuum: inicio
-2026-10-26T08:51:04-03:00 | Soft Vacuum: OK
-2026-10-26T08:51:04-03:00 | PURGE_VALVE_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | VENT_VALVE_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MAIN_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | ALARM_INDICATION: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MFC4_OPEN: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MFC3_OPEN: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MFC2_OPEN: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MFC1_OPEN: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MAIN_PNEUMATIC_ENABLE: OK | estado lógico inicial solicitado: activo
-2026-10-26T08:51:04-03:00 | SOFT_START_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | FILAMENT_ENABLE: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LOAD_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | UNLOAD_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LOAD_ASSY_UP_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | UNLOAD_ASSY_UP_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LOAD_CHUCK_UP_ASSY_CONTROL: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P1_45: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P1_46: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P1_47: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | POWER_ON: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | DOOR_OPEN_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | DOOR_CLOSE_CMD: OK | estado lógico inicial solicitado: activo
-2026-10-26T08:51:04-03:00 | LOAD_ARM_OUT_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LOAD_ARM_HOME_CMD: OK | estado lógico inicial solicitado: activo
-2026-10-26T08:51:04-03:00 | RF_ON_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_56: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_57: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_58: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | UNLOAD_ARM_OUT_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | UNLOAD_ARM_HOME_CMD: OK | estado lógico inicial solicitado: activo
-2026-10-26T08:51:04-03:00 | SEND_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | RECEIVE_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LAMP1_ON_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LAMP2_ON_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | LAMP3_ON_CMD: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | RECEIVE_RESET: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | DRIVER_ENABLE: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_68: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_69: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | P2_70: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | STEPPER_STEP: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | STEPPER_DIR: OK | estado lógico inicial solicitado: activo
-2026-10-26T08:51:04-03:00 | STEPPER_HALF_STEP: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | STEPPER_OUTPUT_ENABLE: OK | estado lógico inicial solicitado: inactivo
-2026-10-26T08:51:04-03:00 | MFC1_SETPOINT: OK | setpoint solicitado: 0.0 V
-2026-10-26T08:51:04-03:00 | MFC2_SETPOINT: OK | setpoint solicitado: 0.0 V
-2026-10-26T08:51:04-03:00 | MFC3_SETPOINT: OK | setpoint solicitado: 0.0 V
-2026-10-26T08:51:04-03:00 | MFC4_SETPOINT: OK | setpoint solicitado: 0.0 V
-2026-10-26T08:51:04-03:00 | Apagado finalizado sin fallas
+2026-10-26T09:07:34-03:00 | Inicio del apagado seguro
+2026-10-26T09:07:34-03:00 | Venteo: inicio
+2026-10-26T09:07:34-03:00 | Venteo: OK
+2026-10-26T09:07:34-03:00 | Vacío principal: inicio
+2026-10-26T09:07:34-03:00 | Vacío principal: OK
+2026-10-26T09:07:34-03:00 | Soft Vacuum: inicio
+2026-10-26T09:07:34-03:00 | Soft Vacuum: OK
+2026-10-26T09:07:34-03:00 | PURGE_VALVE_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | VENT_VALVE_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MAIN_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | ALARM_INDICATION: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MFC4_OPEN: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MFC3_OPEN: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MFC2_OPEN: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MFC1_OPEN: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MAIN_PNEUMATIC_ENABLE: OK | estado lógico inicial solicitado: activo
+2026-10-26T09:07:34-03:00 | SOFT_START_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | FILAMENT_ENABLE: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LOAD_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | UNLOAD_VACUUM_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LOAD_ASSY_UP_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | UNLOAD_ASSY_UP_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LOAD_CHUCK_UP_ASSY_CONTROL: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P1_45: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P1_46: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P1_47: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | POWER_ON: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | DOOR_OPEN_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | DOOR_CLOSE_CMD: OK | estado lógico inicial solicitado: activo
+2026-10-26T09:07:34-03:00 | LOAD_ARM_OUT_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LOAD_ARM_HOME_CMD: OK | estado lógico inicial solicitado: activo
+2026-10-26T09:07:34-03:00 | RF_ON_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_56: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_57: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_58: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | UNLOAD_ARM_OUT_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | UNLOAD_ARM_HOME_CMD: OK | estado lógico inicial solicitado: activo
+2026-10-26T09:07:34-03:00 | SEND_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | RECEIVE_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LAMP1_ON_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LAMP2_ON_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | LAMP3_ON_CMD: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | RECEIVE_RESET: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | DRIVER_ENABLE: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_68: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_69: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | P2_70: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | STEPPER_STEP: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | STEPPER_DIR: OK | estado lógico inicial solicitado: activo
+2026-10-26T09:07:34-03:00 | STEPPER_HALF_STEP: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | STEPPER_OUTPUT_ENABLE: OK | estado lógico inicial solicitado: inactivo
+2026-10-26T09:07:34-03:00 | MFC1_SETPOINT: OK | setpoint solicitado: 0.0 V
+2026-10-26T09:07:34-03:00 | MFC2_SETPOINT: OK | setpoint solicitado: 0.0 V
+2026-10-26T09:07:34-03:00 | MFC3_SETPOINT: OK | setpoint solicitado: 0.0 V
+2026-10-26T09:07:34-03:00 | MFC4_SETPOINT: OK | setpoint solicitado: 0.0 V
+2026-10-26T09:07:34-03:00 | Apagado finalizado sin fallas

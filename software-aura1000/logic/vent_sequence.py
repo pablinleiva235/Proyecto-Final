@@ -21,6 +21,7 @@ from config.digital_signals import ACTIVE, INACTIVE
 
 
 VENT_STABILIZATION_TIME_MS = 4000
+ATM_CONSECUTIVE_READINGS_REQUIRED = 5
 
 
 class VentState(Enum):
@@ -49,6 +50,7 @@ class VentSequence(QObject):
         self._hardware = hardware
         self._can_start = can_start
         self._state = VentState.IDLE
+        self._consecutive_atm_readings = 0
 
         self._stabilization_timer = QTimer(self)
         self._stabilization_timer.setSingleShot(True)
@@ -96,6 +98,7 @@ class VentSequence(QObject):
                 return
 
         try:
+            self._reset_atmospheric_detection()
             self._set_state(
                 VentState.STARTING
             )
@@ -124,7 +127,7 @@ class VentSequence(QObject):
             return
 
         try:
-            self._stabilization_timer.stop()
+            self._reset_atmospheric_detection()
 
             self._set_state(
                 VentState.STOPPING
@@ -143,7 +146,7 @@ class VentSequence(QObject):
         """
         Cancela cualquier venteo y cierra la válvula.
         """
-        self._stabilization_timer.stop()
+        self._reset_atmospheric_detection()
         try:
             self._set_safe_outputs()
 
@@ -160,38 +163,36 @@ class VentSequence(QObject):
         is_atmospheric,
     ):
         """
-        Recibe el estado lógico de ATM_SWITCH.
+        Recibe una lectura muestreada de ATM_SWITCH.
 
-        Cuando ATM_SWITCH permanece activo durante
-        el tiempo de estabilización, el venteo
-        finaliza automáticamente.
+        Cinco lecturas activas consecutivas inician el
+        tiempo de estabilización para finalizar el venteo.
         """
 
         if self._state != VentState.RUNNING:
             return
 
-        if is_atmospheric:
-
-            if not self._stabilization_timer.isActive():
+        if not is_atmospheric:
+            self._consecutive_atm_readings = 0
+            self._stabilization_timer.stop()
+        elif not self._stabilization_timer.isActive():
+            self._consecutive_atm_readings += 1
+            if self._consecutive_atm_readings >= ATM_CONSECUTIVE_READINGS_REQUIRED:
                 self._stabilization_timer.start(
                     VENT_STABILIZATION_TIME_MS
                 )
 
-        else:
-
-            if self._stabilization_timer.isActive():
-                self._stabilization_timer.stop()
-
     def _finish_vent(self):
         """
         Finaliza automáticamente el venteo después
-        de mantener ATM_SWITCH activo durante el
-        tiempo de estabilización.
+        del tiempo de estabilización iniciado tras
+        cinco lecturas ATM consecutivas.
         """
         if self._state != VentState.RUNNING:
             return
 
         try:
+            self._reset_atmospheric_detection()
             self._set_state(
                 VentState.STOPPING
             )
@@ -214,6 +215,10 @@ class VentSequence(QObject):
             INACTIVE,
         )
 
+    def _reset_atmospheric_detection(self):
+        self._stabilization_timer.stop()
+        self._consecutive_atm_readings = 0
+
     def _set_state(
         self,
         state,
@@ -229,7 +234,7 @@ class VentSequence(QObject):
     ):
         """Gestiona errores de la secuencia."""
 
-        self._stabilization_timer.stop()
+        self._reset_atmospheric_detection()
 
         try:
             self._set_safe_outputs()

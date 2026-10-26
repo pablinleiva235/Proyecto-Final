@@ -37,6 +37,9 @@ class SignalController(QObject):
     # Argumentos: signal_name, active
     signal_state_changed = pyqtSignal(str, bool)
 
+    # Emite cada lectura válida, incluso si el estado no cambió.
+    signal_sampled = pyqtSignal(str, bool)
+
     # Informa que comenzó el procesamiento de una salida.
     # Argumento: signal_name
     signal_processing = pyqtSignal(str)
@@ -268,6 +271,7 @@ class SignalController(QObject):
                     signal_name,
                     active,
                 )
+                self.signal_sampled.emit(signal_name, active)
                 self._update_confirmed_state(
                     signal_name,
                     active,

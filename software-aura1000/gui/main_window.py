@@ -800,6 +800,10 @@ class MainWindow(QMainWindow):
     def _monitor_migrated_modules(self):
         self.throttle_controller.stop_if_limit_reached()
         self.process_controller.check_faults()
+        for signal_name, enabled in (
+            self.process_controller.fault_monitoring_state().items()
+        ):
+            self.maintainer_screen.set_signal_fault_monitoring(signal_name, enabled)
 
     def _handle_module_error(self, module_name, message):
         if module_name in ("lamp2", "plasma"):

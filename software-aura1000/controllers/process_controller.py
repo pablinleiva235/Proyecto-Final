@@ -37,6 +37,19 @@ class ProcessController(QObject):
     def plasma_active(self):
         return self._plasma
 
+    def fault_monitoring_state(self):
+        """Indica qué entradas de falla están habilitadas para interpretación."""
+        plasma_grace_passed = (
+            self._plasma
+            and time.monotonic() - self._plasma_started_at > self.IGNITION_DELAY_S
+        )
+        return {
+            "LAMP1_FAIL": self._lamps13,
+            "LAMP2_FAIL": self._lamp2,
+            "LAMP3_FAIL": self._lamps13,
+            "PLASMA_FAIL": plasma_grace_passed,
+        }
+
     def start_lamps13(self, seconds):
         hardware_attempted = False
         try:

@@ -833,6 +833,10 @@ class MaintainerScreen(QWidget):
             active
         )
 
+    def set_signal_fault_monitoring(self, signal_name: str, enabled: bool) -> None:
+        """Controla cuándo una entrada de falla se interpreta visualmente como tal."""
+        self._get_signal_widget(signal_name).set_fault_monitoring_enabled(enabled)
+
     def set_signal_error(self, signal_name: str, message: str) -> None:
         """Muestra el error sobre la tarjeta sin alterar su último estado."""
         self._get_signal_widget(signal_name).set_error(message)

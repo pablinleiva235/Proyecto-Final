@@ -17,21 +17,16 @@ def check_process_faults(win, hw):
     cmd_lamp2 = getattr(win, "lamp2_on", False)
     cmd_rf = getattr(win, "rf_on", False)
 
-    if cmd_rf:
-        elapsed = now - getattr(win, "rf_on_time", 0.0)
-        signal = hw.digital_read("PLASMA_FAIL")
-        print(
-            f"[DIAGNOSTICO PLASMA] T: {elapsed:.1f}s | PLASMA_FAIL pin: {signal}"
-        )
-        
-    # 2. Lámparas: evaluación inmediata (responden rápido)
-    lamp1_fail = cmd_lamps13 and hw.digital_read("LAMP1_FAIL")
-    lamp2_fail = cmd_lamp2 and hw.digital_read("LAMP2_FAIL")
-    lamp3_fail = cmd_lamps13 and hw.digital_read("LAMP3_FAIL")
+    # En reposo estas entradas permanecen en alto; solo se leen al energizar.
+    lamp1_fail = bool(cmd_lamps13 and hw.digital_read("LAMP1_FAIL"))
+    lamp2_fail = bool(cmd_lamp2 and hw.digital_read("LAMP2_FAIL"))
+    lamp3_fail = bool(cmd_lamps13 and hw.digital_read("LAMP3_FAIL"))
 
     # 3. Plasma: se evalúa SOLO si pasaron más de 2 segundos desde el comando de encendido
     rf_grace_period_passed = (now - getattr(win, "rf_on_time", 0.0)) > PLASMA_IGNITION_DELAY
-    plasma_fail = (cmd_rf and rf_grace_period_passed and hw.digital_read("PLASMA_FAIL"))
+    plasma_fail = bool(
+        cmd_rf and rf_grace_period_passed and hw.digital_read("PLASMA_FAIL")
+    )
 
     # 4. Magnetrón (monitoreo continuo)
     mag_warning = hw.digital_read("MAGNETRON_WARNING")

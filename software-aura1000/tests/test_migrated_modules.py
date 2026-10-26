@@ -254,6 +254,96 @@ class MigratedModulesTests(unittest.TestCase):
             self.assertFalse(self.hardware.digital_read(output_name))
         controller._pulse_timer.stop()
 
+    def test_process_fault_inputs_high_at_rest_do_not_raise_alarm(self):
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        alarms = []
+        controller.alarm_raised.connect(alarms.append)
+        for signal in ("LAMP1_FAIL", "LAMP2_FAIL", "LAMP3_FAIL", "PLASMA_FAIL"):
+            self.hardware.set_input_state(signal, True)
+
+        controller.check_faults()
+
+        self.assertEqual(alarms, [])
+        self.assertEqual(
+            controller.fault_monitoring_state(),
+            {"LAMP1_FAIL": False, "LAMP2_FAIL": False, "LAMP3_FAIL": False, "PLASMA_FAIL": False},
+        )
+
+    def test_low_fail_inputs_during_operation_do_not_raise_alarm(self):
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        alarms = []
+        controller.alarm_raised.connect(alarms.append)
+        for signal in ("LAMP1_FAIL", "LAMP2_FAIL", "LAMP3_FAIL", "PLASMA_FAIL"):
+            self.hardware.set_input_state(signal, False)
+        controller.set_lamps13(True)
+        controller.set_lamp2(True)
+        controller.set_plasma(True)
+        controller._plasma_started_at -= controller.IGNITION_DELAY_S + 1
+
+        controller.check_faults()
+
+        self.assertEqual(alarms, [])
+        controller.stop_all()
+
+    def test_each_lamp_fail_input_is_checked_only_for_its_active_lamp(self):
+        for signal, message, activate in (
+            ("LAMP1_FAIL", "Falla en lámpara 1", lambda c: c.set_lamps13(True)),
+            ("LAMP3_FAIL", "Falla en lámpara 3", lambda c: c.set_lamps13(True)),
+            ("LAMP2_FAIL", "Falla en lámpara 2", lambda c: c.set_lamp2(True)),
+        ):
+            with self.subTest(signal=signal):
+                controller = ProcessController(self.hardware, can_operate=lambda: True)
+                alarms = []
+                controller.alarm_raised.connect(alarms.append)
+                for input_name in ("LAMP1_FAIL", "LAMP2_FAIL", "LAMP3_FAIL"):
+                    self.hardware.set_input_state(input_name, False)
+                self.hardware.set_input_state(signal, True)
+                activate(controller)
+                controller.check_faults()
+                self.assertTrue(alarms)
+                self.assertIn(message, alarms[0])
+
+    def test_plasma_fail_input_waits_for_ignition_grace_period(self):
+        from unittest.mock import patch
+
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        alarms = []
+        controller.alarm_raised.connect(alarms.append)
+        self.hardware.set_input_state("PLASMA_FAIL", True)
+        with patch("controllers.process_controller.time.monotonic", return_value=10.0):
+            controller.set_plasma(True)
+            controller.check_faults()
+            self.assertEqual(alarms, [])
+        with patch("controllers.process_controller.time.monotonic", return_value=12.1):
+            controller.check_faults()
+        self.assertTrue(alarms)
+        self.assertIn("Falla en plasma", alarms[0])
+
+    def test_fail_signal_widget_shows_high_as_normal_until_monitoring(self):
+        from gui.widgets.signal_widget import SignalWidget
+
+        widget = SignalWidget("LAMP1_FAIL", interactive=False)
+        widget.set_active(True)
+        self.assertEqual(widget.property("semanticState"), "on")
+        widget.set_fault_monitoring_enabled(True)
+        self.assertEqual(widget.property("semanticState"), "fault")
+        widget.set_fault_monitoring_enabled(False)
+        self.assertEqual(widget.property("semanticState"), "on")
+
+    def test_legacy_fault_monitor_ignores_high_inputs_at_rest(self):
+        from logic.process_faults import check_process_faults
+
+        class LegacyWindow:
+            alarm_active = False
+            state_lamps13_pulsing = False
+            lamp2_on = False
+            rf_on = False
+            warning_mag_shown = False
+
+        for signal in ("LAMP1_FAIL", "LAMP2_FAIL", "LAMP3_FAIL", "PLASMA_FAIL"):
+            self.hardware.set_input_state(signal, True)
+        check_process_faults(LegacyWindow(), self.hardware)
+
 
 if __name__ == "__main__":
     unittest.main()

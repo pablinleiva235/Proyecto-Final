@@ -40,7 +40,7 @@ class StartupSequence(QObject):
     startup_error = pyqtSignal(str)
 
     # Tiempo requerido para completar el precalentamiento.
-    STARTUP_DURATION_MS =  3_000     #30_000
+    STARTUP_DURATION_MS =  33_000     #30_000
 
     # Intervalo utilizado para actualizar el progreso.
     TIMER_INTERVAL_MS = 100

@@ -93,6 +93,7 @@ class SignalWidget(QFrame):
         # Estado inicial temporal. El controlador deberá reemplazarlo con
         # la primera lectura confirmada proveniente del hardware.
         self._visual_state = SignalVisualState.INACTIVE
+        self._fault_monitoring_enabled = False
 
         self.create_widgets()
         self.setup_layout()
@@ -210,6 +211,11 @@ class SignalWidget(QFrame):
         self._set_visual_state(state)
         self.clear_error()
 
+    def set_fault_monitoring_enabled(self, enabled: bool) -> None:
+        """Interpreta una entrada ``*_FAIL`` como falla solo bajo monitoreo."""
+        self._fault_monitoring_enabled = bool(enabled)
+        self._update_state_presentation()
+
     def set_error(self, message: str) -> None:
         """Marca la tarjeta con un error sin perder el último estado leído."""
         self.setToolTip(message)
@@ -303,6 +309,10 @@ class SignalWidget(QFrame):
         elif (
             (self._signal_name.endswith("_FAIL") or self._signal_name == "MAGNETRON_OVERHEAT")
             and self._visual_state == SignalVisualState.ACTIVE
+            and (
+                self._signal_name == "MAGNETRON_OVERHEAT"
+                or self._fault_monitoring_enabled
+            )
         ):
             semantic_state, state_text = "fault", SIGNAL_STATE_FAULT
         elif self._visual_state == SignalVisualState.PROCESSING:

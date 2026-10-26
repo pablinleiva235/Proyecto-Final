@@ -9,7 +9,7 @@ El módulo `process_faults.py` tiene el metodo llamado en el timer general cada 
 ??? note "Gestor y Evaluación de Fallas de Proceso: `check_process_faults(win, hw)`"
     Rutina periódica de monitoreo e interbloqueo de seguridad que evalúa en tiempo real las señales de retroalimentación de las lámparas infrarrojas, la fuente de radiofrecuencia (RF) de plasma y la protección térmica del magnetrón:
 
-    * **Lámparas Infrarrojas (1, 2 y 3):** Evaluación inmediata ante pérdida de corriente o falla física (`LAMP1_FAIL`, `LAMP2_FAIL`, `LAMP3_FAIL`).
+    * **Lámparas Infrarrojas (1, 2 y 3):** Evaluación inmediata ante pérdida de corriente o falla física (`LAMP1_FAIL`, `LAMP2_FAIL`, `LAMP3_FAIL`) únicamente mientras las lámparas correspondientes están encendidas. En reposo, el nivel alto de estas entradas no indica una falla.
     * **Generador de Plasma / RF:** Aplica un tiempo de gracia de **2.0 segundos** (`PLASMA_IGNITION_DELAY`) desde la habilitación del comando para contemplar la ventana de ionización del gas antes de evaluar el pin de falla (`PLASMA_FAIL`), evitando así disparos en falso por retardo en el encendido.
     * **Protección Térmica del Magnetrón:** Monitorea de forma continua los sensores de sobretemperatura (`MAGNETRON_WARNING` a 85 °C y `MAGNETRON_OVERHEAT` a 93 °C).
 

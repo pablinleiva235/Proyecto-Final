@@ -98,8 +98,6 @@ class NormalOperationScreen(QWidget):
         )
         self.view_recipe_button = self._recipe_button(text.VIEW_RECIPE_BUTTON)
         self.view_recipe_button.setEnabled(False)
-        self.stop_recipe_button = self._recipe_button(text.STOP_RECIPE_BUTTON)
-        self.stop_recipe_button.setEnabled(False)
         self.recipe_status_label = QLabel(text.RECIPE_IDLE_STATUS)
         self.recipe_status_label.setObjectName("OperationReadoutLabel")
         self.recipe_status_label.setWordWrap(True)
@@ -108,7 +106,6 @@ class NormalOperationScreen(QWidget):
             self.load_recipe_button,
             self.start_recipe_button,
             self.view_recipe_button,
-            self.stop_recipe_button,
         ):
             actions_layout.addWidget(button)
         actions_layout.addWidget(self.recipe_status_label)
@@ -146,7 +143,6 @@ class NormalOperationScreen(QWidget):
         self.load_recipe_button.clicked.connect(self._load_recipe)
         self.view_recipe_button.clicked.connect(self._view_recipe)
         self.start_recipe_button.clicked.connect(self._start_recipe_requested)
-        self.stop_recipe_button.clicked.connect(self.stop_recipe_requested.emit)
 
     @staticmethod
     def _make_panel(title):
@@ -313,6 +309,9 @@ class NormalOperationScreen(QWidget):
         self.start_recipe_button.setAccessibleDescription("")
 
     def _start_recipe_requested(self):
+        if self._recipe_running:
+            self.stop_recipe_requested.emit()
+            return
         if self._active_recipe is None:
             self._show_no_active_recipe()
             return
@@ -340,12 +339,20 @@ class NormalOperationScreen(QWidget):
 
     def set_recipe_running(self, running, can_stop=True):
         self._recipe_running = bool(running)
-        self.back_button.setEnabled(not running)
-        self.new_recipe_button.setEnabled(not running)
-        self.load_recipe_button.setEnabled(not running)
-        self.view_recipe_button.setEnabled(not running and self._active_recipe is not None)
-        self.start_recipe_button.setEnabled(not running and self._active_recipe is not None)
-        self.stop_recipe_button.setEnabled(running and can_stop)
+        self.back_button.setEnabled(not self._recipe_running)
+        self.new_recipe_button.setEnabled(not self._recipe_running)
+        self.load_recipe_button.setEnabled(not self._recipe_running)
+        self.view_recipe_button.setEnabled(
+            not self._recipe_running and self._active_recipe is not None
+        )
+        set_localized_text(
+            self.start_recipe_button,
+            text.STOP_RECIPE_BUTTON if self._recipe_running else text.START_RECIPE_BUTTON,
+        )
+        self.start_recipe_button.setEnabled(
+            (self._recipe_running and can_stop)
+            or (not self._recipe_running and self._active_recipe is not None)
+        )
 
     def set_recipe_status(self, status):
         set_localized_text(self.recipe_status_label, status)

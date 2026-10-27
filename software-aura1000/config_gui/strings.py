@@ -120,14 +120,19 @@ RECIPE_IDLE_STATUS = "Sin receta en ejecución."
 START_RECIPE_CONFIRM_TITLE = "Confirmar inicio de receta"
 WAFER_CONFIRM_TITLE = "Carga de oblea"
 WAFER_CONFIRM_MESSAGE = "Inserte la oblea en la cámara y confirme para continuar."
+WAFER_REMOVAL_CONFIRM_TITLE = "Retiro de oblea"
+WAFER_REMOVAL_CONFIRM_MESSAGE = "¿Retiró la oblea de la cámara? Sí cierra la puerta; No finaliza la receta y deja la puerta abierta."
 RECIPE_LOG_SAVED_MESSAGE = "Registro guardado en:\n{path}"
 RECIPE_LOG_FAILED_MESSAGE = "No se pudo guardar el registro. Ruta intentada:\n{path}"
 RECIPE_DATA_SAVED_MESSAGE = "Datos de presión y temperatura guardados en:\n{path}"
 RECIPE_DATA_FAILED_MESSAGE = "No se pudieron guardar los datos de presión y temperatura. Ruta intentada:\n{path}"
 RECIPE_STATE_LABELS = {
     "waiting_for_wafer": "Esperando confirmación de carga de oblea.",
+    "waiting_for_wafer_removal": "Esperando confirmación de retiro de oblea.",
     "closing_door": "Cerrando puerta.",
+    "closing_door_after_recipe": "Cerrando puerta después de retirar la oblea.",
     "verifying_door_closed": "Esperando confirmación de puerta cerrada.",
+    "verifying_door_closed_after_recipe": "Verificando el cierre de la puerta para finalizar.",
     "starting_soft_vacuum": "Iniciando Soft Vacuum.",
     "starting_main_vacuum": "Iniciando Main Vacuum.",
     "pumping_to_base": "Esperando presión base.",
@@ -428,6 +433,11 @@ _SPANISH_TO_ENGLISH = {
     "Esperando confirmaciÃ³n de carga de oblea.": "Waiting for wafer loading confirmation.",
     "Cerrando puerta.": "Closing door.",
     "Esperando confirmaciÃ³n de puerta cerrada.": "Waiting for door closed confirmation.",
+    "Retiro de oblea": "Wafer removal",
+    "¿Retiró la oblea de la cámara? Sí cierra la puerta; No finaliza la receta y deja la puerta abierta.": "Have you removed the wafer from the chamber? Yes closes the door; No ends the recipe and leaves the door open.",
+    "Esperando confirmación de retiro de oblea.": "Waiting for wafer removal confirmation.",
+    "Cerrando puerta después de retirar la oblea.": "Closing the door after wafer removal.",
+    "Verificando el cierre de la puerta para finalizar.": "Verifying the door is closed before finishing.",
     "Iniciando Soft Vacuum.": "Starting Soft Vacuum.",
     "Iniciando Main Vacuum.": "Starting Main Vacuum.",
     "Esperando presiÃ³n base.": "Waiting for base pressure.",

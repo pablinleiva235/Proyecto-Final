@@ -173,6 +173,8 @@ class MainWindow(QMainWindow):
             process_controller=self.process_controller,
             digital_state_getter=self.signal_controller.get_last_state,
             parent=self,
+            digital_state_setter=self.hardware.digital_set,
+            digital_hardware_reader=self.hardware.digital_read,
         )
         self.module_monitor_timer = QTimer(self)
         self.module_monitor_timer.setInterval(100)
@@ -234,6 +236,9 @@ class MainWindow(QMainWindow):
         self.normal_operation_screen.stop_recipe_requested.connect(self.recipe_sequence.stop)
         self.recipe_sequence.state_changed.connect(self._handle_recipe_state)
         self.recipe_sequence.wafer_confirmation_requested.connect(self._confirm_recipe_wafer)
+        self.recipe_sequence.wafer_removal_confirmation_requested.connect(
+            self._confirm_recipe_wafer_removal
+        )
         self.recipe_sequence.error_raised.connect(self._handle_recipe_error)
         self.recipe_sequence.finished.connect(self._handle_recipe_finished)
 
@@ -536,11 +541,21 @@ class MainWindow(QMainWindow):
             self.normal_operation_screen.confirm_wafer_loaded()
         )
 
+    def _confirm_recipe_wafer_removal(self):
+        self.recipe_sequence.confirm_wafer_removed(
+            self.normal_operation_screen.confirm_wafer_removed()
+        )
+
     def _handle_recipe_state(self, state):
         label = strings.RECIPE_STATE_LABELS.get(state.value, state.value)
         self.normal_operation_screen.set_recipe_status(label)
         running = self.recipe_sequence.is_active
-        can_stop = state not in (RecipeState.STOPPING_PROCESS, RecipeState.VENTING)
+        can_stop = state not in (
+            RecipeState.STOPPING_PROCESS,
+            RecipeState.VENTING,
+            RecipeState.CLOSING_DOOR_AFTER_RECIPE,
+            RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
+        )
         self.normal_operation_screen.set_recipe_running(running, can_stop=can_stop)
         self.maintainer_screen.set_manual_controls_locked(running)
 

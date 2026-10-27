@@ -16,8 +16,11 @@ from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_PATH, RecipeDataLog
 class RecipeState(Enum):
     IDLE = "idle"
     WAITING_FOR_WAFER = "waiting_for_wafer"
+    WAITING_FOR_WAFER_REMOVAL = "waiting_for_wafer_removal"
     CLOSING_DOOR = "closing_door"
+    CLOSING_DOOR_AFTER_RECIPE = "closing_door_after_recipe"
     VERIFYING_DOOR_CLOSED = "verifying_door_closed"
+    VERIFYING_DOOR_CLOSED_AFTER_RECIPE = "verifying_door_closed_after_recipe"
     STARTING_SOFT_VACUUM = "starting_soft_vacuum"
     STARTING_MAIN_VACUUM = "starting_main_vacuum"
     PUMPING_TO_BASE = "pumping_to_base"
@@ -36,6 +39,7 @@ class RecipeSequence(QObject):
 
     state_changed = pyqtSignal(object)
     wafer_confirmation_requested = pyqtSignal()
+    wafer_removal_confirmation_requested = pyqtSignal()
     error_raised = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
 
@@ -44,6 +48,7 @@ class RecipeSequence(QObject):
         vent_sequence, mfc_controller, pressure_controller,
         temperature_controller, process_controller, digital_state_getter=None,
         recipe_log_factory=None, parent=None, recipe_data_log_factory=None,
+        digital_state_setter=None, digital_hardware_reader=None,
     ):
         super().__init__(parent)
         self.door = door_sequence
@@ -54,7 +59,9 @@ class RecipeSequence(QObject):
         self.pressure = pressure_controller
         self.temperature = temperature_controller
         self.process = process_controller
-        self._digital_state_getter = digital_state_getter or (lambda _name: True)
+        self._digital_state_getter = digital_state_getter or (lambda _name: None)
+        self._digital_state_setter = digital_state_setter
+        self._digital_hardware_reader = digital_hardware_reader
         self._recipe_log_factory = recipe_log_factory or RecipeLog
         self._recipe_data_log_factory = recipe_data_log_factory or RecipeDataLog
         self._recipe_log = None
@@ -104,6 +111,10 @@ class RecipeSequence(QObject):
         self._recipe = recipe
         self._stopping = False
         self._eop = None
+        self._failed = False
+        self._completion_message = ""
+        self._shutdown_errors = []
+        self._vacuum_started = False
         if self.door.state != DoorState.CLOSED:
             self.error_raised.emit("La puerta debe estar cerrada antes de iniciar una receta.")
             return False
@@ -137,6 +148,32 @@ class RecipeSequence(QObject):
             f"presion_proceso={recipe.process_pressure:g} Torr | "
             f"temperatura={recipe.process_temperature:g} C"
         ):
+            return False
+        try:
+            driver_enabled = (
+                self._digital_hardware_reader("DRIVER_ENABLE")
+                if self._digital_hardware_reader is not None
+                else self._digital_state_getter("DRIVER_ENABLE")
+            )
+            if driver_enabled is not True:
+                if self._digital_state_setter is None:
+                    raise RuntimeError("No hay un controlador disponible para activar la salida.")
+                if not self._perform_action(
+                    "Activar DRIVER_ENABLE",
+                    lambda: self._digital_state_setter("DRIVER_ENABLE", True),
+                    outputs={"DRIVER_ENABLE": True},
+                ):
+                    return False
+                driver_enabled = (
+                    self._digital_hardware_reader("DRIVER_ENABLE")
+                    if self._digital_hardware_reader is not None
+                    else self._digital_state_getter("DRIVER_ENABLE")
+                )
+            if driver_enabled is not True:
+                raise RuntimeError("La lectura de confirmación sigue inactiva.")
+        except Exception as error:
+            message = f"No se pudo confirmar DRIVER_ENABLE activa: {error}"
+            self._finish(True, message)
             return False
         if not self._set_state(RecipeState.WAITING_FOR_WAFER):
             return False
@@ -248,12 +285,18 @@ class RecipeSequence(QObject):
     def digital_value(self, name, active):
         if not self.is_active:
             return
+        if self._state == RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE:
+            self._try_finish_after_door_close()
+            return
         if self._state == RecipeState.VERIFYING_DOOR_CLOSED:
             self._try_start_vacuum()
             return
         if name in ("DOOR_OPEN", "DOOR_CLOSE") and self._state not in (
             RecipeState.WAITING_FOR_WAFER, RecipeState.CLOSING_DOOR,
             RecipeState.VERIFYING_DOOR_CLOSED,
+            RecipeState.WAITING_FOR_WAFER_REMOVAL,
+            RecipeState.CLOSING_DOOR_AFTER_RECIPE,
+            RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
             RecipeState.STOPPING_PROCESS, RecipeState.VENTING,
         ):
             if (name == "DOOR_OPEN" and active) or (name == "DOOR_CLOSE" and not active):
@@ -261,6 +304,13 @@ class RecipeSequence(QObject):
 
     def digital_error(self, name, message):
         if not self.is_active:
+            return
+        if (name in ("DOOR_OPEN", "DOOR_CLOSE") and self._state in (
+                RecipeState.WAITING_FOR_WAFER_REMOVAL,
+                RecipeState.CLOSING_DOOR_AFTER_RECIPE,
+                RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
+        )):
+            self._finish(True, f"No se pudo confirmar el estado final de la puerta: {name}: {message}")
             return
         if name in ("DOOR_OPEN", "DOOR_CLOSE") and self._state not in (
             RecipeState.WAITING_FOR_WAFER, RecipeState.STOPPING_PROCESS,
@@ -302,6 +352,17 @@ class RecipeSequence(QObject):
 
     def stop(self):
         if self.is_active:
+            if self._state == RecipeState.WAITING_FOR_WAFER_REMOVAL:
+                self._finish(
+                    self._failed,
+                    self._completion_message + " Receta finalizada por el usuario; la puerta queda abierta.",
+                )
+                return
+            if self._state in (
+                RecipeState.CLOSING_DOOR_AFTER_RECIPE,
+                RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
+            ):
+                return
             if self._state == RecipeState.WAITING_FOR_WAFER:
                 self._finish(False, "Inicio de receta cancelado.")
                 return
@@ -354,6 +415,41 @@ class RecipeSequence(QObject):
             return
         if self.door.state != DoorState.OPEN:
             self._finish(True, "Venteo completado. Verifique la apertura de puerta.")
+            return
+        if not self._set_state(RecipeState.WAITING_FOR_WAFER_REMOVAL):
+            return
+        self.wafer_removal_confirmation_requested.emit()
+
+    def confirm_wafer_removed(self, confirmed):
+        if self._state != RecipeState.WAITING_FOR_WAFER_REMOVAL:
+            return
+        if not confirmed:
+            self._finish(
+                self._failed,
+                self._completion_message + " El usuario indicó que la oblea no fue retirada; la puerta queda abierta.",
+            )
+            return
+        if not self._set_state(RecipeState.CLOSING_DOOR_AFTER_RECIPE):
+            return
+        if not self._perform_action(
+            "Cerrar puerta después de retirar la oblea",
+            self.door.close,
+            safety=True,
+            outputs={"DOOR_OPEN_CMD": False, "DOOR_CLOSE_CMD": True},
+        ):
+            return
+        if self.door.state != DoorState.CLOSED:
+            self._finish(True, "No se pudo ordenar el cierre de la puerta al finalizar la receta.")
+            return
+        if not self._set_state(RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE):
+            return
+        self._try_finish_after_door_close()
+
+    def _try_finish_after_door_close(self):
+        if self._state != RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE:
+            return
+        if (self._digital_state_getter("DOOR_OPEN") is not False
+                or self._digital_state_getter("DOOR_CLOSE") is not True):
             return
         self._finish(self._failed, self._completion_message)
 

@@ -41,8 +41,10 @@ class Vacuum:
 class Vent:
     def __init__(self):
         self.state = VentState.IDLE
+        self.start_calls = 0
 
     def start(self):
+        self.start_calls += 1
         self.state = VentState.RUNNING
 
     def stop(self):
@@ -113,14 +115,31 @@ class RecipeSequenceTests(unittest.TestCase):
         self.pressure = Pressure()
         self.temperature = Temperature()
         self.process = Process()
+        self.digital_states = {
+            "DOOR_OPEN": False,
+            "DOOR_CLOSE": True,
+            "DRIVER_ENABLE": True,
+        }
+        self.digital_set_calls = []
         self.sequence = RecipeSequence(
             self.door, self.soft, self.main, self.vent, self.mfc,
             self.pressure, self.temperature, self.process,
-            digital_state_getter=lambda name: name == "DOOR_CLOSE",
+            digital_state_getter=lambda name: self.digital_states.get(name),
             recipe_log_factory=lambda: RecipeLog(self.log_path),
             recipe_data_log_factory=lambda: RecipeDataLog(self.data_log_path),
+            digital_state_setter=self._digital_set,
+            digital_hardware_reader=lambda name: self.digital_states.get(name),
         )
         self.recipe = Recipe("test", "test", 2, 0.2, 1, 1.5, 150)
+
+    def _digital_set(self, name, active):
+        self.digital_set_calls.append((name, active))
+        self.digital_states[name] = active
+
+    def _finish_with_door_open(self):
+        self.sequence.vent_completed()
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.sequence.confirm_wafer_removed(False)
 
     def tearDown(self):
         self.tempdir.cleanup()
@@ -145,12 +164,20 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
         self.sequence.vent_completed()
         self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.assertTrue(self.sequence.is_active)
+        self.digital_states.update({"DOOR_OPEN": True, "DOOR_CLOSE": False})
+        self.sequence.confirm_wafer_removed(True)
+        self.assertEqual(self.door.state, DoorState.CLOSED)
+        self.assertEqual(self.sequence.state, RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE)
+        self.digital_states.update({"DOOR_OPEN": False, "DOOR_CLOSE": True})
+        self.sequence.digital_value("DOOR_CLOSE", True)
         self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
         contents = self.log_path.read_text(encoding="utf-8")
         door_open = next(line for line in contents.splitlines() if "ACCION: Abrir puerta para cargar" in line)
         self.assertIn("DOOR_CLOSE_CMD=INACTIVO", door_open)
         self.assertIn("DOOR_OPEN_CMD=ACTIVO", door_open)
-        door_close = next(line for line in contents.splitlines() if "ACCION: Cerrar puerta" in line)
+        door_close = next(line for line in contents.splitlines() if "ACCION: Cerrar puerta después" in line)
         self.assertIn("DOOR_OPEN_CMD=INACTIVO", door_close)
         self.assertIn("DOOR_CLOSE_CMD=ACTIVO", door_close)
         self.assertIn("EOP=1.99 V", contents)
@@ -201,7 +228,7 @@ class RecipeSequenceTests(unittest.TestCase):
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
-        self.sequence.vent_completed()
+        self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.ERROR)
         self.assertFalse(finished[0][0])
         self.assertIn(str(self.data_log_path), finished[0][1])
@@ -237,7 +264,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertFalse(self.temperature.is_active)
         self.assertFalse(self.pressure.is_active)
         self.assertEqual(self.vent.state, VentState.RUNNING)
-        self.sequence.vent_completed()
+        self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
 
     def test_manual_maintenance_controls_lock_and_restore(self):
@@ -266,7 +293,7 @@ class RecipeSequenceTests(unittest.TestCase):
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertFalse(self.process.plasma_active)
-        self.sequence.vent_completed()
+        self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.ERROR)
         self.assertFalse(results[0][0])
         self.assertIn("sensor desconectado", results[0][1])
@@ -298,11 +325,79 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
         self.assertEqual(self.vent.state, VentState.RUNNING)
-        self.sequence.vent_completed()
+        self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.ERROR)
         self.assertFalse(finished[0][0])
         self.assertFalse(self.sequence.log_saved)
         self.assertIn(str(self.log_path), finished[0][1])
+
+    def test_driver_enable_is_set_only_when_inactive_and_verified(self):
+        self.digital_states["DRIVER_ENABLE"] = False
+
+        self.assertTrue(self.sequence.start(self.recipe))
+
+        self.assertEqual(self.digital_set_calls, [("DRIVER_ENABLE", True)])
+        self.assertTrue(self.digital_states["DRIVER_ENABLE"])
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER)
+        self.sequence.confirm_wafer_loaded(False)
+
+    def test_driver_enable_already_active_is_not_written(self):
+        self.assertTrue(self.sequence.start(self.recipe))
+
+        self.assertEqual(self.digital_set_calls, [])
+        self.sequence.confirm_wafer_loaded(False)
+
+    def test_driver_enable_confirmation_failure_blocks_door_opening(self):
+        def fail_to_enable(_name, _active):
+            raise RuntimeError("salida desconectada")
+
+        self.digital_states["DRIVER_ENABLE"] = False
+        self.sequence._digital_state_setter = fail_to_enable
+        results = []
+        self.sequence.finished.connect(lambda success, message: results.append((success, message)))
+
+        self.assertFalse(self.sequence.start(self.recipe))
+
+        self.assertEqual(self.door.state, DoorState.CLOSED)
+        self.assertEqual(self.sequence.state, RecipeState.ERROR)
+        self.assertFalse(results[0][0])
+        self.assertIn("DRIVER_ENABLE", results[0][1])
+
+    def test_driver_enable_readback_mismatch_blocks_door_opening(self):
+        self.digital_states["DRIVER_ENABLE"] = False
+        self.sequence._digital_state_setter = lambda _name, _active: None
+
+        self.assertFalse(self.sequence.start(self.recipe))
+
+        self.assertEqual(self.door.state, DoorState.CLOSED)
+        self.assertEqual(self.sequence.state, RecipeState.ERROR)
+
+    def test_stop_while_waiting_for_wafer_removal_does_not_restart_vent(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 0.5)
+        self.sequence.stop()
+        vent_starts_before_completion = self.vent.start_calls
+        self.sequence.vent_completed()
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+
+        self.sequence.stop()
+
+        self.assertEqual(self.vent.start_calls, vent_starts_before_completion)
+        self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
+
+    def test_recipe_finishes_open_when_user_confirms_wafer_not_removed(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 0.5)
+        self.sequence.stop()
+        self.sequence.vent_completed()
+
+        self.sequence.confirm_wafer_removed(False)
+
+        self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
+        self.assertEqual(self.door.state, DoorState.OPEN)
 
 
 if __name__ == "__main__":

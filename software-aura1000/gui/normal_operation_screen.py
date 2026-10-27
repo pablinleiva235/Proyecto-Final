@@ -409,6 +409,14 @@ class NormalOperationScreen(QWidget):
         )
         return answer == QMessageBox.Yes
 
+    def confirm_wafer_removed(self):
+        answer = QMessageBox.question(
+            self, text.tr(text.WAFER_REMOVAL_CONFIRM_TITLE),
+            text.tr(text.WAFER_REMOVAL_CONFIRM_MESSAGE),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        return answer == QMessageBox.Yes
+
     def _show_no_active_recipe(self):
         QMessageBox.information(
             self,

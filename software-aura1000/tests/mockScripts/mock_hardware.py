@@ -148,10 +148,26 @@ class MockHardware:
                 self._digital_states[signal_name] = (
                     signal["initial_state"] == signal["active_state"]
                 )
+                requested_value = int(signal["initial_state"])
+                readback_value = int(
+                    self._digital_states[signal_name]
+                    == bool(signal["active_state"])
+                )
+                logical_initial = requested_value == signal["active_state"]
+                logical_readback = readback_value == signal["active_state"]
                 if result_callback:
                     result_callback(
-                        signal_name, True,
-                        f"estado lógico inicial solicitado: {'activo' if self._digital_states[signal_name] else 'inactivo'}",
+                        signal_name,
+                        readback_value == requested_value,
+                        f"nivel enviado={requested_value}; lectura simulada={readback_value}; "
+                        f"estado lógico solicitado={'activo' if logical_initial else 'inactivo'}; "
+                        f"estado lógico leído={'activo' if logical_readback else 'inactivo'}; "
+                        f"verificación {'OK' if readback_value == requested_value else 'ERROR'}",
+                    )
+                if readback_value != requested_value:
+                    errors.append(
+                        f"{signal_name}: discrepancia entre nivel enviado "
+                        f"({requested_value}) y lectura simulada ({readback_value})"
                     )
             except Exception as error:
                 errors.append(f"{signal_name}: {error}")
@@ -163,9 +179,18 @@ class MockHardware:
             try:
                 self.analog_write(signal_name, 0.0)
                 if result_callback:
-                    result_callback(signal_name, True, "setpoint solicitado: 0.0 V")
+                    result_callback(
+                        signal_name,
+                        True,
+                        "setpoint enviado: 0.0 V; lectura física=no disponible "
+                        "(sin realimentación configurada)",
+                    )
             except Exception as error:
                 errors.append(f"{signal_name}: {error}")
                 if result_callback:
-                    result_callback(signal_name, False, str(error))
+                    result_callback(
+                        signal_name,
+                        False,
+                        f"setpoint solicitado: 0.0 V; escritura ERROR: {error}",
+                    )
         return errors

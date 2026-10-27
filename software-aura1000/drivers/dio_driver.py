@@ -84,7 +84,9 @@ def write_bit(board, port, bit, value):
 # Lectura Digital
 # ---------------------------------------------------------
 def read_bit(board, port_base, bit_offset):
-    value = ctypes.c_short(0)  
-    cbw.cbDBitIn(board, port_base, bit_offset, ctypes.byref(value))
+    value = ctypes.c_short(0)
+    err = cbw.cbDBitIn(board, port_base, bit_offset, ctypes.byref(value))
+    if err != 0:
+        raise Exception(f"cbDBitIn error {err}")
     return value.value
 

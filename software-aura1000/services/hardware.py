@@ -69,23 +69,79 @@ class Hardware:
         for signal_name, signal in DIGITALSIGNALS.items():
             if signal["dir"] != "OUT":
                 continue
-            logical_initial = signal["initial_state"] == signal["active_state"]
+            requested_value = int(signal["initial_state"])
+            logical_initial = requested_value == signal["active_state"]
             try:
                 port_base, bit_offset = self.map_to_ul_bit(signal["port"], signal["bit"])
-                dio.write_bit(self.dio_board, port_base, bit_offset, signal["initial_state"])
-                detail = f"estado lógico inicial solicitado: {'activo' if logical_initial else 'inactivo'}"
-                self._report_shutdown_result(result_callback, signal_name, True, detail)
+                dio.write_bit(self.dio_board, port_base, bit_offset, requested_value)
             except Exception as error:
-                errors.append(f"{signal_name}: {error}")
-                self._report_shutdown_result(result_callback, signal_name, False, str(error))
+                message = f"{signal_name}: escritura fallida: {error}"
+                errors.append(message)
+                self._report_shutdown_result(
+                    result_callback,
+                    signal_name,
+                    False,
+                    f"nivel enviado={requested_value}; escritura ERROR: {error}",
+                )
+                continue
+
+            try:
+                readback_value = int(
+                    dio.read_bit(self.dio_board, port_base, bit_offset)
+                )
+            except Exception as error:
+                message = f"{signal_name}: lectura de verificación fallida: {error}"
+                errors.append(message)
+                self._report_shutdown_result(
+                    result_callback,
+                    signal_name,
+                    False,
+                    f"escritura OK; nivel enviado={requested_value}; "
+                    f"lectura de pin=ERROR: {error}; "
+                    "estado lógico solicitado="
+                    f"{'activo' if logical_initial else 'inactivo'}",
+                )
+                continue
+
+            verified = readback_value == requested_value
+            logical_readback = readback_value == signal["active_state"]
+            detail = (
+                f"escritura OK; nivel enviado={requested_value}; "
+                f"lectura de pin={readback_value}; "
+                f"estado lógico solicitado={'activo' if logical_initial else 'inactivo'}; "
+                f"estado lógico leído={'activo' if logical_readback else 'inactivo'}"
+            )
+            if not verified:
+                message = (
+                    f"{signal_name}: discrepancia entre nivel enviado "
+                    f"({requested_value}) y lectura ({readback_value})"
+                )
+                errors.append(message)
+                detail += "; verificación ERROR"
+            else:
+                detail += "; verificación OK"
+            self._report_shutdown_result(
+                result_callback, signal_name, verified, detail
+            )
 
         for signal_name in ANALOG_OUTPUTS:
             try:
                 self.analog_write(signal_name, 0.0)
-                self._report_shutdown_result(result_callback, signal_name, True, "setpoint solicitado: 0.0 V")
+                self._report_shutdown_result(
+                    result_callback,
+                    signal_name,
+                    True,
+                    "setpoint enviado: 0.0 V; lectura física=no disponible "
+                    "(sin realimentación configurada)",
+                )
             except Exception as error:
                 errors.append(f"{signal_name}: {error}")
-                self._report_shutdown_result(result_callback, signal_name, False, str(error))
+                self._report_shutdown_result(
+                    result_callback,
+                    signal_name,
+                    False,
+                    f"setpoint solicitado: 0.0 V; escritura ERROR: {error}",
+                )
         return errors
 
     @staticmethod

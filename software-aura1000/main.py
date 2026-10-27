@@ -14,7 +14,7 @@ respectivos controladores y servicios.
 
 import sys
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from config_gui.app_config import USE_MOCK_HARDWARE
 from config_gui.settings_manager import SettingsManager
@@ -42,6 +42,73 @@ from gui.startup_screen import StartupScreen
 from gui.main_window import MainWindow
 
 
+def _make_global_exception_handler(hardware_getter):
+    """Build an exception hook that attempts an emergency hardware shutdown."""
+    handling_exception = False
+
+    def global_exception_handler(exctype, value, traceback):
+        nonlocal handling_exception
+        if handling_exception:
+            try:
+                sys.__excepthook__(exctype, value, traceback)
+            finally:
+                raise SystemExit(1)
+
+        handling_exception = True
+        print(
+            f"\n[CRITICAL] Error no manejado detectado: "
+            f"{exctype.__name__}: {value}"
+        )
+
+        safe_state_message = (
+            "No se pudo ejecutar el apagado seguro porque "
+            "la instancia de hardware no está disponible."
+        )
+        try:
+            hardware = hardware_getter()
+            if hardware is not None:
+                errors = hardware.shutdown_state() or []
+                if errors:
+                    safe_state_message = (
+                        "El apagado seguro terminó con errores:\n"
+                        + "\n".join(str(error) for error in errors)
+                    )
+                else:
+                    safe_state_message = (
+                        "Se solicitó el estado seguro del hardware correctamente."
+                    )
+        except Exception as hardware_error:
+            safe_state_message = (
+                "No se pudo completar el apagado seguro del hardware:\n"
+                f"{hardware_error}"
+            )
+            print(f"[CRITICAL] {safe_state_message}")
+
+        try:
+            error_message = (
+                "Ocurrió un error inesperado en el sistema.\n\n"
+                f"{safe_state_message}\n\n"
+                f"Detalle del error:\n{exctype.__name__}: {value}"
+            )
+            QMessageBox.critical(
+                None,
+                "Falla Crítica de Sistema",
+                error_message,
+            )
+        except Exception as gui_error:
+            print(
+                "[CRITICAL] No se pudo mostrar el cuadro de diálogo de Qt: "
+                f"{gui_error}"
+            )
+
+        try:
+            sys.__excepthook__(exctype, value, traceback)
+        finally:
+            raise SystemExit(1)
+
+    return global_exception_handler
+
+
 def main():
     """Inicializa y ejecuta la aplicación."""
 
@@ -50,6 +117,9 @@ def main():
     # =========================================================================
 
     app = QApplication(sys.argv)
+
+    hardware = None
+    sys.excepthook = _make_global_exception_handler(lambda: hardware)
 
     settings_manager = SettingsManager(app)
 

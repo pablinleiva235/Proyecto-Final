@@ -38,11 +38,13 @@ class RecipeService:
         "process_pressure",
         "process_temperature",
     )
-    FLOW_LIMITS = {"o2_flow": 10.0, "n2_flow": 1.0}
+    FLOW_LIMITS_MIX = {"o2_flow": 1.0, "n2_flow": 0.1}
+    FLOW_LIMITS = {"o2_flow": 6.5, "n2_flow": 0.65}
     BASE_PRESSURE_MAX_TORR = 3.0
+    PROCESS_PRESSURE_MIN_TORR = 1.5
     PROCESS_PRESSURE_MAX_TORR = 3.0
     PROCESS_TEMPERATURE_MIN_C = 130.0
-    PROCESS_TEMPERATURE_MAX_C = 200.0
+    PROCESS_TEMPERATURE_MAX_C = 190.0
 
     def __init__(self, recipes_directory=None):
         package_root = Path(__file__).resolve().parents[1]

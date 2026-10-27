@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
                 "BARATRON", "CHAMBER_TEMP", "MFC1_FLOW", "MFC2_FLOW",
                 "MFC3_FLOW", "MFC4_FLOW", "EOP",
             ),
-            poll_interval_ms=250,
+            poll_interval_ms=100,
             parent=self,
         )
         self.mfc_controller = MFCController(
@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
         )
         # Actualiza el estado visual confirmado.
         self.signal_controller.signal_state_changed.connect(
-            self.maintainer_screen.set_signal_active
+            self._display_digital_signal_state
         )
         # Informa a las secuencias sobre cambios
         # relevantes en las entradas digitales.
@@ -390,7 +390,13 @@ class MainWindow(QMainWindow):
         )
         self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
         self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
+        self.maintainer_screen.throttle_steps_requested.connect(
+            self.throttle_controller.move_steps
+        )
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
+        self.throttle_controller.limit_state_changed.connect(
+            self.maintainer_screen.set_signal_active
+        )
         self.throttle_controller.movement_changed.connect(
             lambda moving, direction: self.recipe_sequence.module_action_confirmed(
                 "Throttle", direction if moving else "stopped"
@@ -577,7 +583,7 @@ class MainWindow(QMainWindow):
 
     def stop_recipe_pressure_control(self):
         """Detiene el lazo si la secuencia de receta aborta o cambia de etapa."""
-        self.pressure_controller.stop()
+        self.pressure_controller.stop(return_to_rest=False)
 
     def _request_maintainer_access(self):
         if self.recipe_sequence.is_active:
@@ -623,6 +629,12 @@ class MainWindow(QMainWindow):
     ):
         if signal_name in ("DOOR_OPEN", "DOOR_CLOSE"):
             self._sync_module_permissions()
+
+    def _display_digital_signal_state(self, signal_name, active):
+        # Los finales de carrera de throttle se muestran solo tras el debounce
+        # del controlador; el resto conserva la lectura confirmada habitual.
+        if signal_name not in ("THROTTLE_OPEN", "THROTTLE_CLOSED"):
+            self.maintainer_screen.set_signal_active(signal_name, active)
 
     def _handle_digital_signal_sampled(self, signal_name, active):
         if signal_name == "ATM_SWITCH":

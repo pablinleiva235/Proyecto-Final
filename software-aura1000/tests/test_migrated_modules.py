@@ -134,6 +134,57 @@ class MigratedModulesTests(unittest.TestCase):
         controller.stop()
         self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
 
+    def test_throttle_moves_fixed_full_and_half_step_bursts(self):
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        controller._position_steps = 10.0
+        controller.move_steps(closing=True, steps=3, half_step=False)
+        self.assertFalse(self.hardware.digital_read("STEPPER_HALF_STEP"))
+        for _ in range(6):
+            controller._pulse()
+        self.assertFalse(controller._timer.isActive())
+        self.assertEqual(controller.position_steps, 13.0)
+
+        controller.move_steps(closing=False, steps=4, half_step=True)
+        self.assertTrue(self.hardware.digital_read("STEPPER_HALF_STEP"))
+        for _ in range(8):
+            controller._pulse()
+        self.assertFalse(controller._timer.isActive())
+        self.assertEqual(controller.position_steps, 11.0)
+
+    def test_throttle_rejects_step_count_out_of_range(self):
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        errors = []
+        controller.operation_error.connect(errors.append)
+        controller.move_steps(True, 0)
+        controller.move_steps(True, 1401)
+        self.assertEqual(len(errors), 2)
+        self.assertFalse(controller._timer.isActive())
+        controller.move_steps(True, 1400)
+        self.assertTrue(controller._timer.isActive())
+        self.assertEqual(controller._remaining_steps, 1400)
+        controller.stop()
+
+    def test_throttle_limit_status_debounces_but_stops_on_first_active_sample(self):
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        changes = []
+        controller.limit_state_changed.connect(lambda name, state: changes.append((name, state)))
+        controller._record_limit_sample("THROTTLE_OPEN", True)
+        controller._record_limit_sample("THROTTLE_OPEN", True)
+        self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
+        controller._record_limit_sample("THROTTLE_OPEN", False)
+        controller._record_limit_sample("THROTTLE_OPEN", True)
+        controller._record_limit_sample("THROTTLE_OPEN", True)
+        self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
+        controller._record_limit_sample("THROTTLE_OPEN", True)
+        self.assertTrue(controller._limit_stable["THROTTLE_OPEN"])
+        self.assertEqual(changes, [("THROTTLE_OPEN", True)])
+
+        self.hardware.set_input_state("THROTTLE_OPEN", True)
+        controller.start(closing=False)
+        self.assertFalse(controller._timer.isActive())
+
     def test_pressure_control_homes_and_reaches_legacy_start_position(self):
         self.hardware.set_input_state("THROTTLE_OPEN", False)
         throttle = ThrottleController(self.hardware, can_operate=lambda: True)
@@ -148,6 +199,9 @@ class MigratedModulesTests(unittest.TestCase):
         throttle._pulse()
         self.hardware.set_input_state("THROTTLE_OPEN", True)
         throttle._pulse()
+        self.assertIsNone(throttle._position_steps)
+        throttle.stop_if_limit_reached()
+        throttle.stop_if_limit_reached()
         self.assertEqual(throttle._position_steps, 0)
         self.assertEqual(pressure.state, "posicionando")
 
@@ -165,11 +219,70 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(self.hardware.digital_read("STEPPER_DIR"))
         self.assertTrue(throttle._timer.isActive())
         pressure.set_pressure_reading(1.0)
+        pressure.set_pressure_reading(1.0)
         self.assertFalse(throttle._timer.isActive())
         self.assertEqual(reached, [1.0])
         self.assertTrue(throttle._automatic_mode)
         pressure.stop()
         self.assertFalse(throttle._automatic_mode)
+
+    def test_pressure_control_uses_median_and_adapts_step_mode(self):
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        pressure._state = "regulando"
+        pressure._target = 1.0
+        throttle._automatic_mode = True
+        for reading in (0.5, 0.5, 0.5, 8.0, 0.5, 0.5, 0.5):
+            pressure.set_pressure_reading(reading)
+        self.assertTrue(throttle._timer.isActive())
+        self.assertTrue(self.hardware.digital_read("STEPPER_DIR"))
+        self.assertFalse(self.hardware.digital_read("STEPPER_HALF_STEP"))
+        self.assertEqual(throttle._timer.interval(), 2)
+
+        pressure._apply_pressure_correction(0.8)
+        self.assertTrue(self.hardware.digital_read("STEPPER_HALF_STEP"))
+        self.assertEqual(throttle._timer.interval(), 4)
+        pressure._apply_pressure_correction(0.97)
+        self.assertEqual(throttle._timer.interval(), 10)
+        pressure.stop(return_to_rest=False)
+
+    def test_pressure_stop_returns_to_rest_but_abort_does_not(self):
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle._position_steps = 390.0
+        throttle._automatic_mode = True
+        pressure._target = 1.0
+        pressure._state = "regulando"
+        pressure.stop()
+        self.assertEqual(pressure.state, "reposicionando")
+        self.assertEqual(throttle._remaining_steps, 10)
+        for _ in range(20):
+            throttle._pulse()
+        self.assertEqual(throttle.position_steps, 400.0)
+        self.assertEqual(pressure.state, "detenido")
+        self.assertFalse(throttle._automatic_mode)
+        self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
+
+        throttle._position_steps = 390.0
+        throttle._automatic_mode = True
+        pressure._target = 1.0
+        pressure._state = "regulando"
+        pressure.abort("interlock perdido")
+        self.assertEqual(throttle.position_steps, 390.0)
+        self.assertEqual(pressure.state, "detenido")
+        self.assertFalse(throttle._timer.isActive())
+
+    def test_maintainer_exposes_step_controls(self):
+        screen = MaintainerScreen()
+        screen.set_module_controls_enabled(True)
+        requests = []
+        screen.throttle_steps_requested.connect(lambda *args: requests.append(args))
+        screen.throttle_step_count.setValue(24)
+        screen.throttle_step_mode.setCurrentIndex(1)
+        screen.throttle_open_steps_button.click()
+        self.assertEqual(requests, [(False, 24, True)])
 
     def test_pressure_control_rejects_invalid_and_unreachable_setpoints(self):
         throttle = ThrottleController(self.hardware, can_operate=lambda: True)
@@ -190,6 +303,7 @@ class MigratedModulesTests(unittest.TestCase):
         allowed = [True]
         throttle = ThrottleController(self.hardware, can_operate=lambda: allowed[0])
         pressure = PressureController(throttle, can_operate=lambda: allowed[0])
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
         pressure.set_pressure_reading(0.5)
         pressure.start(1.0)
         self.assertTrue(throttle._timer.isActive())

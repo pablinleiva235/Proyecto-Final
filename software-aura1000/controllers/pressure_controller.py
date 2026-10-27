@@ -1,7 +1,9 @@
 """Lazo de presión que coordina lecturas analógicas y movimiento de throttle."""
 
 import math
+import statistics
 import time
+from collections import deque
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
@@ -17,12 +19,14 @@ class PressureController(QObject):
     MAX_BARATRON_PRESSURE_TORR = 10.0
     DEADBAND_TORR = 0.015
     STALE_READING_SECONDS = 1.0
+    PRESSURE_FILTER_SAMPLES = 7
 
     def __init__(self, throttle_controller, can_operate=None, parent=None):
         super().__init__(parent)
         self._throttle = throttle_controller
         self._can_operate = can_operate or (lambda: True)
         self._pressure = None
+        self._pressure_samples = deque(maxlen=self.PRESSURE_FILTER_SAMPLES)
         self._last_reading_at = None
         self._target = None
         self._target_reached = False
@@ -35,7 +39,7 @@ class PressureController(QObject):
 
     @property
     def is_active(self):
-        return self._state in ("posicionando", "regulando")
+        return self._state in ("posicionando", "regulando", "reposicionando")
 
     @property
     def state(self):
@@ -54,13 +58,15 @@ class PressureController(QObject):
             self.invalidate_pressure(str(error))
             return
         self._pressure = pressure
+        self._pressure_samples.append(pressure)
         self._last_reading_at = time.monotonic()
         self.pressure_changed.emit(pressure)
         if self._state == "regulando":
-            self._apply_pressure_correction(pressure)
+            self._apply_pressure_correction(statistics.median(self._pressure_samples))
 
     def invalidate_pressure(self, message="No hay una lectura BARATRON válida."):
         self._pressure = None
+        self._pressure_samples.clear()
         self._last_reading_at = None
         self.pressure_unavailable.emit(message)
         if self.is_active:
@@ -98,10 +104,30 @@ class PressureController(QObject):
             self._set_state("detenido")
             self.operation_error.emit(str(error))
 
-    def stop(self):
+    def stop(self, return_to_rest=True):
+        """Detiene el lazo; en parada normal retorna a reposo si es seguro."""
+        if self._state == "reposicionando":
+            self._watchdog.stop()
+            self._target = None
+            self._throttle.stop_pressure_motion(release=True)
+            self._set_state("detenido")
+            return
+        was_active = self._state in ("posicionando", "regulando")
         self._watchdog.stop()
         self._target = None
         if self._throttle.is_reserved_for_pressure:
+            if (
+                return_to_rest and was_active and self._can_operate()
+            ):
+                self._throttle.stop_pressure_motion(release=False)
+                self._set_state("reposicionando")
+                self._watchdog.start()
+                try:
+                    self._throttle.move_to_rest_position()
+                except Exception as error:
+                    self._stop_with_error(str(error))
+                    return
+                return
             self._throttle.stop_pressure_motion(release=True)
         self._set_state("detenido")
 
@@ -110,6 +136,11 @@ class PressureController(QObject):
         self._stop_with_error(message)
 
     def _on_initial_position_reached(self):
+        if self._state == "reposicionando":
+            self._watchdog.stop()
+            self._throttle.stop_pressure_motion(release=True)
+            self._set_state("detenido")
+            return
         if self._state != "posicionando":
             return
         if not self._can_operate():
@@ -134,20 +165,30 @@ class PressureController(QObject):
 
         if error > 0.3:
             pulse_interval_ms = 2
+            half_step = False
         elif error > 0.15:
             pulse_interval_ms = 4
+            half_step = True
         elif error > 0.05:
             pulse_interval_ms = 6
+            half_step = True
+        elif error > 0:
+            pulse_interval_ms = 10
+            half_step = True
         else:
             pulse_interval_ms = 10
-        self._throttle.start_pressure_motion(error > 0, pulse_interval_ms)
+            half_step = True
+        self._throttle.start_pressure_motion(error > 0, pulse_interval_ms, half_step)
 
     def _check_runtime_conditions(self):
         if not self.is_active:
             return
         if not self._can_operate():
             self._stop_with_error("Se perdió el vacío principal, la puerta cerrada o el interlock de venteo.")
-        elif self._last_reading_at is None or time.monotonic() - self._last_reading_at > self.STALE_READING_SECONDS:
+        elif self._state != "reposicionando" and (
+            self._last_reading_at is None
+            or time.monotonic() - self._last_reading_at > self.STALE_READING_SECONDS
+        ):
             self._stop_with_error("Se perdió la lectura actualizada del Baratron.")
 
     def _on_throttle_failure(self, message):

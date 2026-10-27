@@ -423,7 +423,7 @@ class RecipeSequence(QObject):
              {"LAMP1_ON_CMD": False, "LAMP2_ON_CMD": False, "LAMP3_ON_CMD": False}),
             ("Apagar MFC y llevar caudales a cero", self.mfc.shutdown,
              {"MFC1_OPEN": False, "MFC1_SETPOINT": "0 V", "MFC2_OPEN": False, "MFC2_SETPOINT": "0 V"}),
-            ("Detener control de presión", self.pressure.stop,
+            ("Detener control de presión", lambda: self.pressure.stop(return_to_rest=False),
              {"STEPPER_STEP": False, "STEPPER_OUTPUT_ENABLE": False}),
             ("Confirmar lámparas y RF apagados", self.process.stop_all,
              {"LAMP1_ON_CMD": False, "LAMP2_ON_CMD": False, "LAMP3_ON_CMD": False, "RF_ON_CMD": False}),

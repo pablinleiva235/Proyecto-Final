@@ -27,12 +27,14 @@ from typing import Dict, List
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
+    QComboBox,
     QDoubleSpinBox,
     QGroupBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSpinBox,
     QScrollArea,
     QTabWidget,
     QVBoxLayout,
@@ -70,6 +72,7 @@ class MaintainerScreen(QWidget):
     mfc_valve_requested = pyqtSignal(str, bool)
     throttle_move_requested = pyqtSignal(bool)
     throttle_stop_requested = pyqtSignal()
+    throttle_steps_requested = pyqtSignal(bool, int, bool)
     pressure_start_requested = pyqtSignal(float)
     pressure_stop_requested = pyqtSignal()
     temperature_start_requested = pyqtSignal(float)
@@ -89,6 +92,7 @@ class MaintainerScreen(QWidget):
         self._output_widgets: List[SignalWidget] = []
         self._analog_values = {}
         self._manual_controls_locked = False
+        self._pressure_control_active = False
         self._sequence_button_permissions = {}
 
         self.create_widgets()
@@ -286,6 +290,16 @@ class MaintainerScreen(QWidget):
         self.throttle_close_button.pressed.connect(lambda: self.throttle_move_requested.emit(True))
         self.throttle_open_button.released.connect(self.throttle_stop_requested.emit)
         self.throttle_close_button.released.connect(self.throttle_stop_requested.emit)
+        self.throttle_open_steps_button.clicked.connect(
+            lambda: self.throttle_steps_requested.emit(
+                False, self.throttle_step_count.value(), self.throttle_step_mode.currentIndex() == 1
+            )
+        )
+        self.throttle_close_steps_button.clicked.connect(
+            lambda: self.throttle_steps_requested.emit(
+                True, self.throttle_step_count.value(), self.throttle_step_mode.currentIndex() == 1
+            )
+        )
         self.pressure_start_button.clicked.connect(
             lambda: self.pressure_start_requested.emit(self.pressure_setpoint.value())
         )
@@ -444,6 +458,27 @@ class MaintainerScreen(QWidget):
         self.throttle_close_button.setObjectName("MaintenanceActionButton")
         throttle_buttons.addWidget(self.throttle_open_button)
         throttle_buttons.addWidget(self.throttle_close_button)
+        self.throttle_step_count = QSpinBox()
+        self.throttle_step_count.setRange(1, 1400)
+        self.throttle_step_count.setValue(1)
+        self.throttle_step_count.setSuffix(" pasos")
+        self.throttle_step_count.setObjectName("ThrottleStepCount")
+        self.throttle_step_mode = QComboBox()
+        self.throttle_step_mode.addItems(("Full step", "Half step"))
+        self.throttle_step_mode.setObjectName("ThrottleStepMode")
+        step_mode_row = QHBoxLayout()
+        step_mode_row.addWidget(QLabel("Modo de paso:"))
+        step_mode_row.addWidget(self.throttle_step_mode)
+        throttle_buttons.addLayout(step_mode_row)
+        throttle_buttons.addWidget(self.throttle_step_count)
+        step_action_row = QHBoxLayout()
+        self.throttle_open_steps_button = QPushButton("Abrir pasos")
+        self.throttle_open_steps_button.setObjectName("MaintenanceActionButton")
+        self.throttle_close_steps_button = QPushButton("Cerrar pasos")
+        self.throttle_close_steps_button.setObjectName("MaintenanceActionButton")
+        step_action_row.addWidget(self.throttle_open_steps_button)
+        step_action_row.addWidget(self.throttle_close_steps_button)
+        throttle_buttons.addLayout(step_action_row)
         self.throttle_state_label = QLabel("DETENIDO")
         self.throttle_state_label.setObjectName("MaintenancePill")
         self.throttle_state_label.setProperty("state", "inactive")
@@ -692,14 +727,29 @@ class MaintainerScreen(QWidget):
             state,
             "active" if moving else "inactive",
         )
+        opening = direction.startswith("abriendo")
+        closing = direction.startswith("cerrando")
+        is_burst = "pasos" in direction
         set_localized_text(
             self.throttle_open_button,
-            myStr.MAINTAINER_THROTTLE_OPEN + (f" ({direction})" if moving and direction == "abriendo" else ""),
+            myStr.MAINTAINER_THROTTLE_OPEN + (f" ({direction})" if moving and opening else ""),
         )
         set_localized_text(
             self.throttle_close_button,
-            myStr.MAINTAINER_THROTTLE_CLOSE + (f" ({direction})" if moving and direction == "cerrando" else ""),
+            myStr.MAINTAINER_THROTTLE_CLOSE + (f" ({direction})" if moving and closing else ""),
         )
+        controls_enabled = getattr(self, "_module_controls_enabled", False)
+        manual_available = controls_enabled and not getattr(self, "_pressure_control_active", False)
+        for widget in (
+            self.throttle_step_count, self.throttle_step_mode,
+            self.throttle_open_steps_button, self.throttle_close_steps_button,
+        ):
+            widget.setEnabled(manual_available and not moving)
+        self.throttle_open_button.setEnabled(manual_available and not (moving and is_burst))
+        self.throttle_close_button.setEnabled(manual_available and not (moving and is_burst))
+        if not getattr(self, "_pressure_control_active", False):
+            self.pressure_start_button.setEnabled(controls_enabled and not moving)
+            self.pressure_setpoint.setEnabled(controls_enabled and not moving)
 
     def set_module_controls_enabled(self, enabled):
         enabled = bool(enabled) and not self._manual_controls_locked
@@ -707,6 +757,8 @@ class MaintainerScreen(QWidget):
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
             self.throttle_open_button, self.throttle_close_button,
+            self.throttle_step_count, self.throttle_step_mode,
+            self.throttle_open_steps_button, self.throttle_close_steps_button,
             self.pressure_setpoint,
             self.temperature_setpoint,
             self.lamps13_duration, self.lamps13_button, self.lamp2_button,
@@ -715,7 +767,7 @@ class MaintainerScreen(QWidget):
         for widget in widgets:
             widget.setEnabled(enabled)
         self._module_controls_enabled = enabled
-        pressure_active = self.pressure_stop_button.isEnabled()
+        pressure_active = getattr(self, "_pressure_control_active", False)
         self.pressure_start_button.setEnabled(
             enabled and not pressure_active
         )
@@ -748,15 +800,22 @@ class MaintainerScreen(QWidget):
             "detenido": myStr.MAINTAINER_PRESSURE_IDLE,
             "posicionando": myStr.MAINTAINER_PRESSURE_POSITIONING,
             "regulando": myStr.MAINTAINER_PRESSURE_RUNNING,
+            "reposicionando": "Volviendo a la posición de reposo...",
         }
         set_localized_text(self.pressure_state_label, labels.get(state, state))
-        active = state in ("posicionando", "regulando")
+        active = state in ("posicionando", "regulando", "reposicionando")
+        self._pressure_control_active = active
         self.pressure_stop_button.setEnabled(active)
         controls_enabled = getattr(self, "_module_controls_enabled", False)
         self.pressure_start_button.setEnabled(controls_enabled and not active)
         self.pressure_setpoint.setEnabled(controls_enabled and not active)
         self.throttle_open_button.setEnabled(controls_enabled and not active)
         self.throttle_close_button.setEnabled(controls_enabled and not active)
+        for widget in (
+            self.throttle_step_count, self.throttle_step_mode,
+            self.throttle_open_steps_button, self.throttle_close_steps_button,
+        ):
+            widget.setEnabled(controls_enabled and not active)
 
     def set_pressure_control_error(self, message):
         set_localized_text(

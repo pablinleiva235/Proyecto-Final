@@ -146,6 +146,8 @@ class DoorSequence(QObject):
                 DoorState.CLOSED
             )
 
+            # agregar una falla acá para probar 
+
         except Exception as error:
             self._handle_error(error)
 

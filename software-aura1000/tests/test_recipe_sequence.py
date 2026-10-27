@@ -70,7 +70,7 @@ class Pressure:
         self.target = value
         self.is_active = True
 
-    def stop(self):
+    def stop(self, return_to_rest=True):
         self.is_active = False
 
 

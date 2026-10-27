@@ -107,8 +107,8 @@ class RecipeEditorDialog(QDialog):
             return
 
         limits = {
-            "o2_flow": (0.0, 10.0),
-            "n2_flow": (0.0, 1.0),
+            "o2_flow": (0.0, 6.5),
+            "n2_flow": (0.1, 0.65),
             "base_pressure": (float(self._pressure_min), 3.0),
             "process_pressure": (0.0, 3.0),
             "process_temperature": (130.0, 200.0),

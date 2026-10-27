@@ -2,6 +2,7 @@
 
 import sys
 import unittest
+from unittest.mock import patch
 
 from PyQt5.QtWidgets import QApplication
 
@@ -36,17 +37,76 @@ class MigratedModulesTests(unittest.TestCase):
 
         controller.set_flow("MFC1", 3.25)
         controller.set_flow("MFC2", 0.45)
-        self.assertAlmostEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 3.25)
-        self.assertAlmostEqual(self.hardware.get_analog_output("MFC2_SETPOINT"), 0.45)
+        self.assertAlmostEqual(
+            self.hardware.get_analog_output("MFC1_SETPOINT"),
+            max(0.0, 3.25 - 0.16) / 0.981 / 10.0 * 5.0,
+        )
+        self.assertAlmostEqual(self.hardware.get_analog_output("MFC2_SETPOINT"), 2.25)
 
-        controller.set_flow("MFC1", 10.01)
+        controller.set_flow("MFC1", 6.51)
         self.assertTrue(errors)
-        self.assertAlmostEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 3.25)
+        self.assertAlmostEqual(
+            self.hardware.get_analog_output("MFC1_SETPOINT"),
+            max(0.0, 3.25 - 0.16) / 0.981 / 10.0 * 5.0,
+        )
+
+        controller.set_flow("MFC2", 0.09)
+        self.assertEqual(len(errors), 2)
 
         controller.set_valve("MFC1", True)
         controller.set_valve("MFC1", False)
         self.assertFalse(self.hardware.digital_read("MFC1_OPEN"))
         self.assertEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 0.0)
+
+    def test_mfc_calibration_boundaries_and_measurement_conversion(self):
+        self.assertEqual(MFCController.flow_to_voltage("MFC1", 0), 0.0)
+        self.assertEqual(MFCController.flow_to_voltage("MFC1", 0.16), 0.0)
+        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC1", 6.5), 3.2313965341)
+        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC2", 0.1), 0.5)
+        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC2", 0.65), 3.25)
+        self.assertAlmostEqual(MFCController.voltage_to_flow("MFC1", 2.5), 4.905)
+        self.assertAlmostEqual(MFCController.voltage_to_flow("MFC2", 2.5), 0.5)
+
+    def test_flow_monitor_waits_for_three_seconds_and_trips_over_tolerance(self):
+        controller = MFCController(self.hardware, can_operate=lambda: True)
+        faults = []
+        controller.flow_fault.connect(faults.append)
+        controller.set_flow("MFC1", 2.0)
+        controller.set_valve("MFC1", True)
+        voltage = (2.0 * 1.20) / 10.0 * 5.0
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 1.0, 2.0, 2.99, 3.0)):
+            for _ in range(4):
+                controller.update_flow_measurement("MFC1", voltage)
+            self.assertFalse(faults)
+            controller.update_flow_measurement("MFC1", voltage)
+        self.assertEqual(len(faults), 1)
+
+    def test_flow_monitor_uses_mfc2_tolerance(self):
+        controller = MFCController(self.hardware, can_operate=lambda: True)
+        faults = []
+        controller.flow_fault.connect(faults.append)
+        controller.set_flow("MFC2", 0.4)
+        controller.set_valve("MFC2", True)
+        # 30% below the target exceeds MFC2's 25% tolerance.
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 1.0, 2.0, 3.0)):
+            for _ in range(4):
+                controller.update_flow_measurement("MFC2", 0.4 * 0.7 / 1.0 * 5.0)
+        self.assertEqual(len(faults), 1)
+
+    def test_plasma_requires_mfc1_valve_and_positive_o2_setpoint(self):
+        allowed = {"value": False}
+        controller = ProcessController(
+            self.hardware,
+            can_operate=lambda: True,
+            can_enable_plasma=lambda: allowed["value"],
+        )
+        controller.set_plasma(True)
+        self.assertFalse(controller.plasma_active)
+        self.assertFalse(self.hardware.digital_read("RF_ON_CMD"))
+        allowed["value"] = True
+        controller.set_plasma(True)
+        self.assertTrue(controller.plasma_active)
+        controller.set_plasma(False)
 
     def test_analog_controller_reads_voltage_and_thermocouple(self):
         self.hardware.set_analog_value("BARATRON", 2.1)
@@ -226,6 +286,10 @@ class MigratedModulesTests(unittest.TestCase):
             process_pressure=3.01,
             process_temperature=150.0,
         )
+        recipe.n2_flow = 0.0
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
+        recipe.n2_flow = 0.1
         with self.assertRaises(RecipeError):
             service.validate(recipe)
 

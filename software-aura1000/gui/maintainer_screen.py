@@ -425,8 +425,8 @@ class MaintainerScreen(QWidget):
         return scroll_area
 
     def _create_module_controls(self):
-        self.mfc1_card = MFCControlCard("MFC1", "O₂", 10.0)
-        self.mfc2_card = MFCControlCard("MFC2", "N₂", 1.0)
+        self.mfc1_card = MFCControlCard("MFC1", "O₂", 6.5)
+        self.mfc2_card = MFCControlCard("MFC2", "N₂", 0.65, minimum_flow=0.1)
         self.mfc1_setpoint = self.mfc1_card.setpoint
         self.mfc2_setpoint = self.mfc2_card.setpoint
         self.mfc1_set_button = self.mfc1_card.apply_button

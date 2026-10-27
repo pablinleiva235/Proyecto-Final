@@ -110,6 +110,8 @@ class RecipeService:
                     text.RECIPE_ERROR_O2_RANGE if key == "o2_flow"
                     else text.RECIPE_ERROR_N2_RANGE
                 )
+            if key == "n2_flow" and value < 0.1:
+                raise RecipeError(text.RECIPE_ERROR_N2_RANGE)
             if key == "process_pressure" and value > self.PROCESS_PRESSURE_MAX_TORR:
                 raise RecipeError(text.RECIPE_ERROR_PROCESS_PRESSURE_RANGE)
             if key == "base_pressure" and value > self.BASE_PRESSURE_MAX_TORR:

@@ -12,10 +12,11 @@ class ProcessController(QObject):
 
     IGNITION_DELAY_S = 2.0
 
-    def __init__(self, hardware, can_operate=None, parent=None):
+    def __init__(self, hardware, can_operate=None, can_enable_plasma=None, parent=None):
         super().__init__(parent)
         self._hardware = hardware
         self._can_operate = can_operate or (lambda: True)
+        self._can_enable_plasma = can_enable_plasma or (lambda: True)
         self._lamps13 = False
         self._lamp2 = False
         self._plasma = False
@@ -105,6 +106,8 @@ class ProcessController(QObject):
         if enabled:
             try:
                 self._require_operation()
+                if not self._can_enable_plasma():
+                    raise RuntimeError("Para activar plasma, abra MFC1 y configure una consigna de O₂ mayor que cero.")
                 self._write("RF_ON_CMD", True)
                 self._plasma = True
                 self._plasma_started_at = time.monotonic()

@@ -154,6 +154,7 @@ class MainWindow(QMainWindow):
         self.process_controller = ProcessController(
             hardware=self.hardware,
             can_operate=self._can_control_process_modules,
+            can_enable_plasma=self.mfc_controller.can_enable_plasma,
             parent=self,
         )
         self.temperature_controller = TemperatureController(
@@ -345,19 +346,7 @@ class MainWindow(QMainWindow):
 
         # Lecturas analógicas de mantenimiento.
         self.analog_controller.signal_value_changed.connect(
-            self.maintainer_screen.set_analog_value
-        )
-        self.analog_controller.signal_value_changed.connect(
-            self.normal_operation_screen.set_analog_value
-        )
-        self.analog_controller.signal_value_changed.connect(
-            self.recipe_sequence.cache_analog
-        )
-        self.analog_controller.signal_value_changed.connect(
-            self._handle_analog_value
-        )
-        self.analog_controller.signal_value_changed.connect(
-            self.recipe_sequence.update_analog
+            self._route_analog_value
         )
         self.analog_controller.signal_error.connect(
             self.maintainer_screen.set_analog_error
@@ -382,7 +371,7 @@ class MainWindow(QMainWindow):
         self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
         self.mfc_controller.flow_applied.connect(
             lambda name, value: self.recipe_sequence.module_action_confirmed(
-                f"{name} flow", f"{value:g} SLPM"
+                f"{name} flow", f"{value:g} SLPM; {self.mfc_controller.flow_to_voltage(name, value):.3f} V"
             )
         )
         self.mfc_controller.valve_state_changed.connect(
@@ -392,6 +381,13 @@ class MainWindow(QMainWindow):
         )
         self.mfc_controller.operation_error.connect(self._handle_module_error)
         self.mfc_controller.operation_error.connect(self.recipe_sequence.controller_error)
+        self.mfc_controller.flow_measured.connect(
+            lambda name, value: self._publish_analog_value(f"{name}_FLOW", value)
+        )
+        self.mfc_controller.flow_fault.connect(self._handle_mfc_flow_fault)
+        self.mfc_controller.plasma_disable_requested.connect(
+            lambda: self.process_controller.set_plasma(False)
+        )
         self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
         self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
@@ -816,11 +812,46 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_throttle_moving(False, "detenido")
         self._handle_module_error("Throttle", message)
 
+    def _route_analog_value(self, signal_name, value):
+        if signal_name in ("MFC1_FLOW", "MFC2_FLOW"):
+            self.mfc_controller.update_flow_measurement(signal_name[:4], value)
+            return
+        self._publish_analog_value(signal_name, value)
+        self._handle_analog_value(signal_name, value)
+
+    def _publish_analog_value(self, signal_name, value):
+        self.maintainer_screen.set_analog_value(signal_name, value)
+        self.normal_operation_screen.set_analog_value(signal_name, value)
+        self.recipe_sequence.cache_analog(signal_name, value)
+        self.recipe_sequence.update_analog(signal_name, value)
+
     def _handle_analog_value(self, signal_name, value):
         if signal_name == "BARATRON":
             self.pressure_controller.set_pressure_reading(value)
         elif signal_name == "CHAMBER_TEMP":
             self.temperature_controller.set_temperature_reading(value)
+
+    def _handle_mfc_flow_fault(self, message):
+        self.maintainer_screen.set_operation_message(
+            f"Falla de caudal: {message} Se ejecutó el apagado seguro.", is_error=True
+        )
+        try:
+            self.mfc_controller.shutdown()
+        finally:
+            try:
+                self.process_controller.stop_all()
+            except Exception:
+                pass
+            if self.pressure_controller.is_active:
+                self.pressure_controller.abort("Control detenido por falla de caudal MFC.")
+            else:
+                self.throttle_controller.stop()
+            self.recipe_sequence.interlock_lost(f"Falla de caudal: {message}")
+            QMessageBox.warning(
+                self, strings.tr("Falla de caudal"),
+                strings.tr(f"Se detuvo el proceso por una desviación de caudal:\n\n{message}"),
+                QMessageBox.Ok,
+            )
 
     def _handle_analog_error(self, signal_name, message):
         if signal_name == "BARATRON":

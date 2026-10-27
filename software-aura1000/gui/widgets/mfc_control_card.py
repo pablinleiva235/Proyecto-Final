@@ -20,10 +20,11 @@ class MFCControlCard(QFrame):
     flow_requested = pyqtSignal(str, float)
     valve_requested = pyqtSignal(str, bool)
 
-    def __init__(self, name, gas, maximum_flow, parent=None):
+    def __init__(self, name, gas, maximum_flow, minimum_flow=0.0, parent=None):
         super().__init__(parent)
         self.name = name
         self.maximum_flow = float(maximum_flow)
+        self.minimum_flow = float(minimum_flow)
         self.setObjectName("MFCControlCard")
         self._valve_open = False
         self._measurement_fault = False
@@ -61,7 +62,7 @@ class MFCControlCard(QFrame):
         self.setpoint_label = QLabel("Flujo deseado")
         self.setpoint_label.setObjectName("MaintenanceCardFooter")
         self.setpoint = QDoubleSpinBox()
-        self.setpoint.setRange(0.0, self.maximum_flow)
+        self.setpoint.setRange(self.minimum_flow, self.maximum_flow)
         self.setpoint.setDecimals(2)
         self.setpoint.setSingleStep(0.05)
         self.setpoint.setSuffix(" SLPM")

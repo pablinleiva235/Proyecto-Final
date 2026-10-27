@@ -5,6 +5,7 @@ from datetime import datetime
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from controllers.mfc_controller import MFCController
 from logic.door_sequence import DoorState
 from logic.main_vacuum_sequence import MainVacuumState
 from logic.soft_vacuum_sequence import SoftVacuumState
@@ -364,7 +365,7 @@ class RecipeSequence(QObject):
         if not self._perform_action(
             f"Configurar MFC1 O2 a {self._recipe.o2_flow:g} SLPM",
             lambda: self.mfc.set_flow("MFC1", self._recipe.o2_flow),
-            outputs={"MFC1_SETPOINT": f"{self._recipe.o2_flow:g} V ({self._recipe.o2_flow:g} SLPM)"},
+            outputs={"MFC1_SETPOINT": f"{MFCController.flow_to_voltage('MFC1', self._recipe.o2_flow):.3f} V ({self._recipe.o2_flow:g} SLPM)"},
         ):
             return
         if not self.is_active:
@@ -372,7 +373,7 @@ class RecipeSequence(QObject):
         if not self._perform_action(
             f"Configurar MFC2 N2 a {self._recipe.n2_flow:g} SLPM",
             lambda: self.mfc.set_flow("MFC2", self._recipe.n2_flow),
-            outputs={"MFC2_SETPOINT": f"{self._recipe.n2_flow:g} V ({self._recipe.n2_flow:g} SLPM)"},
+            outputs={"MFC2_SETPOINT": f"{MFCController.flow_to_voltage('MFC2', self._recipe.n2_flow):.3f} V ({self._recipe.n2_flow:g} SLPM)"},
         ):
             return
         if not self.is_active:

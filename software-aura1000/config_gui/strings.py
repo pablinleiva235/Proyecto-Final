@@ -109,7 +109,7 @@ OPERATION_READING_UNAVAILABLE = "No disponible"
 OPERATION_READING_OK = "Lectura recibida"
 OPERATION_READING_ERROR = "Error de lectura"
 OPERATION_DIAGRAM_TITLE = "Esquema del equipo"
-OPERATION_DIAGRAM_PENDING = "Espacio reservado para el diagrama esquemático del equipo"
+OPERATION_DIAGRAM_LOAD_ERROR = "No se pudo cargar el diagrama del equipo."
 OPERATION_RECIPE_ACTIONS_TITLE = "Recetas"
 NEW_RECIPE_BUTTON = "Nueva receta"
 START_RECIPE_BUTTON = "Iniciar receta"
@@ -412,7 +412,7 @@ _SPANISH_TO_ENGLISH = {
     "Lectura recibida": "Reading received",
     "Error de lectura": "Reading error",
     "Esquema del equipo": "Equipment schematic",
-    "Espacio reservado para el diagrama esquemático del equipo": "Reserved space for the equipment schematic",
+    "No se pudo cargar el diagrama del equipo.": "The equipment diagram could not be loaded.",
     "Recetas": "Recipes",
     "Nueva receta": "New recipe",
     "Iniciar receta": "Start recipe",

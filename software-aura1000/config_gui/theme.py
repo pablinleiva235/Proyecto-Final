@@ -228,13 +228,13 @@ QLabel#ActiveRecipeName {{
     font-weight: 600;
 }}
 
-QLabel#OperationDiagramPlaceholder {{
+QLabel#OperationDiagramFallback {{
     background-color: {SURFACE_SECONDARY_COLOR};
     color: {TEXT_MUTED_COLOR};
-    border: 1px dashed {BORDER_COLOR};
+    border: 1px solid {BORDER_COLOR};
     border-radius: 10px;
     padding: 20px;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
 }}
 

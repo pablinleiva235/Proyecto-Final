@@ -1,8 +1,10 @@
 """Pantalla de operación normal con lecturas y espacio para el esquema."""
 
 from dataclasses import replace
+from pathlib import Path
 
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QFrame,
     QFileDialog,
@@ -19,6 +21,42 @@ from gui.widgets.localization import set_localized_text, translate_widget_tree
 from gui.widgets.status_indicator import StatusIndicatorWidget
 from gui.recipe_dialogs import RecipeEditorDialog, RecipeViewerDialog
 from services.recipe_service import RecipeError, RecipeService
+
+
+class _DiagramImageLabel(QLabel):
+    """Display a diagram scaled to fit while preserving its aspect ratio."""
+
+    def __init__(self, pixmap=None, fallback_text="", parent=None):
+        super().__init__(parent)
+        self._source_pixmap = (
+            pixmap if pixmap is not None and not pixmap.isNull() else None
+        )
+        self.setAlignment(Qt.AlignCenter)
+        if self._source_pixmap is None:
+            self.setText(fallback_text)
+            self.setWordWrap(True)
+            self.setObjectName("OperationDiagramFallback")
+        else:
+            self.setObjectName("OperationDiagramImage")
+            self._update_scaled_pixmap()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_scaled_pixmap()
+
+    def _update_scaled_pixmap(self):
+        if self._source_pixmap is None:
+            return
+        available_size = self.contentsRect().size()
+        if available_size.width() <= 0 or available_size.height() <= 0:
+            return
+        self.setPixmap(
+            self._source_pixmap.scaled(
+                available_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        )
 
 
 class NormalOperationScreen(QWidget):
@@ -73,12 +111,18 @@ class NormalOperationScreen(QWidget):
         readings_layout.addStretch(1)
 
         self.diagram_panel = self._make_panel(text.OPERATION_DIAGRAM_TITLE)
-        self.diagram_placeholder = QLabel(text.OPERATION_DIAGRAM_PENDING)
-        self.diagram_placeholder.setObjectName("OperationDiagramPlaceholder")
-        self.diagram_placeholder.setAlignment(Qt.AlignCenter)
-        self.diagram_placeholder.setWordWrap(True)
-        self.diagram_placeholder.setMinimumSize(240, 240)
-        self.diagram_panel.layout().addWidget(self.diagram_placeholder, 1)
+        diagram_path = Path(__file__).resolve().parents[1] / "assets" / "Frame 28.png"
+        diagram_pixmap = QPixmap(str(diagram_path))
+        fallback_text = text.OPERATION_DIAGRAM_LOAD_ERROR
+        if diagram_pixmap.isNull():
+            fallback_text = f"{fallback_text}\n{diagram_path.name}"
+        self.diagram_image = _DiagramImageLabel(diagram_pixmap, fallback_text)
+        if diagram_pixmap.isNull():
+            set_localized_text(
+                self.diagram_image,
+                f"{text.OPERATION_DIAGRAM_LOAD_ERROR}\n{diagram_path.name}",
+            )
+        self.diagram_panel.layout().addWidget(self.diagram_image, 1)
 
         self.actions_panel = self._make_panel(text.OPERATION_RECIPE_ACTIONS_TITLE)
         self.active_recipe_label = QLabel(text.ACTIVE_RECIPE_LABEL)

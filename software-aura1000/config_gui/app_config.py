@@ -12,4 +12,4 @@ Configuración general de ejecución de la aplicación.
 #
 # False:
 #   La aplicación utiliza el hardware físico.
-USE_MOCK_HARDWARE = True
+USE_MOCK_HARDWARE = False

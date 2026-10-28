@@ -71,8 +71,6 @@ ANALOG_UNITS = {
     "CHAMBER_TEMP": "°C",
     "MFC1_FLOW": "SLPM",
     "MFC2_FLOW": "SLPM",
-    "MFC3_FLOW": "SLPM",
-    "MFC4_FLOW": "SLPM",
     "EOP": "V",
 }
 

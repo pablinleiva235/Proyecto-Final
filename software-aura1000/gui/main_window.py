@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
             hardware=self.hardware,
             monitored_signals=(
                 "BARATRON", "CHAMBER_TEMP", "MFC1_FLOW", "MFC2_FLOW",
-                "MFC3_FLOW", "MFC4_FLOW", "EOP",
+                "EOP",
             ),
             poll_interval_ms=100,
             parent=self,

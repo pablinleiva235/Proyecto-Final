@@ -1,0 +1,13 @@
+<svg width="172" height="122" viewBox="0 0 172 122" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="0.5" y="0.5" width="171" height="121" rx="4.5" stroke="#8A38F5" stroke-dasharray="10 5"/>
+<path d="M20 35H41V45H20V35Z" fill="black"/>
+<path d="M60 21H128C139.046 21 148 29.9543 148 41C148 52.0457 139.046 61 128 61H60C48.9543 61 40 52.0457 40 41C40 29.9543 48.9543 21 60 21Z" fill="white" stroke-width="2" stroke="black"/>
+<path d="M50 68H142V92H50V68Z" fill="white" stroke-width="2" stroke="black"/>
+<path d="M98 71H101V89H98V71Z" fill="black"/>
+<path d="M108 71H111V89H108V71Z" fill="black"/>
+<path d="M118 71H121V89H118V71Z" fill="black"/>
+<path d="M128 71H131V89H128V71Z" fill="black"/>
+<path d="M48 97H152V101H48V97Z" fill="black"/>
+<path d="M68 33H74V49H68V33Z" fill="black"/>
+<path d="M80 33H86V49H80V33Z" fill="black"/>
+</svg>

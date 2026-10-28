@@ -88,6 +88,7 @@ class MaintainerScreen(QWidget):
         super().__init__(parent)
 
         self._signal_widgets: Dict[str, SignalWidget] = {}
+        self._module_signal_widgets: Dict[str, SignalWidget] = {}
         self._input_widgets: List[SignalWidget] = []
         self._output_widgets: List[SignalWidget] = []
         self._analog_values = {}
@@ -125,8 +126,6 @@ class MaintainerScreen(QWidget):
 
         self.signals_tab = QWidget()
         self.signals_tab.setObjectName("MaintainerSignalsTab")
-        self.analog_tab = QWidget()
-        self.analog_tab.setObjectName("MaintainerAnalogTab")
 
         self.tabs.addTab(
             self.sequences_tab,
@@ -137,9 +136,7 @@ class MaintainerScreen(QWidget):
             self.signals_tab,
             myStr.MAINTAINER_SIGNALS_TAB,
         )
-        self.tabs.addTab(self.analog_tab, myStr.MAINTAINER_ANALOG_TAB)
         self.tabs.setTabToolTip(1, "Entradas y salidas digitales")
-        self.tabs.setTabToolTip(2, "Lecturas analógicas")
 
         # ---------------------------------------------------------------------
         # Pestaña de módulos funcionales
@@ -194,6 +191,7 @@ class MaintainerScreen(QWidget):
         self._create_signal_widgets()
         self._create_module_controls()
         self._create_analog_readouts()
+        self._create_module_signal_controls()
 
         # ---------------------------------------------------------------------
         # Navegación
@@ -311,6 +309,9 @@ class MaintainerScreen(QWidget):
         self.lamps13_button.clicked.connect(lambda: self.lamps13_requested.emit(self.lamps13_duration.value()))
         self.lamp2_button.clicked.connect(lambda checked: self.lamp2_requested.emit(checked))
         self.plasma_button.clicked.connect(lambda checked: self.plasma_requested.emit(checked))
+        self._module_signal_widgets["DRIVER_ENABLE"].toggle_requested.connect(
+            self._handle_output_toggle_requested
+        )
 
     # =========================================================================
     # Configuración de pestañas
@@ -360,6 +361,8 @@ class MaintainerScreen(QWidget):
         sequences_layout.addWidget(self.throttle_group, 3, 0)
         sequences_layout.addWidget(self.process_group, 3, 1)
         sequences_layout.addWidget(self.temperature_group, 4, 0)
+        sequences_layout.addWidget(self.analog_readouts_group, 5, 0, 1, 2)
+        sequences_layout.addWidget(self.module_signals_group, 6, 0, 1, 2)
 
         sequences_layout.setColumnStretch(
             0,
@@ -376,6 +379,8 @@ class MaintainerScreen(QWidget):
         sequences_layout.setRowStretch(2, 0)
         sequences_layout.setRowStretch(3, 0)
         sequences_layout.setRowStretch(4, 0)
+        sequences_layout.setRowStretch(5, 0)
+        sequences_layout.setRowStretch(6, 0)
 
         self.sequences_scroll_area = QScrollArea(self.sequences_tab)
         self.sequences_scroll_area.setWidgetResizable(True)
@@ -619,11 +624,11 @@ class MaintainerScreen(QWidget):
         names = (
             ("BARATRON", "Baratron · Presión", "Torr", "P"),
             ("CHAMBER_TEMP", "Temperatura de cámara", "°C", "T"),
-            ("MFC3_FLOW", "MFC3 · Lectura", "V", "M3"),
-            ("MFC4_FLOW", "MFC4 · Lectura", "V", "M4"),
             ("EOP", "End of Process", "V", "EOP"),
         )
-        content = QWidget()
+        self.analog_readouts_group = QGroupBox("Lecturas")
+        self.analog_readouts_group.setObjectName("MaintainerCardGroup")
+        content = QWidget(self.analog_readouts_group)
         layout = QGridLayout(content)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setHorizontalSpacing(20)
@@ -637,14 +642,19 @@ class MaintainerScreen(QWidget):
         self._analog_values["MFC1_FLOW"] = self.mfc1_card
         self._analog_values["MFC2_FLOW"] = self.mfc2_card
 
-        self.analog_scroll_area = QScrollArea(self.analog_tab)
-        self.analog_scroll_area.setWidgetResizable(True)
-        self.analog_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.analog_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.analog_scroll_area.setWidget(content)
-        analog_layout = QVBoxLayout(self.analog_tab)
-        analog_layout.setContentsMargins(0, 0, 0, 0)
-        analog_layout.addWidget(self.analog_scroll_area)
+        readouts_layout = QVBoxLayout(self.analog_readouts_group)
+        readouts_layout.addWidget(content)
+
+    def _create_module_signal_controls(self):
+        self.module_signals_group = QGroupBox("Señales digitales")
+        self.module_signals_group.setObjectName("MaintainerCardGroup")
+        layout = QGridLayout(self.module_signals_group)
+        self._module_signal_widgets = {
+            "ATM_SWITCH": SignalWidget("ATM_SWITCH", interactive=False),
+            "DRIVER_ENABLE": SignalWidget("DRIVER_ENABLE", interactive=True),
+        }
+        layout.addWidget(self._module_signal_widgets["ATM_SWITCH"], 0, 0)
+        layout.addWidget(self._module_signal_widgets["DRIVER_ENABLE"], 0, 1)
 
     def set_analog_value(self, signal_name, value):
         widget = self._analog_values.get(signal_name)
@@ -891,6 +901,9 @@ class MaintainerScreen(QWidget):
         widget.set_active(
             active
         )
+        module_widget = self._module_signal_widgets.get(signal_name)
+        if module_widget is not None:
+            module_widget.set_active(active)
 
     def set_signal_fault_monitoring(self, signal_name: str, enabled: bool) -> None:
         """Controla cuándo una entrada de falla se interpreta visualmente como tal."""
@@ -899,6 +912,9 @@ class MaintainerScreen(QWidget):
     def set_signal_error(self, signal_name: str, message: str) -> None:
         """Muestra el error sobre la tarjeta sin alterar su último estado."""
         self._get_signal_widget(signal_name).set_error(message)
+        module_widget = self._module_signal_widgets.get(signal_name)
+        if module_widget is not None:
+            module_widget.set_error(message)
 
     def set_signal_processing(
         self,
@@ -918,6 +934,9 @@ class MaintainerScreen(QWidget):
             )
 
         widget.set_processing()
+        module_widget = self._module_signal_widgets.get(signal_name)
+        if module_widget is not None:
+            module_widget.set_processing()
 
     def get_signal_names(self) -> tuple:
         """Devuelve los nombres de las señales mostradas."""
@@ -1169,6 +1188,9 @@ class MaintainerScreen(QWidget):
         self.back_button.setEnabled(not locked)
         for widget in self._output_widgets:
             widget.setEnabled(not locked)
+        driver_widget = self._module_signal_widgets.get("DRIVER_ENABLE")
+        if driver_widget is not None:
+            driver_widget.setEnabled(not locked)
         for name, button in self._sequence_buttons.items():
             button.setEnabled(
                 not locked and self._sequence_button_permissions.get(name, False)

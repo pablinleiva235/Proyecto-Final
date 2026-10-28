@@ -249,6 +249,10 @@ class MainWindow(QMainWindow):
         self.top_bar.settings_requested.connect(self._open_settings_dialog)
         if self.settings_manager is not None:
             self.settings_manager.language_changed.connect(self.update_texts)
+            self.settings_manager.theme_changed.connect(
+                self.normal_operation_screen.set_theme
+            )
+            self.normal_operation_screen.set_theme(self.settings_manager.theme)
 
 
         # ===================================================================================
@@ -459,7 +463,12 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.lamp2_requested.connect(self.process_controller.set_lamp2)
         self.maintainer_screen.plasma_requested.connect(self.process_controller.set_plasma)
         self.process_controller.state_changed.connect(self.maintainer_screen.set_process_state)
+        self.process_controller.state_changed.connect(
+            lambda name, enabled: self.normal_operation_screen.set_rf_state(enabled)
+            if name == "plasma" else None
+        )
         self.process_controller.state_changed.connect(self.recipe_sequence.process_state_changed)
+        self.normal_operation_screen.set_rf_state(self.process_controller.plasma_active)
         self.process_controller.operation_error.connect(self._handle_module_error)
         self.process_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.process_controller.alarm_raised.connect(self._handle_process_alarm)

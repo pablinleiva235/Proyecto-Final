@@ -40,6 +40,23 @@ class _DiagramImageLabel(QLabel):
             self.setObjectName("OperationDiagramImage")
             self._update_scaled_pixmap()
 
+    def set_source_pixmap(self, pixmap, fallback_text=""):
+        self._source_pixmap = pixmap if pixmap is not None and not pixmap.isNull() else None
+        if self._source_pixmap is None:
+            self.clear()
+            self.setObjectName("OperationDiagramFallback")
+            self.setText(fallback_text)
+            self.setWordWrap(True)
+            self.style().unpolish(self)
+            self.style().polish(self)
+            return
+        self.clear()
+        self.setObjectName("OperationDiagramImage")
+        self.setWordWrap(False)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self._update_scaled_pixmap()
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_scaled_pixmap()
@@ -99,29 +116,19 @@ class NormalOperationScreen(QWidget):
 
         self.readings_panel = self._make_panel(text.OPERATION_READINGS_TITLE)
         readings_layout = self.readings_panel.layout()
+        readings_layout.setSpacing(6)
         for signal_name, (label, unit, decimals) in self.ANALOG_READOUTS.items():
             readings_layout.addWidget(
                 self._create_readout(signal_name, label, unit, decimals)
             )
 
-        self.rf_readout = self._create_readout(
-            "RF_LEVEL", text.OPERATION_RF_LABEL, "", 0, unavailable=True
-        )
+        self.rf_readout = self._create_rf_status()
         readings_layout.addWidget(self.rf_readout["card"])
         readings_layout.addStretch(1)
 
         self.diagram_panel = self._make_panel(text.OPERATION_DIAGRAM_TITLE)
-        diagram_path = Path(__file__).resolve().parents[1] / "assets" / "Frame 28.png"
-        diagram_pixmap = QPixmap(str(diagram_path))
-        fallback_text = text.OPERATION_DIAGRAM_LOAD_ERROR
-        if diagram_pixmap.isNull():
-            fallback_text = f"{fallback_text}\n{diagram_path.name}"
-        self.diagram_image = _DiagramImageLabel(diagram_pixmap, fallback_text)
-        if diagram_pixmap.isNull():
-            set_localized_text(
-                self.diagram_image,
-                f"{text.OPERATION_DIAGRAM_LOAD_ERROR}\n{diagram_path.name}",
-            )
+        self.diagram_image = _DiagramImageLabel()
+        self.set_theme("dark")
         self.diagram_panel.layout().addWidget(self.diagram_image, 1)
 
         self.actions_panel = self._make_panel(text.OPERATION_RECIPE_ACTIONS_TITLE)
@@ -167,7 +174,7 @@ class NormalOperationScreen(QWidget):
         columns = QHBoxLayout()
         columns.setSpacing(14)
         columns.addWidget(self.readings_panel, 1)
-        columns.addWidget(self.diagram_panel, 3)
+        columns.addWidget(self.diagram_panel, 4)
         columns.addWidget(self.actions_panel, 1)
 
         footer = QHBoxLayout()
@@ -188,6 +195,20 @@ class NormalOperationScreen(QWidget):
         self.view_recipe_button.clicked.connect(self._view_recipe)
         self.start_recipe_button.clicked.connect(self._start_recipe_requested)
 
+    def set_theme(self, theme):
+        if theme not in ("light", "dark"):
+            raise ValueError("El tema debe ser 'light' o 'dark'.")
+        diagram_path = (
+            Path(__file__).resolve().parents[1]
+            / "assets"
+            / f"esquematico-{theme}.svg"
+        )
+        diagram_pixmap = QPixmap(str(diagram_path))
+        fallback_text = f"{text.OPERATION_DIAGRAM_LOAD_ERROR}\n{diagram_path.name}"
+        self.diagram_image.set_source_pixmap(diagram_pixmap, fallback_text)
+        if diagram_pixmap.isNull():
+            set_localized_text(self.diagram_image, fallback_text)
+
     @staticmethod
     def _make_panel(title):
         panel = QFrame()
@@ -200,22 +221,17 @@ class NormalOperationScreen(QWidget):
         layout.addWidget(heading)
         return panel
 
-    def _create_readout(self, signal_name, label, unit, decimals, unavailable=False):
+    def _create_readout(self, signal_name, label, unit, decimals):
         card = QFrame()
         card.setObjectName("OperationReadoutCard")
         row = QHBoxLayout(card)
-        row.setContentsMargins(8, 6, 8, 6)
-        row.setSpacing(8)
-        indicator = StatusIndicatorWidget(
-            "off" if unavailable else "running",
-            text.tr(text.OPERATION_READING_UNAVAILABLE if unavailable else text.OPERATION_READING_WAITING),
-            size=30,
-        )
+        row.setContentsMargins(8, 4, 8, 4)
+        row.setSpacing(4)
         details = QVBoxLayout()
         details.setSpacing(2)
         name_label = QLabel(label)
         name_label.setObjectName("OperationReadoutLabel")
-        value_label = QLabel(text.OPERATION_READING_UNAVAILABLE if unavailable else text.OPERATION_READING_WAITING)
+        value_label = QLabel(text.OPERATION_READING_WAITING)
         value_label.setObjectName("OperationReadoutValue")
         unit_label = QLabel(unit)
         unit_label.setObjectName("OperationReadoutUnit")
@@ -226,17 +242,40 @@ class NormalOperationScreen(QWidget):
         value_row.addWidget(unit_label)
         value_row.addStretch(1)
         details.addLayout(value_row)
-        row.addWidget(indicator)
         row.addLayout(details, 1)
-        if not unavailable:
-            self._readouts[signal_name] = {
-                "card": card,
-                "indicator": indicator,
-                "value": value_label,
-                "unit": unit_label,
-                "decimals": decimals,
-            }
-        return {"card": card} if unavailable else card
+        self._readouts[signal_name] = {
+            "card": card,
+            "value": value_label,
+            "unit": unit_label,
+            "decimals": decimals,
+        }
+        return card
+
+    @staticmethod
+    def _create_rf_status():
+        card = QFrame()
+        card.setObjectName("OperationReadoutCard")
+        row = QHBoxLayout(card)
+        row.setContentsMargins(8, 4, 8, 4)
+        row.setSpacing(8)
+        indicator = StatusIndicatorWidget("off", text.tr("APAGADA"), size=24)
+        label = QLabel("RF")
+        label.setObjectName("OperationReadoutLabel")
+        state = QLabel("APAGADA")
+        state.setObjectName("OperationReadoutValue")
+        set_localized_text(state, "APAGADA")
+        row.addWidget(label)
+        row.addStretch(1)
+        row.addWidget(state)
+        row.addWidget(indicator)
+        return {"card": card, "indicator": indicator, "state": state}
+
+    def set_rf_state(self, enabled):
+        state_text = "ENCENDIDA" if enabled else "APAGADA"
+        set_localized_text(self.rf_readout["state"], state_text)
+        self.rf_readout["indicator"].set_state(
+            "on" if enabled else "off", text.tr(state_text)
+        )
 
     @staticmethod
     def _recipe_button(label):
@@ -255,7 +294,6 @@ class NormalOperationScreen(QWidget):
         readout["value"].setProperty("i18nSourceText_text", None)
         readout["value"].setText(f"{value:.{readout['decimals']}f}")
         readout["value"].setToolTip("")
-        readout["indicator"].set_state("on", text.tr(text.OPERATION_READING_OK))
 
     def set_analog_error(self, signal_name, message):
         readout = self._readouts.get(signal_name)
@@ -265,9 +303,6 @@ class NormalOperationScreen(QWidget):
             self._chamber_pressure = None
         set_localized_text(readout["value"], text.OPERATION_READING_ERROR)
         readout["value"].setToolTip(str(message))
-        readout["indicator"].set_state(
-            "fault", f"{text.tr(text.OPERATION_READING_ERROR)}: {message}"
-        )
 
     def _new_recipe(self):
         try:

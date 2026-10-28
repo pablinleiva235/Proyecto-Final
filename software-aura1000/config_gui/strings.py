@@ -97,12 +97,12 @@ RECIPE_FEATURE_PENDING_MESSAGE = (
 START_PROCESS_PENDING_TOOLTIP = (
     "Pendiente de integrar la secuencia real del proceso."
 )
-OPERATION_READINGS_TITLE = "Lecturas analógicas"
-OPERATION_TEMPERATURE_LABEL = "Temperatura de cámara"
-OPERATION_PRESSURE_LABEL = "Presión de cámara"
-OPERATION_MFC1_LABEL = "MFC1 · Oxígeno (O₂)"
-OPERATION_MFC2_LABEL = "MFC2 · Nitrógeno (N₂)"
-OPERATION_EOP_LABEL = "End Point (EOP)"
+OPERATION_READINGS_TITLE = "Lecturas de proceso"
+OPERATION_TEMPERATURE_LABEL = "T Cámara"
+OPERATION_PRESSURE_LABEL = "P Cámara"
+OPERATION_MFC1_LABEL = "MFC1 · O₂"
+OPERATION_MFC2_LABEL = "MFC2 · N₂"
+OPERATION_EOP_LABEL = "End Point"
 OPERATION_RF_LABEL = "Nivel de RF"
 OPERATION_READING_WAITING = "Esperando lectura"
 OPERATION_READING_UNAVAILABLE = "No disponible"
@@ -121,7 +121,7 @@ START_RECIPE_CONFIRM_TITLE = "Confirmar inicio de receta"
 WAFER_CONFIRM_TITLE = "Carga de oblea"
 WAFER_CONFIRM_MESSAGE = "Inserte la oblea en la cámara y confirme para continuar."
 WAFER_REMOVAL_CONFIRM_TITLE = "Retiro de oblea"
-WAFER_REMOVAL_CONFIRM_MESSAGE = "¿Retiró la oblea de la cámara? Sí cierra la puerta; No finaliza la receta y deja la puerta abierta."
+WAFER_REMOVAL_CONFIRM_MESSAGE = "¿Retiró la oblea de la cámara? Sí cerrará la puerta; No finalizará la receta dejando la puerta abierta."
 RECIPE_LOG_SAVED_MESSAGE = "Registro guardado en:\n{path}"
 RECIPE_LOG_FAILED_MESSAGE = "No se pudo guardar el registro. Ruta intentada:\n{path}"
 RECIPE_DATA_SAVED_MESSAGE = "Datos de presión y temperatura guardados en:\n{path}"
@@ -405,11 +405,11 @@ _SPANISH_TO_ENGLISH = {
     "La gestión de recetas estará disponible en una próxima etapa.": "Recipe management will be available in a future stage.",
     "Pendiente de integrar la secuencia real del proceso.": "The real process sequence has not been integrated yet.",
     "Lecturas analógicas": "Analog readings",
-    "Temperatura de cámara": "Chamber temperature",
-    "Presión de cámara": "Chamber pressure",
-    "MFC1 · Oxígeno (O₂)": "MFC1 · Oxygen (O₂)",
-    "MFC2 · Nitrógeno (N₂)": "MFC2 · Nitrogen (N₂)",
-    "End Point (EOP)": "End Point (EOP)",
+    "T Cámara": "Chamber T",
+    "P Cámara": "Chamber P",
+    "MFC1 · O₂": "MFC1 · O₂",
+    "MFC2 · N₂": "MFC2 · N₂",
+    "End Point": "End Point",
     "Nivel de RF": "RF level",
     "Esperando lectura": "Waiting for reading",
     "No disponible": "Unavailable",

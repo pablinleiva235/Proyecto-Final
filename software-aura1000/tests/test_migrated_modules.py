@@ -284,6 +284,22 @@ class MigratedModulesTests(unittest.TestCase):
         screen.throttle_open_steps_button.click()
         self.assertEqual(requests, [(False, 24, True)])
 
+    def test_maintainer_mirrors_debounced_throttle_limits(self):
+        screen = MaintainerScreen()
+
+        for name in ("THROTTLE_CLOSED", "THROTTLE_OPEN"):
+            self.assertFalse(screen._throttle_limit_widgets[name].is_interactive)
+            screen.set_signal_active(name, True)
+            self.assertEqual(
+                screen._throttle_limit_widgets[name].visual_state,
+                screen._signal_widgets[name].visual_state,
+            )
+            screen.set_signal_active(name, False)
+            self.assertEqual(
+                screen._throttle_limit_widgets[name].visual_state,
+                screen._signal_widgets[name].visual_state,
+            )
+
     def test_pressure_control_rejects_invalid_and_unreachable_setpoints(self):
         throttle = ThrottleController(self.hardware, can_operate=lambda: True)
         pressure = PressureController(throttle, can_operate=lambda: True)

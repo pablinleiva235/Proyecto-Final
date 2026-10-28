@@ -359,7 +359,8 @@ class MaintainerScreen(QWidget):
         sequences_layout.addWidget(self.mfc1_card, 2, 0)
         sequences_layout.addWidget(self.mfc2_card, 2, 1)
         sequences_layout.addWidget(self.throttle_group, 3, 0)
-        sequences_layout.addWidget(self.process_group, 3, 1)
+        sequences_layout.addWidget(self.throttle_limits_group, 3, 1)
+        sequences_layout.addWidget(self.process_group, 4, 1)
         sequences_layout.addWidget(self.temperature_group, 4, 0)
         sequences_layout.addWidget(self.analog_readouts_group, 5, 0, 1, 2)
         sequences_layout.addWidget(self.module_signals_group, 6, 0, 1, 2)
@@ -523,6 +524,17 @@ class MaintainerScreen(QWidget):
         pressure_controls.addWidget(self.pressure_reading_label)
         pressure_controls.addWidget(self.pressure_state_label)
         throttle_layout.addLayout(pressure_controls)
+
+        self.throttle_limits_group = QGroupBox("Finales de carrera throttle")
+        self.throttle_limits_group.setObjectName("MaintainerCardGroup")
+        throttle_limits_layout = QVBoxLayout(self.throttle_limits_group)
+        self._throttle_limit_widgets = {
+            name: SignalWidget(name, interactive=False)
+            for name in ("THROTTLE_CLOSED", "THROTTLE_OPEN")
+        }
+        for widget in self._throttle_limit_widgets.values():
+            throttle_limits_layout.addWidget(widget)
+        throttle_limits_layout.addStretch()
 
         self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
         self.process_group.setObjectName("MaintainerCardGroup")
@@ -901,6 +913,9 @@ class MaintainerScreen(QWidget):
         widget.set_active(
             active
         )
+        throttle_limit_widget = self._throttle_limit_widgets.get(signal_name)
+        if throttle_limit_widget is not None:
+            throttle_limit_widget.set_active(active)
         module_widget = self._module_signal_widgets.get(signal_name)
         if module_widget is not None:
             module_widget.set_active(active)
@@ -912,6 +927,9 @@ class MaintainerScreen(QWidget):
     def set_signal_error(self, signal_name: str, message: str) -> None:
         """Muestra el error sobre la tarjeta sin alterar su último estado."""
         self._get_signal_widget(signal_name).set_error(message)
+        throttle_limit_widget = self._throttle_limit_widgets.get(signal_name)
+        if throttle_limit_widget is not None:
+            throttle_limit_widget.set_error(message)
         module_widget = self._module_signal_widgets.get(signal_name)
         if module_widget is not None:
             module_widget.set_error(message)

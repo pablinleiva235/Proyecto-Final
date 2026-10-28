@@ -8,3 +8,4 @@ n2_flow = 0.5
 base_pressure = 0.06
 process_pressure = 2.0
 process_temperature = 180
+rf_max_on_time = 90

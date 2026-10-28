@@ -25,18 +25,21 @@ class Recipe:
     process_pressure: float
     process_temperature: float
     source_path: Optional[Path] = None
+    rf_max_on_time: int = 90
 
 
 class RecipeService:
     """Opera sobre los archivos de receta junto al paquete de la aplicación."""
 
     TEMPLATE_FILENAME = "recipe_stardar.txt"
+    RF_MAX_ON_TIME_SECONDS = 120
     PARAMETERS = (
         "o2_flow",
         "n2_flow",
         "base_pressure",
         "process_pressure",
         "process_temperature",
+        "rf_max_on_time",
     )
     FLOW_LIMITS_MIX = {"o2_flow": 1.0, "n2_flow": 0.1}
     FLOW_LIMITS = {"o2_flow": 6.5, "n2_flow": 0.65}
@@ -78,7 +81,13 @@ class RecipeService:
             values = {
                 key: parser.getfloat("PARAMETERS", key)
                 for key in self.PARAMETERS
+                if key != "rf_max_on_time"
             }
+            values["rf_max_on_time"] = (
+                parser.getint("PARAMETERS", "rf_max_on_time")
+                if parser.has_option("PARAMETERS", "rf_max_on_time")
+                else 90
+            )
         except (ConfigParserError, ValueError) as error:
             raise RecipeError(text.RECIPE_ERROR_PARAMETERS)
 
@@ -104,6 +113,12 @@ class RecipeService:
                 raise RecipeError(text.RECIPE_ERROR_INVALID_VALUES) from error
             if not math.isfinite(value) or value < 0:
                 raise RecipeError(text.RECIPE_ERROR_NONNEGATIVE)
+            if key == "rf_max_on_time" and (
+                isinstance(getattr(recipe, key), bool)
+                or not isinstance(getattr(recipe, key), int)
+                or not 1 <= value <= self.RF_MAX_ON_TIME_SECONDS
+            ):
+                raise RecipeError(text.RECIPE_ERROR_RF_TIME_RANGE)
             maximum = self.FLOW_LIMITS.get(key)
             if maximum is not None and value > maximum:
                 raise RecipeError(

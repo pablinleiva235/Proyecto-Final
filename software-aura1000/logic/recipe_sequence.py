@@ -3,7 +3,7 @@
 from enum import Enum
 from datetime import datetime
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 from controllers.mfc_controller import MFCController
 from logic.door_sequence import DoorState
@@ -83,6 +83,9 @@ class RecipeSequence(QObject):
         self._stopping = False
         self._eop = None
         self._vacuum_started = False
+        self._rf_timer = QTimer(self)
+        self._rf_timer.setSingleShot(True)
+        self._rf_timer.timeout.connect(self._rf_time_limit_reached)
 
     @property
     def state(self):
@@ -157,7 +160,8 @@ class RecipeSequence(QObject):
             f"O2={recipe.o2_flow:g} SLPM | N2={recipe.n2_flow:g} SLPM | "
             f"presion_base={recipe.base_pressure:g} Torr | "
             f"presion_proceso={recipe.process_pressure:g} Torr | "
-            f"temperatura={recipe.process_temperature:g} C"
+            f"temperatura={recipe.process_temperature:g} C | "
+            f"tiempo_maximo_RF={recipe.rf_max_on_time} s"
         ):
             return False
         try:
@@ -266,7 +270,11 @@ class RecipeSequence(QObject):
         elif name == "EOP":
             self._eop = value
             if self._state == RecipeState.RUNNING_PLASMA and value < 2.0:
-                self._begin_shutdown("Receta finalizada: EOP inferior a 2 V.", failed=False)
+                self._rf_timer.stop()
+                self._begin_shutdown(
+                    "RF apagada por EOP inferior a 2 V; continúa el cierre normal de la receta.",
+                    failed=False,
+                )
 
     def cache_analog(self, name, value):
         try:
@@ -360,6 +368,16 @@ class RecipeSequence(QObject):
             return
         self._eop = None
         self._set_state(RecipeState.RUNNING_PLASMA)
+        if self._state == RecipeState.RUNNING_PLASMA:
+            self._rf_timer.start(int(self._recipe.rf_max_on_time) * 1000)
+
+    def _rf_time_limit_reached(self):
+        if (self._state == RecipeState.RUNNING_PLASMA and not self._stopping
+                and self.process.plasma_active):
+            self._begin_shutdown(
+                f"Tiempo máximo de RF alcanzado ({self._recipe.rf_max_on_time} s).",
+                failed=False,
+            )
 
     def stop(self):
         if self.is_active:
@@ -392,6 +410,8 @@ class RecipeSequence(QObject):
         self._fail(message)
 
     def process_state_changed(self, name, enabled):
+        if name == "plasma" and not enabled:
+            self._rf_timer.stop()
         if self.is_active:
             signals = {
                 "lamps13": {"LAMP1_ON_CMD": enabled, "LAMP3_ON_CMD": enabled},
@@ -518,6 +538,7 @@ class RecipeSequence(QObject):
     def _begin_shutdown(self, message, failed):
         if self._stopping or not self.is_active:
             return
+        self._rf_timer.stop()
         self._stopping = True
         self._completion_message = message
         self._failed = failed
@@ -574,6 +595,7 @@ class RecipeSequence(QObject):
             self._finish(True, self._completion_message + " No se pudo iniciar el venteo.")
 
     def _finish(self, failed, message):
+        self._rf_timer.stop()
         self._finalizing = True
         final_state = RecipeState.ERROR if failed else RecipeState.COMPLETED
         if self._recipe_log is not None and not self._logging_failed:

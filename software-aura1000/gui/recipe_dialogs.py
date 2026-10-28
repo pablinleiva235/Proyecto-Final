@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 import config_gui.strings as text
-from services.recipe_service import Recipe
+from services.recipe_service import Recipe, RecipeService
 
 
 class RecipeEditorDialog(QDialog):
@@ -27,6 +27,7 @@ class RecipeEditorDialog(QDialog):
         ("base_pressure", text.RECIPE_BASE_PRESSURE_LABEL, "Torr"),
         ("process_pressure", text.RECIPE_PROCESS_PRESSURE_LABEL, "Torr"),
         ("process_temperature", text.RECIPE_PROCESS_TEMPERATURE_LABEL, "°C"),
+        ("rf_max_on_time", text.RECIPE_RF_MAX_ON_TIME_LABEL, "s"),
     )
 
     def __init__(
@@ -98,6 +99,12 @@ class RecipeEditorDialog(QDialog):
                 self._show_invalid(text.RECIPE_ERROR_INVALID_VALUES)
                 return
             values[key] = value
+
+        rf_time = values["rf_max_on_time"]
+        if not rf_time.is_integer() or not 1 <= rf_time <= RecipeService.RF_MAX_ON_TIME_SECONDS:
+            self._show_invalid(text.RECIPE_ERROR_RF_TIME_RANGE)
+            return
+        values["rf_max_on_time"] = int(rf_time)
 
         if self._pressure_min is None or not math.isfinite(float(self._pressure_min)):
             self._show_invalid(text.RECIPE_ERROR_PRESSURE_UNAVAILABLE)
@@ -190,7 +197,10 @@ class RecipeViewerDialog(QDialog):
         details.addRow(text.tr(text.RECIPE_NAME_LABEL), QLabel(recipe.name))
         details.addRow(text.tr(text.RECIPE_DESCRIPTION_LABEL), QLabel(recipe.description))
         for key, label, unit in RecipeEditorDialog.FIELDS:
-            value = format(float(getattr(recipe, key)), ".15g")
+            if key == "rf_max_on_time":
+                value = str(int(recipe.rf_max_on_time))
+            else:
+                value = format(float(getattr(recipe, key)), ".15g")
             details.addRow(f"{text.tr(label)} ({unit})", QLabel(value))
 
         close_button = QPushButton(text.tr(text.RECIPE_CLOSE_BUTTON))

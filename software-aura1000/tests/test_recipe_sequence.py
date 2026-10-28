@@ -159,6 +159,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.update_analog("EOP", 1.99)
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertFalse(self.sequence._rf_timer.isActive())
         self.assertFalse(self.process.plasma_active)
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
@@ -193,6 +194,24 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertTrue(self.sequence.data_log_saved)
         csv_text = self.data_log_path.read_text(encoding="utf-8")
         self.assertIn(",BARATRON,1,Torr", csv_text)
+
+    def test_rf_time_limit_runs_safe_shutdown(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+        self.sequence.pressure_reached(1.5)
+        self.sequence.temperature_reached(150)
+
+        self.assertTrue(self.sequence._rf_timer.isActive())
+        self.sequence._rf_time_limit_reached()
+
+        self.assertFalse(self.process.plasma_active)
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertFalse(self.sequence._rf_timer.isActive())
+        self._finish_with_door_open()
+        contents = self.log_path.read_text(encoding="utf-8")
+        self.assertIn("tiempo_maximo_RF=90 s", contents)
+        self.assertIn("Tiempo máximo de RF alcanzado (90 s)", contents)
 
     def test_process_data_csv_records_pressure_and_temperature_during_recipe(self):
         self.sequence.start(self.recipe)

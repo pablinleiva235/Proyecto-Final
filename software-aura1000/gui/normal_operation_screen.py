@@ -407,7 +407,8 @@ class NormalOperationScreen(QWidget):
             f"{text.tr(text.RECIPE_N2_FLOW_LABEL)}: {recipe.n2_flow:g} SLPM\n"
             f"{text.tr(text.RECIPE_BASE_PRESSURE_LABEL)}: {recipe.base_pressure:g} Torr\n"
             f"{text.tr(text.RECIPE_PROCESS_PRESSURE_LABEL)}: {recipe.process_pressure:g} Torr\n"
-            f"{text.tr(text.RECIPE_PROCESS_TEMPERATURE_LABEL)}: {recipe.process_temperature:g} °C"
+            f"{text.tr(text.RECIPE_PROCESS_TEMPERATURE_LABEL)}: {recipe.process_temperature:g} °C\n"
+            f"{text.tr(text.RECIPE_RF_MAX_ON_TIME_LABEL)}: {recipe.rf_max_on_time} s"
         )
         answer = QMessageBox.question(
             self, text.tr(text.START_RECIPE_CONFIRM_TITLE), details,

@@ -1,6 +1,8 @@
 """Regresiones de los módulos migrados usando MockHardware."""
 
 import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
@@ -430,6 +432,35 @@ class MigratedModulesTests(unittest.TestCase):
 
         recipe.base_pressure = 0.5
         recipe.process_temperature = 200.0
+        service.validate(recipe)
+
+    def test_recipe_rf_time_defaults_for_legacy_files_and_round_trips(self):
+        with TemporaryDirectory() as folder:
+            service = RecipeService(folder)
+            legacy_path = Path(folder) / "legacy.txt"
+            legacy_path.write_text(
+                "[RECIPE]\nname = legacy\ndescription = receta antigua\n\n"
+                "[PARAMETERS]\no2_flow = 1\nn2_flow = 0.1\n"
+                "base_pressure = 0.5\nprocess_pressure = 2\nprocess_temperature = 150\n",
+                encoding="utf-8",
+            )
+            legacy = service.load_file(legacy_path)
+            self.assertEqual(legacy.rf_max_on_time, 90)
+
+            saved = service.save(Recipe(
+                "configured", "receta", 1, 0.1, 0.5, 2, 150,
+                rf_max_on_time=120,
+            ))
+            self.assertEqual(service.load_file(saved.source_path).rf_max_on_time, 120)
+
+    def test_recipe_rf_time_requires_integer_between_one_and_one_hundred_twenty(self):
+        service = RecipeService()
+        recipe = Recipe("test", "test", 1, 0.1, 0.5, 2, 150)
+        for value in (0, 121, 1.5):
+            recipe.rf_max_on_time = value
+            with self.assertRaises(RecipeError):
+                service.validate(recipe)
+        recipe.rf_max_on_time = 120
         service.validate(recipe)
         recipe.process_temperature = 200.1
         with self.assertRaises(RecipeError):

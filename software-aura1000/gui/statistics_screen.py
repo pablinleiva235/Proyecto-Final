@@ -1,18 +1,24 @@
 import csv
 import math
 from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog,
+)
 
 from config_gui.strings import (
     STATISTICS_TITLE,
     STATISTICS_PLACEHOLDER,
+    STATISTICS_LOAD_DATA_TEXT,
+    STATISTICS_NO_DATA,
+    STATISTICS_LOAD_ERROR,
     BACK_BUTTON_TEXT,
 )
 import config_gui.strings as strings
-from services.recipe_log import RECIPE_DATA_PATH
+from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_DIRECTORY
 
 
 class ProcessPlot(QWidget):
@@ -91,7 +97,8 @@ class StatisticsScreen(QWidget):
 
     def __init__(self, data_path=None):
         super().__init__()
-        self.data_path = data_path or RECIPE_DATA_PATH
+        self._explicit_data_path = Path(data_path) if data_path is not None else None
+        self.data_path = self._explicit_data_path or RECIPE_DATA_PATH
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -107,7 +114,7 @@ class StatisticsScreen(QWidget):
         self.subtitle_label.setWordWrap(True)
         self.pressure_plot = ProcessPlot("Presión", "Torr", "#38BDF8")
         self.temperature_plot = ProcessPlot("Temperatura", "°C", "#FACC15")
-        self.refresh_button = QPushButton("Actualizar gráficos")
+        self.refresh_button = QPushButton(STATISTICS_LOAD_DATA_TEXT)
         self.back_button = QPushButton(BACK_BUTTON_TEXT)
 
     def setup_layout(self):
@@ -125,13 +132,53 @@ class StatisticsScreen(QWidget):
         self.setLayout(layout)
 
     def connect_signals(self):
-        self.refresh_button.clicked.connect(self.refresh_data)
+        self.refresh_button.clicked.connect(self.choose_data_file)
         self.back_button.clicked.connect(self.back_requested.emit)
 
     def refresh_data(self):
+        if self._explicit_data_path is not None:
+            self._load_data_file(self._explicit_data_path)
+            return
+
+        latest_path = self._latest_recipe_data_path()
+        if latest_path is None:
+            self.data_path = None
+            self.subtitle_label.setText(strings.tr(STATISTICS_NO_DATA))
+            self.pressure_plot.set_points([])
+            self.temperature_plot.set_points([])
+            return
+        self._load_data_file(latest_path)
+
+    @staticmethod
+    def _latest_recipe_data_path():
+        try:
+            paths = RECIPE_LOG_DIRECTORY.glob("recipe_data_*.csv")
+            return max(paths, key=lambda path: path.stat().st_mtime_ns, default=None)
+        except OSError:
+            return None
+
+    def choose_data_file(self):
+        try:
+            available_files = list(RECIPE_LOG_DIRECTORY.glob("recipe_data_*.csv"))
+        except OSError:
+            available_files = []
+        if not available_files:
+            return
+
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            strings.tr(STATISTICS_LOAD_DATA_TEXT),
+            str(RECIPE_LOG_DIRECTORY),
+            "CSV (*.csv)",
+        )
+        if path:
+            self._load_data_file(Path(path))
+
+    def _load_data_file(self, path):
+        path = Path(path)
         data = {"BARATRON": [], "CHAMBER_TEMP": []}
         try:
-            with open(self.data_path, "r", encoding="utf-8-sig", newline="") as data_file:
+            with path.open("r", encoding="utf-8-sig", newline="") as data_file:
                 for row in csv.DictReader(data_file):
                     signal = row.get("señal") or row.get("seÃ±al") or row.get("signal")
                     if signal not in data:
@@ -144,8 +191,11 @@ class StatisticsScreen(QWidget):
                     except (KeyError, TypeError, ValueError, OverflowError):
                         continue
                     data[signal].append((timestamp, value))
-        except (OSError, csv.Error):
-            pass
+        except (OSError, csv.Error, UnicodeError):
+            self.subtitle_label.setText(strings.tr(
+                STATISTICS_LOAD_ERROR.format(filename=path.name)
+            ))
+            return False
 
         all_times = [timestamp for readings in data.values() for timestamp, _ in readings]
         start = min(all_times) if all_times else None
@@ -157,8 +207,10 @@ class StatisticsScreen(QWidget):
             ] if start else [])
 
         count = sum(map(len, data.values()))
+        self.data_path = path
         subtitle = (
-            f"Última receta ejecutada · {count} lecturas guardadas"
-            if count else "No hay datos guardados de una receta ejecutada."
+            f"{path.name} · {count} lecturas guardadas"
+            if count else f"{path.name} · sin lecturas guardadas"
         )
         self.subtitle_label.setText(strings.tr(subtitle))
+        return True

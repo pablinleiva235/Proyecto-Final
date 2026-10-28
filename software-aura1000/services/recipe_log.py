@@ -7,6 +7,35 @@ import csv
 
 RECIPE_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "recipe.log"
 RECIPE_DATA_PATH = RECIPE_LOG_PATH.with_name("recipe_data.csv")
+RECIPE_LOG_DIRECTORY = RECIPE_LOG_PATH.parent / "recetas"
+RECIPE_LOG_LIMIT = 100
+
+
+def next_recipe_log_paths(directory=None):
+    """Devuelve rutas coordinadas para el siguiente par de logs en rotación."""
+    directory = Path(directory or RECIPE_LOG_DIRECTORY)
+    latest_path = None
+    latest_modified = None
+    for number in range(1, RECIPE_LOG_LIMIT + 1):
+        candidate = directory / f"recipe_{number}.log"
+        try:
+            modified = candidate.stat().st_mtime_ns
+        except OSError:
+            continue
+        if latest_modified is None or modified > latest_modified:
+            latest_path = candidate
+            latest_modified = modified
+
+    if latest_path is None:
+        next_number = 1
+    else:
+        latest_number = int(latest_path.stem.removeprefix("recipe_"))
+        next_number = latest_number % RECIPE_LOG_LIMIT + 1
+
+    return (
+        directory / f"recipe_{next_number}.log",
+        directory / f"recipe_data_{next_number}.csv",
+    )
 
 PROCESS_DATA_UNITS = {"BARATRON": "Torr", "CHAMBER_TEMP": "°C"}
 

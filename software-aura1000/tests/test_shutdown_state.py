@@ -163,7 +163,7 @@ class MockHardwareShutdownStateTests(unittest.TestCase):
                 pass
 
         with TemporaryDirectory() as temp_dir:
-            log_path = Path(temp_dir) / "shutdown.log"
+            log_path = Path(temp_dir) / "shutdown_1.log"
             with patch.object(shutdown_log_module, "SHUTDOWN_LOG_PATH", log_path):
                 sequence = ShutdownSequence(
                     hardware=MockHardware(),
@@ -179,6 +179,49 @@ class MockHardwareShutdownStateTests(unittest.TestCase):
         self.assertIn("MFC1_SETPOINT: OK | setpoint enviado: 0.0 V", log_content)
         self.assertIn("lectura física=no disponible", log_content)
         self.assertIn("Apagado finalizado sin fallas", log_content)
+
+    def test_shutdown_log_rotates_and_continues_after_reopening(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            configured_path = directory / "shutdown_1.log"
+            with patch.object(shutdown_log_module, "SHUTDOWN_LOG_PATH", configured_path):
+                first = shutdown_log_module.ShutdownLog()
+                self.assertEqual(first.path, directory / "shutdown_1.log")
+                first.log("primer apagado")
+                first.close()
+
+                second = shutdown_log_module.ShutdownLog()
+                self.assertEqual(second.path, directory / "shutdown_2.log")
+                second.log("segundo apagado")
+                second.close()
+
+                after_restart = shutdown_log_module.ShutdownLog()
+                self.assertEqual(after_restart.path, directory / "shutdown_3.log")
+                after_restart.close()
+
+    def test_shutdown_log_wraps_after_one_hundred(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            (directory / "shutdown_100.log").write_text("log anterior", encoding="utf-8")
+            with patch.object(
+                shutdown_log_module, "SHUTDOWN_LOG_PATH", directory / "shutdown_1.log"
+            ):
+                log = shutdown_log_module.ShutdownLog()
+                self.assertEqual(log.path, directory / "shutdown_1.log")
+                log.log("reutiliza el primer archivo")
+                log.close()
+            self.assertIn("reutiliza el primer archivo", (directory / "shutdown_1.log").read_text(encoding="utf-8"))
+
+    def test_shutdown_log_write_error_reports_selected_path(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            blocker = directory / "not_a_directory"
+            blocker.write_text("archivo", encoding="utf-8")
+            configured_path = blocker / "shutdown_1.log"
+            with patch.object(shutdown_log_module, "SHUTDOWN_LOG_PATH", configured_path):
+                log = shutdown_log_module.ShutdownLog()
+            self.assertEqual(log.path, configured_path)
+            self.assertTrue(any(str(configured_path) in error for error in log.errors))
 
 
 if __name__ == "__main__":

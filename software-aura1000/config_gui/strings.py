@@ -243,6 +243,9 @@ DIGITAL_OUTPUTS_TITLE = "Salidas digitales"
 
 STATISTICS_TITLE = "ESTADÍSTICAS"
 STATISTICS_PLACEHOLDER = "Pantalla temporal de estadísticas"
+STATISTICS_LOAD_DATA_TEXT = "Cargar datos"
+STATISTICS_NO_DATA = "No hay datos guardados de una receta ejecutada."
+STATISTICS_LOAD_ERROR = "No se pudo cargar el archivo: {filename}"
 
 
 # =============================================================================

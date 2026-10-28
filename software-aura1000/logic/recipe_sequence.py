@@ -10,7 +10,10 @@ from logic.door_sequence import DoorState
 from logic.main_vacuum_sequence import MainVacuumState
 from logic.soft_vacuum_sequence import SoftVacuumState
 from logic.vent_sequence import VentState
-from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_PATH, RecipeDataLog, RecipeLog
+from services.recipe_log import (
+    RECIPE_DATA_PATH, RECIPE_LOG_PATH, RecipeDataLog, RecipeLog,
+    next_recipe_log_paths,
+)
 
 
 class RecipeState(Enum):
@@ -64,6 +67,9 @@ class RecipeSequence(QObject):
         self._digital_hardware_reader = digital_hardware_reader
         self._recipe_log_factory = recipe_log_factory or RecipeLog
         self._recipe_data_log_factory = recipe_data_log_factory or RecipeDataLog
+        self._use_rotating_recipe_paths = (
+            recipe_log_factory is None and recipe_data_log_factory is None
+        )
         self._recipe_log = None
         self._recipe_data_log = None
         self._analog_readings = {}
@@ -129,8 +135,13 @@ class RecipeSequence(QObject):
                 or self._digital_state_getter("DOOR_CLOSE") is not True):
             self.error_raised.emit("Las entradas digitales no confirman la puerta cerrada.")
             return False
-        self._recipe_log = self._recipe_log_factory()
-        self._recipe_data_log = self._recipe_data_log_factory()
+        if self._use_rotating_recipe_paths:
+            log_path, data_log_path = next_recipe_log_paths()
+            self._recipe_log = self._recipe_log_factory(log_path)
+            self._recipe_data_log = self._recipe_data_log_factory(data_log_path)
+        else:
+            self._recipe_log = self._recipe_log_factory()
+            self._recipe_data_log = self._recipe_data_log_factory()
         self._logging_failed = not self._recipe_log.available
         self._data_logging_failed = not self._recipe_data_log.available
         self._log_saved = False

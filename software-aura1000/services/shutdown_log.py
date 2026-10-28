@@ -3,14 +3,37 @@
 from datetime import datetime
 from pathlib import Path
 
-SHUTDOWN_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "shutdown.log"
+SHUTDOWN_LOG_DIRECTORY = Path(__file__).resolve().parents[1] / "logs" / "shutdown"
+SHUTDOWN_LOG_PATH = SHUTDOWN_LOG_DIRECTORY / "shutdown_1.log"
+SHUTDOWN_LOG_LIMIT = 100
+
+
+def next_shutdown_log_path(directory=None):
+    """Devuelve el siguiente archivo dentro de la rotación circular de logs."""
+    directory = Path(directory or SHUTDOWN_LOG_DIRECTORY)
+    latest_number = None
+    latest_modified = None
+    for number in range(1, SHUTDOWN_LOG_LIMIT + 1):
+        candidate = directory / f"shutdown_{number}.log"
+        try:
+            modified = candidate.stat().st_mtime_ns
+        except OSError:
+            continue
+        if latest_modified is None or modified > latest_modified:
+            latest_number = number
+            latest_modified = modified
+
+    next_number = 1 if latest_number is None else latest_number % SHUTDOWN_LOG_LIMIT + 1
+    return directory / f"shutdown_{next_number}.log"
 
 
 class ShutdownLog:
-    """Sobrescribe ``logs/shutdown.log`` y conserva errores de escritura."""
+    """Guarda cada intento en rotación y conserva errores de escritura."""
 
     def __init__(self):
-        self.path = SHUTDOWN_LOG_PATH
+        # Usar el directorio de la ruta constante también permite aislar el
+        # almacenamiento en pruebas y conserva la ruta seleccionada en errores.
+        self.path = next_shutdown_log_path(SHUTDOWN_LOG_PATH.parent)
         self.errors = []
         self._file = None
         try:

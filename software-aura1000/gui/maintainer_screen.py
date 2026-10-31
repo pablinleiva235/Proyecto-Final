@@ -627,7 +627,7 @@ class MaintainerScreen(QWidget):
         temperature_setpoint_row = QVBoxLayout()
         temperature_setpoint_row.addWidget(QLabel(myStr.MAINTAINER_TEMPERATURE_SETPOINT))
         self.temperature_setpoint = QDoubleSpinBox()
-        self.temperature_setpoint.setRange(130.0, 200.0)
+        self.temperature_setpoint.setRange(130.0, 190.0)
         self.temperature_setpoint.setDecimals(1)
         self.temperature_setpoint.setSingleStep(1.0)
         self.temperature_setpoint.setValue(180.0)

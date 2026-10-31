@@ -16,9 +16,12 @@ class TemperatureController(QObject):
     operation_error = pyqtSignal(str)
 
     MIN_SETPOINT_C = 130.0
-    MAX_SETPOINT_C = 200.0
-    HYSTERESIS_C = 3.0
-    RAMP_CUTOFF_OFFSET_C = 8.0
+    MAX_SETPOINT_C = 190.0
+    HYSTERESIS_C = 7.0
+    RECIPE_REACHED_TOLERANCE_C = 3.0
+    HIGH_TEMP_CUTOFF_C = 160.0
+    ASSIST_DELTA_C = 10.0
+    ASSIST_PULSE_MS = 250
     FILTER_SAMPLES = 11
     STALE_READING_SECONDS = 1.5
 
@@ -32,7 +35,14 @@ class TemperatureController(QObject):
         self._target = None
         self._state = "detenido"
         self._ramp_active = False
+        self._waiting_first_dip = False
+        self._post_ramp_above_high = False
+        self._start_temperature = None
         self._target_reached = False
+        self._assist_active = False
+        self._assist_timer = QTimer(self)
+        self._assist_timer.setSingleShot(True)
+        self._assist_timer.timeout.connect(self._stop_assist_pulse)
         self._watchdog = QTimer(self)
         self._watchdog.setInterval(250)
         self._watchdog.timeout.connect(self._check_runtime_conditions)
@@ -80,7 +90,7 @@ class TemperatureController(QObject):
         try:
             target = float(target_c)
             if not math.isfinite(target) or not self.MIN_SETPOINT_C <= target <= self.MAX_SETPOINT_C:
-                raise ValueError("El setpoint debe estar entre 130 y 200 °C.")
+                raise ValueError("El setpoint debe estar entre 130 y 190 °C.")
             if not self._can_operate():
                 raise RuntimeError("El control térmico requiere vacío principal activo, puerta cerrada y venteo inactivo.")
             if self._temperature is None or self._last_reading_at is None:
@@ -92,6 +102,9 @@ class TemperatureController(QObject):
 
             self._target = target
             self._ramp_active = True
+            self._waiting_first_dip = False
+            self._post_ramp_above_high = False
+            self._start_temperature = self._temperature
             self._target_reached = False
             self._set_state("precalentando")
             self._watchdog.start()
@@ -106,8 +119,12 @@ class TemperatureController(QObject):
 
     def stop(self):
         self._watchdog.stop()
+        self._assist_timer.stop()
+        self._assist_active = False
         self._target = None
         self._ramp_active = False
+        self._waiting_first_dip = False
+        self._post_ramp_above_high = False
         if not self._turn_lamps_off():
             self.operation_error.emit("No se pudieron confirmar todas las lámparas apagadas.")
         self._set_state("detenido")
@@ -120,16 +137,38 @@ class TemperatureController(QObject):
         if self._target is None:
             return
         if self._ramp_active:
-            if temperature >= self._target - self.RAMP_CUTOFF_OFFSET_C:
+            if temperature >= self._ramp_threshold():
                 if not self._process.set_lamps13(False):
                     self._abort("No se pudieron apagar las lámparas externas al finalizar la rampa.")
                     return
                 self._ramp_active = False
+                self._waiting_first_dip = True
+                self._post_ramp_above_high = False
                 self._set_state("manteniendo")
             return
 
         low = self._target - self.HYSTERESIS_C
         high = self._target + self.HYSTERESIS_C
+        if self._waiting_first_dip:
+            if temperature > high:
+                self._post_ramp_above_high = True
+                return
+            if not self._post_ramp_above_high:
+                return
+            self._waiting_first_dip = False
+            self._post_ramp_above_high = False
+
+        if (
+            self._target >= self.HIGH_TEMP_CUTOFF_C
+            and temperature <= self._target - self.ASSIST_DELTA_C
+            and not self._assist_active
+        ):
+            if not self._process.set_lamps13(True):
+                self._abort("No se pudieron activar las lámparas externas para asistir la recuperación térmica.")
+                return
+            self._assist_active = True
+            self._assist_timer.start(self.ASSIST_PULSE_MS)
+
         if temperature <= low and not self._process.lamp2_active:
             if not self._process.set_lamp2(True):
                 self._abort("No se pudo encender la lámpara central.")
@@ -139,9 +178,24 @@ class TemperatureController(QObject):
                 self._abort("No se pudo apagar la lámpara central.")
                 return
 
-        if not self._target_reached and abs(temperature - self._target) <= self.HYSTERESIS_C:
+        if not self._target_reached and abs(temperature - self._target) <= self.RECIPE_REACHED_TOLERANCE_C:
             self._target_reached = True
             self.setpoint_reached.emit(self._target)
+
+    def _ramp_threshold(self):
+        if self._target <= self.HIGH_TEMP_CUTOFF_C:
+            base_offset = 5.0 + 0.15 * (self._target - self.MIN_SETPOINT_C)
+        else:
+            base_offset = 5.0 + 0.15 * (self._target - self.HIGH_TEMP_CUTOFF_C)
+        start_correction = max(0.0, 0.15 * (self._start_temperature - 35.0))
+        return self._target - base_offset - start_correction
+
+    def _stop_assist_pulse(self):
+        if not self._assist_active:
+            return
+        self._assist_active = False
+        if self.is_active and not self._process.set_lamps13(False):
+            self._abort("No se pudieron apagar las lámparas externas al finalizar el pulso de asistencia.")
 
     def _check_runtime_conditions(self):
         if not self.is_active:
@@ -153,8 +207,12 @@ class TemperatureController(QObject):
 
     def _abort(self, message):
         self._watchdog.stop()
+        self._assist_timer.stop()
+        self._assist_active = False
         self._target = None
         self._ramp_active = False
+        self._waiting_first_dip = False
+        self._post_ramp_above_high = False
         if not self._turn_lamps_off():
             message += " No se pudieron confirmar todas las lámparas apagadas; verifique las salidas."
         self._set_state("detenido")

@@ -176,7 +176,7 @@ RECIPE_ERROR_O2_RANGE = "El flujo de O₂ debe estar entre 0 y 10 SLPM."
 RECIPE_ERROR_N2_RANGE = "El flujo de N₂ debe estar entre 0 y 1 SLPM."
 RECIPE_ERROR_PROCESS_PRESSURE_RANGE = "La presión de proceso debe estar entre 0 y 3 Torr."
 RECIPE_ERROR_BASE_PRESSURE_RANGE = "La presión base debe estar entre 0 y 3 Torr."
-RECIPE_ERROR_PROCESS_TEMPERATURE_RANGE = "La temperatura de proceso debe estar entre 130 y 200 °C."
+RECIPE_ERROR_PROCESS_TEMPERATURE_RANGE = "La temperatura de proceso debe estar entre 130 y 190 °C."
 RECIPE_ERROR_RF_TIME_RANGE = "El tiempo máximo de RF debe ser un número entero entre 1 y 120 segundos (2 minutos)."
 RECIPE_ERROR_PRESSURE_UNAVAILABLE = "No hay una lectura actual de presión de cámara para definir el mínimo de presión base."
 RECIPE_ERROR_BASE_PRESSURE_MINIMUM = "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta."
@@ -557,7 +557,7 @@ _SPANISH_TO_ENGLISH = {
     "Manteniendo temperatura con histéresis": "Maintaining temperature with hysteresis",
     "La presión de proceso debe estar entre 0 y 3 Torr.": "Process pressure must be between 0 and 3 Torr.",
     "La presión base debe estar entre 0 y 3 Torr.": "Base pressure must be between 0 and 3 Torr.",
-    "La temperatura de proceso debe estar entre 130 y 200 °C.": "Process temperature must be between 130 and 200 °C.",
+    "La temperatura de proceso debe estar entre 130 y 190 °C.": "Process temperature must be between 130 and 190 °C.",
     "Lámparas y plasma": "Lamps and plasma",
     "Pulso (s):": "Pulse (s):",
     "Pulso lámparas 1 y 3": "Pulse lamps 1 and 3",

@@ -493,9 +493,10 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(screen.pressure_start_button.isEnabled())
         self.assertFalse(screen.pressure_stop_button.isEnabled())
         self.assertEqual(screen.temperature_setpoint.minimum(), 130.0)
-        self.assertEqual(screen.temperature_setpoint.maximum(), 200.0)
+        self.assertEqual(screen.temperature_setpoint.maximum(), 190.0)
 
     def test_temperature_ramp_and_hysteresis_use_managed_lamp_outputs(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         process = ProcessController(self.hardware, can_operate=lambda: True)
         temperature = TemperatureController(process, can_operate=lambda: True)
         temperature.set_temperature_reading(100.0)
@@ -508,19 +509,34 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(self.hardware.digital_read("LAMP3_ON_CMD"))
         self.assertEqual(temperature.state, "precalentando")
 
+        # Para 180 °C y una lectura inicial de 100 °C, la rampa termina
+        # a 180 - (8.0 + 9.75) = 162.25 °C.
         for _ in range(11):
-            temperature.set_temperature_reading(172.0)
+            temperature.set_temperature_reading(162.0)
+        self.assertEqual(temperature.state, "precalentando")
+        for _ in range(11):
+            temperature.set_temperature_reading(163.0)
         self.assertEqual(temperature.state, "manteniendo")
+        # A baja temperatura, la asistencia heredada puede arrancar en la
+        # primera evaluación posterior al fin de rampa.
+        temperature._stop_assist_pulse()
         self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
 
+        # La histéresis queda bloqueada hasta la primera caída por debajo de
+        # setpoint + 7 °C; luego L2 conmuta en los límites ±7 °C.
         for _ in range(11):
-            temperature.set_temperature_reading(183.0)
+            temperature.set_temperature_reading(188.0)
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(187.0)
         self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         for _ in range(11):
-            temperature.set_temperature_reading(177.0)
+            temperature.set_temperature_reading(173.0)
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(177.0)
         self.assertEqual(reached, [180.0])
 
         temperature.stop()
@@ -528,6 +544,7 @@ class MigratedModulesTests(unittest.TestCase):
             self.assertFalse(self.hardware.digital_read(signal))
 
     def test_temperature_control_aborts_on_lost_interlock_or_reading(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         allowed = [True]
         process = ProcessController(self.hardware, can_operate=lambda: allowed[0])
         temperature = TemperatureController(process, can_operate=lambda: allowed[0])
@@ -545,6 +562,28 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
         self.assertTrue(errors)
+
+    def test_temperature_assist_pulse_uses_managed_outputs_and_stops_safely(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        # Complete the ramp (threshold is 162.25 °C for this start temp).
+        for _ in range(11):
+            temperature.set_temperature_reading(163.0)
+        # Pass the upper threshold, then fall through the assist threshold.
+        for _ in range(11):
+            temperature.set_temperature_reading(188.0)
+        for _ in range(11):
+            temperature.set_temperature_reading(170.0)
+        self.assertTrue(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertTrue(self.hardware.digital_read("LAMP3_ON_CMD"))
+
+        temperature.stop()
+        self.assertFalse(temperature._assist_timer.isActive())
+        for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD"):
+            self.assertFalse(self.hardware.digital_read(signal))
 
     def test_recipe_process_pressure_is_limited_to_three_torr(self):
         service = RecipeService()
@@ -570,8 +609,11 @@ class MigratedModulesTests(unittest.TestCase):
             service.validate(recipe)
 
         recipe.base_pressure = 0.5
-        recipe.process_temperature = 200.0
+        recipe.process_temperature = 190.0
         service.validate(recipe)
+        recipe.process_temperature = 200.0
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
 
     def test_recipe_rf_time_defaults_for_legacy_files_and_round_trips(self):
         with TemporaryDirectory() as folder:

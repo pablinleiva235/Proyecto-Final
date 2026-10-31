@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 class ThrottleController(QObject):
     movement_changed = pyqtSignal(bool, str)
+    position_changed = pyqtSignal(object)
     operation_error = pyqtSignal(str)
     initial_position_reached = pyqtSignal()
     automatic_motion_failed = pyqtSignal(str)
@@ -50,7 +51,7 @@ class ThrottleController(QObject):
         try:
             self._sample_limit_states()
             if not closing and self._limit_stable["THROTTLE_OPEN"]:
-                self._position_steps = 0
+                self._set_position_steps(0.0)
         except Exception as error:
             self.operation_error.emit(str(error))
             return
@@ -135,13 +136,9 @@ class ThrottleController(QObject):
         self._automatic_mode = True
         self._remaining_steps = None
         try:
-            opened = self._hardware.digital_read("THROTTLE_OPEN")
-            closed = self._hardware.digital_read("THROTTLE_CLOSED")
-            if opened and closed:
-                raise RuntimeError("Los dos finales de carrera del throttle están activos.")
             self._sample_limit_states()
-            if opened and self._limit_stable["THROTTLE_OPEN"]:
-                self._position_steps = 0
+            if self._limit_stable["THROTTLE_OPEN"]:
+                self._set_position_steps(0.0)
         except Exception:
             self._automatic_mode = False
             raise
@@ -189,13 +186,9 @@ class ThrottleController(QObject):
         if not self._automatic_mode:
             raise RuntimeError("El control automático de presión no reservó la throttle.")
         if self._position_steps is None:
-            opened = self._hardware.digital_read("THROTTLE_OPEN")
-            closed = self._hardware.digital_read("THROTTLE_CLOSED")
-            if opened and closed:
-                raise RuntimeError("Los dos finales de carrera del throttle están activos.")
             self._sample_limit_states()
-            if opened and self._limit_stable["THROTTLE_OPEN"]:
-                self._position_steps = 0
+            if self._limit_stable["THROTTLE_OPEN"]:
+                self._set_position_steps(0.0)
             else:
                 self._homing_active = True
                 self._closing = False
@@ -273,7 +266,7 @@ class ThrottleController(QObject):
         self._safety_return_timer.stop()
         self._safety_return_active = False
         self.stop_pressure_motion()
-        self._position_steps = None
+        self._set_position_steps(None)
         self._homing_active = False
         if safety_return:
             self.safety_return_finished.emit(False, message)
@@ -347,7 +340,7 @@ class ThrottleController(QObject):
                     self.movement_changed.emit(False, "detenido")
                     if self._limit_stable["THROTTLE_OPEN"]:
                         self._homing_timer.stop()
-                        self._position_steps = 0
+                        self._set_position_steps(0.0)
                         self._homing_active = False
                         self._move_to_rest_position()
                 elif self._automatic_mode:
@@ -360,7 +353,10 @@ class ThrottleController(QObject):
             if self._step_state:
                 if self._position_steps is not None:
                     increment = 0.5 if self._motion_half_step else 1.0
-                    self._position_steps += increment if self._closing else -increment
+                    position = self._position_steps + (
+                        increment if self._closing else -increment
+                    )
+                    self._set_position_steps(position)
                 if self._remaining_steps is not None:
                     self._remaining_steps -= 1
                     if self._remaining_steps <= 0:
@@ -390,9 +386,13 @@ class ThrottleController(QObject):
         closed = self._hardware.digital_read("THROTTLE_CLOSED")
         self._record_limit_sample("THROTTLE_OPEN", opened)
         self._record_limit_sample("THROTTLE_CLOSED", closed)
-        if opened and closed:
+        if (
+            self._limit_stable["THROTTLE_OPEN"]
+            and self._limit_stable["THROTTLE_CLOSED"]
+        ):
             raise RuntimeError("Los dos finales de carrera del throttle están activos.")
-        return closed if self._closing else opened
+        limit_name = "THROTTLE_CLOSED" if self._closing else "THROTTLE_OPEN"
+        return self._limit_stable[limit_name]
 
     def _sample_limit_states(self):
         for name in ("THROTTLE_OPEN", "THROTTLE_CLOSED"):
@@ -403,13 +403,19 @@ class ThrottleController(QObject):
         if active:
             self._limit_counts[name] = min(self.LIMIT_DEBOUNCE_READS, self._limit_counts[name] + 1)
         else:
-            self._limit_counts[name] = 0
-        stable = self._limit_counts[name] >= self.LIMIT_DEBOUNCE_READS
+            self._limit_counts[name] = max(0, self._limit_counts[name] - 1)
+        stable = (
+            self._limit_counts[name] >= self.LIMIT_DEBOUNCE_READS
+            or (
+                self._limit_stable[name]
+                and self._limit_counts[name] > 0
+            )
+        )
         if stable != self._limit_stable[name]:
             self._limit_stable[name] = stable
             self.limit_state_changed.emit(name, stable)
             if name == "THROTTLE_OPEN" and stable:
-                self._position_steps = 0
+                self._set_position_steps(0.0)
                 if (
                     self._automatic_mode and self._homing_active
                     and not self._timer.isActive() and not self._starting_motion
@@ -417,6 +423,12 @@ class ThrottleController(QObject):
                     self._homing_timer.stop()
                     self._homing_active = False
                     self._move_to_rest_position()
+
+    def _set_position_steps(self, position):
+        if position == self._position_steps:
+            return
+        self._position_steps = position
+        self.position_changed.emit(position)
 
     def _write(self, signal_name, active):
         if self._hardware.digital_read("DRIVER_ENABLE") is not True:

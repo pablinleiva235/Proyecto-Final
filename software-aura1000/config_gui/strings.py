@@ -268,8 +268,17 @@ MAINTAINER_APPLY_FLOW = "Aplicar flujo"
 MAINTAINER_OPEN_VALVE = "Abrir válvula"
 MAINTAINER_CLOSE_VALVE = "Cerrar válvula"
 MAINTAINER_THROTTLE_TITLE = "Throttle · movimiento manual"
+MAINTAINER_THROTTLE_STATUS_TITLE = "Estado de throttle"
 MAINTAINER_THROTTLE_OPEN = "Abrir throttle"
 MAINTAINER_THROTTLE_CLOSE = "Cerrar throttle"
+MAINTAINER_THROTTLE_POSITION_LABEL = "Posición estimada"
+MAINTAINER_THROTTLE_POSITION_UNAVAILABLE = "Sin referencia"
+MAINTAINER_THROTTLE_POSITION_UNAVAILABLE_MESSAGE = (
+    "La posición se define al confirmar el final de apertura."
+)
+MAINTAINER_THROTTLE_POSITION_READING = "Estimación"
+MAINTAINER_THROTTLE_POSITION_STATUS = "Posición referenciada"
+MAINTAINER_THROTTLE_POSITION_FOOTER = "Equivalentes Full Step"
 MAINTAINER_PRESSURE_TITLE = "Control automático de presión"
 MAINTAINER_PRESSURE_SETPOINT = "Setpoint:"
 MAINTAINER_PRESSURE_START = "Iniciar control"
@@ -521,8 +530,16 @@ _SPANISH_TO_ENGLISH = {
     "Abrir válvula": "Open valve",
     "Cerrar válvula": "Close valve",
     "Throttle · movimiento manual": "Throttle · manual movement",
+    "Estado de throttle": "Throttle status",
     "Abrir throttle": "Open throttle",
     "Cerrar throttle": "Close throttle",
+    "Posición estimada": "Estimated position",
+    "Sin referencia": "Unreferenced",
+    "La posición se define al confirmar el final de apertura.": "Position is referenced after confirming the open limit.",
+    "Estimación": "Estimate",
+    "Posición referenciada": "Position referenced",
+    "Equivalentes Full Step": "Full Step equivalents",
+    "pasos": "steps",
     "Control automático de presión": "Automatic pressure control",
     "Setpoint:": "Setpoint:",
     "Iniciar control": "Start control",
@@ -607,9 +624,12 @@ _SPANISH_TO_ENGLISH = {
     "APAGADO": "OFF",
     "ABIERTA": "OPEN",
     "Baratron · Presión": "Baratron · Pressure",
+    "Lectura": "Reading",
     "MFC3 · Lectura": "MFC3 · Readout",
     "MFC4 · Lectura": "MFC4 · Readout",
     "Lectura analógica": "Analog reading",
+    "Lectura disponible": "Reading available",
+    "Error de lectura": "Reading error",
     "SLPM medidos": "SLPM measured",
     "MFC1 (O₂) · 0–10 SLPM": "MFC1 (O₂) · 0–10 SLPM",
     "MFC2 (N₂) · 0–1 SLPM": "MFC2 (N₂) · 0–1 SLPM",

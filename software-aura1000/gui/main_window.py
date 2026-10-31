@@ -426,6 +426,12 @@ class MainWindow(QMainWindow):
             self.throttle_controller.move_steps
         )
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
+        self.throttle_controller.position_changed.connect(
+            self.maintainer_screen.set_throttle_position
+        )
+        self.maintainer_screen.set_throttle_position(
+            self.throttle_controller.position_steps
+        )
         self.throttle_controller.limit_state_changed.connect(
             self.maintainer_screen.set_signal_active
         )
@@ -441,9 +447,6 @@ class MainWindow(QMainWindow):
         )
         self.maintainer_screen.pressure_stop_requested.connect(
             self.pressure_controller.stop
-        )
-        self.pressure_controller.pressure_changed.connect(
-            self.maintainer_screen.set_pressure_reading
         )
         self.pressure_controller.pressure_unavailable.connect(
             self.maintainer_screen.set_pressure_reading_unavailable

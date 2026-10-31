@@ -15,6 +15,8 @@ from controllers.pressure_controller import PressureController
 from controllers.throttle_controller import ThrottleController
 from controllers.temperature_controller import TemperatureController
 from gui.maintainer_screen import MaintainerScreen
+from gui.widgets.localization import translate_widget_tree
+import config_gui.strings as strings
 from services.recipe_service import Recipe, RecipeError, RecipeService
 from tests.mockScripts.mock_hardware import MockHardware
 
@@ -158,6 +160,8 @@ class MigratedModulesTests(unittest.TestCase):
         self.hardware.set_input_state("THROTTLE_OPEN", False)
         self.hardware.set_input_state("THROTTLE_CLOSED", False)
         controller._position_steps = 10.0
+        positions = []
+        controller.position_changed.connect(positions.append)
         controller.move_steps(closing=True, steps=3, half_step=False)
         self.assertFalse(self.hardware.digital_read("STEPPER_HALF_STEP"))
         for _ in range(6):
@@ -171,6 +175,60 @@ class MigratedModulesTests(unittest.TestCase):
             controller._pulse()
         self.assertFalse(controller._timer.isActive())
         self.assertEqual(controller.position_steps, 11.0)
+        self.assertEqual(positions, [11.0, 12.0, 13.0, 12.5, 12.0, 11.5, 11.0])
+
+    def test_maintainer_displays_estimated_throttle_position_and_unknown_reference(self):
+        screen = MaintainerScreen()
+        self.assertEqual(screen.throttle_limits_group.title(), "Estado de throttle")
+        self.assertIs(screen.throttle_position_card.parent(), screen.throttle_limits_group)
+        self.assertIs(screen.baratron_readout_card.parent(), screen.throttle_limits_group)
+        self.assertIs(screen._analog_values["BARATRON"], screen.baratron_readout_card)
+        self.assertNotIn(
+            screen.baratron_readout_card,
+            screen.analog_readouts_group.findChildren(type(screen.baratron_readout_card)),
+        )
+        for name in ("CHAMBER_TEMP", "EOP"):
+            self.assertIn(
+                screen._analog_values[name],
+                screen.analog_readouts_group.findChildren(
+                    type(screen._analog_values[name])
+                ),
+            )
+        self.assertTrue(
+            all(
+                widget.parent() is screen.throttle_limits_group
+                for widget in screen._throttle_limit_widgets.values()
+            )
+        )
+
+        screen.set_throttle_position(None)
+        self.assertEqual(screen.throttle_position_card.value_label.text(), "---")
+        self.assertEqual(screen.throttle_position_card.type_label.text(), "Sin referencia")
+        screen.set_throttle_position(12.5)
+        self.assertEqual(screen.throttle_position_card.value_label.text(), "12.5")
+        self.assertEqual(screen.throttle_position_card.unit_label.text(), "pasos")
+        screen.set_analog_value("BARATRON", 1.234)
+        self.assertEqual(screen.baratron_readout_card.value_label.text(), "1.234")
+        self.assertEqual(screen.baratron_readout_card.unit_label.text(), "Torr")
+        screen.set_pressure_reading_unavailable()
+        self.assertEqual(screen.baratron_readout_card.value_label.text(), "ERR")
+        self.assertTrue(screen.baratron_readout_card.value_label.property("error"))
+        screen.set_throttle_position(None)
+
+        previous_language = strings.get_language()
+        try:
+            strings.set_language("en")
+            translate_widget_tree(screen)
+            self.assertEqual(screen.throttle_limits_group.title(), "Throttle status")
+            self.assertEqual(screen.throttle_position_card.title_label.text(), "Estimated position")
+            self.assertEqual(screen.throttle_position_card.type_label.text(), "Unreferenced")
+            self.assertEqual(screen.throttle_position_card.unit_label.text(), "steps")
+            self.assertEqual(screen.throttle_position_card.footer_label.text(), "Full Step equivalents")
+            self.assertEqual(screen.baratron_readout_card.title_label.text(), "Baratron · Pressure")
+            self.assertEqual(screen.baratron_readout_card.footer_label.text(), "Analog reading")
+        finally:
+            strings.set_language(previous_language)
+            translate_widget_tree(screen)
 
     def test_throttle_rejects_step_count_out_of_range(self):
         controller = ThrottleController(self.hardware, can_operate=lambda: True)
@@ -185,7 +243,7 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertEqual(controller._remaining_steps, 1400)
         controller.stop()
 
-    def test_throttle_limit_status_debounces_but_stops_on_first_active_sample(self):
+    def test_throttle_limit_status_uses_gradual_three_sample_debounce(self):
         controller = ThrottleController(self.hardware, can_operate=lambda: True)
         changes = []
         controller.limit_state_changed.connect(lambda name, state: changes.append((name, state)))
@@ -194,15 +252,30 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
         controller._record_limit_sample("THROTTLE_OPEN", False)
         controller._record_limit_sample("THROTTLE_OPEN", True)
-        controller._record_limit_sample("THROTTLE_OPEN", True)
         self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
         controller._record_limit_sample("THROTTLE_OPEN", True)
         self.assertTrue(controller._limit_stable["THROTTLE_OPEN"])
         self.assertEqual(changes, [("THROTTLE_OPEN", True)])
+        controller._record_limit_sample("THROTTLE_OPEN", False)
+        controller._record_limit_sample("THROTTLE_OPEN", False)
+        self.assertTrue(controller._limit_stable["THROTTLE_OPEN"])
+        controller._record_limit_sample("THROTTLE_OPEN", False)
+        self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
+        self.assertEqual(changes, [("THROTTLE_OPEN", True), ("THROTTLE_OPEN", False)])
 
         self.hardware.set_input_state("THROTTLE_OPEN", True)
         controller.start(closing=False)
+        self.assertTrue(controller._timer.isActive())
+        controller._pulse()
         self.assertFalse(controller._timer.isActive())
+
+    def test_throttle_ignores_one_simultaneous_limit_sample(self):
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        self.hardware.set_input_state("THROTTLE_OPEN", True)
+        self.hardware.set_input_state("THROTTLE_CLOSED", True)
+        self.assertFalse(controller._limit_reached())
+        self.assertFalse(controller._limit_stable["THROTTLE_OPEN"])
+        self.assertFalse(controller._limit_stable["THROTTLE_CLOSED"])
 
     def test_pressure_control_homes_and_reaches_legacy_start_position(self):
         self.hardware.set_input_state("THROTTLE_OPEN", False)

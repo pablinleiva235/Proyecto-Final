@@ -489,6 +489,18 @@ class MaintainerScreen(QWidget):
         step_action_row.addWidget(self.throttle_open_steps_button)
         step_action_row.addWidget(self.throttle_close_steps_button)
         throttle_buttons.addLayout(step_action_row)
+        self.throttle_position_card = AnalogReadoutCard(
+            myStr.MAINTAINER_THROTTLE_POSITION_LABEL,
+            "pasos",
+            "↕",
+            reading_label=myStr.MAINTAINER_THROTTLE_POSITION_READING,
+            available_status=myStr.MAINTAINER_THROTTLE_POSITION_STATUS,
+            footer=myStr.MAINTAINER_THROTTLE_POSITION_FOOTER,
+        )
+        self.throttle_position_card.set_unavailable(
+            myStr.MAINTAINER_THROTTLE_POSITION_UNAVAILABLE,
+            myStr.MAINTAINER_THROTTLE_POSITION_UNAVAILABLE_MESSAGE,
+        )
         self.throttle_state_label = QLabel("DETENIDO")
         self.throttle_state_label.setObjectName("MaintenancePill")
         self.throttle_state_label.setProperty("state", "inactive")
@@ -520,16 +532,12 @@ class MaintainerScreen(QWidget):
         pressure_buttons.addWidget(self.pressure_start_button)
         pressure_buttons.addWidget(self.pressure_stop_button)
         pressure_controls.addLayout(pressure_buttons)
-        self.pressure_reading_label = QLabel(myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE)
-        self.pressure_reading_label.setWordWrap(True)
-        self.pressure_reading_label.setMaximumWidth(280)
         self.pressure_state_label = QLabel(myStr.MAINTAINER_PRESSURE_IDLE)
         self.pressure_state_label.setWordWrap(True)
-        pressure_controls.addWidget(self.pressure_reading_label)
         pressure_controls.addWidget(self.pressure_state_label)
         throttle_layout.addLayout(pressure_controls)
 
-        self.throttle_limits_group = QGroupBox("Finales de carrera throttle")
+        self.throttle_limits_group = QGroupBox(myStr.MAINTAINER_THROTTLE_STATUS_TITLE)
         self.throttle_limits_group.setObjectName("MaintainerCardGroup")
         throttle_limits_layout = QVBoxLayout(self.throttle_limits_group)
         self._throttle_limit_widgets = {
@@ -538,6 +546,12 @@ class MaintainerScreen(QWidget):
         }
         for widget in self._throttle_limit_widgets.values():
             throttle_limits_layout.addWidget(widget)
+        throttle_limits_layout.addWidget(self.throttle_position_card)
+        self.baratron_readout_card = AnalogReadoutCard(
+            "Baratron · Presión", "Torr", "P"
+        )
+        self._analog_values["BARATRON"] = self.baratron_readout_card
+        throttle_limits_layout.addWidget(self.baratron_readout_card)
         throttle_limits_layout.addStretch()
 
         self.process_group = QGroupBox(myStr.MAINTAINER_PROCESS_TITLE)
@@ -638,7 +652,6 @@ class MaintainerScreen(QWidget):
 
     def _create_analog_readouts(self):
         names = (
-            ("BARATRON", "Baratron · Presión", "Torr", "P"),
             ("CHAMBER_TEMP", "Temperatura de cámara", "°C", "T"),
             ("EOP", "End of Process", "V", "EOP"),
         )
@@ -777,6 +790,15 @@ class MaintainerScreen(QWidget):
             self.pressure_start_button.setEnabled(controls_enabled and not moving)
             self.pressure_setpoint.setEnabled(controls_enabled and not moving)
 
+    def set_throttle_position(self, position):
+        if position is None:
+            self.throttle_position_card.set_unavailable(
+                myStr.MAINTAINER_THROTTLE_POSITION_UNAVAILABLE,
+                myStr.MAINTAINER_THROTTLE_POSITION_UNAVAILABLE_MESSAGE,
+            )
+        else:
+            self.throttle_position_card.set_value(position, precision=1)
+
     def set_module_controls_enabled(self, enabled):
         enabled = bool(enabled) and not self._manual_controls_locked
         self.mfc1_card.set_controls_enabled(enabled)
@@ -809,16 +831,9 @@ class MaintainerScreen(QWidget):
         self.lamp2_button.setEnabled(enabled and not temperature_active)
         self.plasma_button.setEnabled(enabled and not temperature_active)
 
-    def set_pressure_reading(self, pressure):
-        set_localized_text(
-            self.pressure_reading_label,
-            myStr.MAINTAINER_PRESSURE_CURRENT.format(pressure=float(pressure)),
-        )
-
-    def set_pressure_reading_unavailable(self, _message=None):
-        set_localized_text(
-            self.pressure_reading_label,
-            myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE,
+    def set_pressure_reading_unavailable(self, message=None):
+        self.baratron_readout_card.set_error(
+            message or myStr.MAINTAINER_PRESSURE_CURRENT_UNAVAILABLE
         )
 
     def set_pressure_control_state(self, state):

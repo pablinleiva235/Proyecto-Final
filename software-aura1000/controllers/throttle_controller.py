@@ -8,6 +8,7 @@ class ThrottleController(QObject):
     operation_error = pyqtSignal(str)
     initial_position_reached = pyqtSignal()
     automatic_motion_failed = pyqtSignal(str)
+    safety_return_finished = pyqtSignal(bool, str)
     limit_state_changed = pyqtSignal(str, bool)
 
     PULSE_INTERVAL_MS = 5
@@ -25,6 +26,7 @@ class ThrottleController(QObject):
         self._position_steps = None
         self._automatic_mode = False
         self._homing_active = False
+        self._safety_return_active = False
         self._remaining_steps = None
         self._motion_half_step = False
         self._starting_motion = False
@@ -33,9 +35,13 @@ class ThrottleController(QObject):
         self._homing_timer = QTimer(self)
         self._homing_timer.setSingleShot(True)
         self._homing_timer.timeout.connect(self._homing_timed_out)
+        self._safety_return_timer = QTimer(self)
+        self._safety_return_timer.setSingleShot(True)
+        self._safety_return_timer.timeout.connect(self._safety_return_timed_out)
         self._timer = QTimer(self)
         self._timer.setInterval(self.PULSE_INTERVAL_MS)
         self._timer.timeout.connect(self._pulse)
+        self.initial_position_reached.connect(self._complete_safety_return)
 
     def start(self, closing):
         if self._automatic_mode:
@@ -149,6 +155,32 @@ class ThrottleController(QObject):
             return
         self._move_to_rest_position()
 
+    def return_to_rest_for_safety(self):
+        """Stops current throttle motion and starts a bounded return to rest."""
+        if self._safety_return_active:
+            raise RuntimeError("Ya hay un retorno de seguridad de la throttle en curso.")
+        if self._automatic_mode:
+            stopped = self.stop_pressure_motion(release=True)
+        else:
+            stopped = self._safe_stop()
+        if not stopped:
+            raise RuntimeError(
+                "No se pudo confirmar la detención previa de la throttle."
+            )
+        if not self._can_operate():
+            raise RuntimeError(
+                "No se puede llevar la throttle a reposo sin interlocks de operación confirmados."
+            )
+
+        self._safety_return_active = True
+        self._safety_return_timer.start(self.HOMING_TIMEOUT_MS)
+        try:
+            self.move_to_pressure_start_position()
+        except Exception as error:
+            self._complete_safety_return(False, str(error))
+            return False
+        return self._safety_return_active
+
     def _move_to_rest_position(self):
         self.move_to_rest_position()
 
@@ -205,6 +237,10 @@ class ThrottleController(QObject):
         self._start_motion(bool(closing), pulse_interval_ms, half_step=half_step)
 
     def stop_pressure_motion(self, release=True):
+        cancel_safety_return = release and self._safety_return_active
+        if cancel_safety_return:
+            self._safety_return_active = False
+            self._safety_return_timer.stop()
         self._timer.stop()
         self._homing_timer.stop()
         self._step_state = False
@@ -226,12 +262,49 @@ class ThrottleController(QObject):
         self.movement_changed.emit(False, "detenido")
         if error:
             self.operation_error.emit(error)
+        if cancel_safety_return:
+            self.safety_return_finished.emit(
+                False, "El retorno de seguridad de la throttle fue interrumpido."
+            )
+        return error is None
 
     def _fail_automatic_motion(self, message):
+        safety_return = self._safety_return_active
+        self._safety_return_timer.stop()
+        self._safety_return_active = False
         self.stop_pressure_motion()
         self._position_steps = None
         self._homing_active = False
-        self.automatic_motion_failed.emit(message)
+        if safety_return:
+            self.safety_return_finished.emit(False, message)
+        else:
+            self.automatic_motion_failed.emit(message)
+
+    def _complete_safety_return(self, success=True, message=None):
+        if not self._safety_return_active:
+            return
+        self._safety_return_active = False
+        self._safety_return_timer.stop()
+        stopped = self.stop_pressure_motion(release=True)
+        if not success:
+            self.safety_return_finished.emit(
+                False, message or "No se pudo llevar la throttle a reposo."
+            )
+        elif stopped:
+            self.safety_return_finished.emit(
+                True, "La throttle llegó a la posición de reposo."
+            )
+        else:
+            self.safety_return_finished.emit(
+                False,
+                "La throttle llegó a reposo, pero no se pudo confirmar la deshabilitación del motor.",
+            )
+
+    def _safety_return_timed_out(self):
+        if self._safety_return_active:
+            self._fail_automatic_motion(
+                "La throttle no llegó a reposo dentro del tiempo límite de homing."
+            )
 
     def stop(self):
         if self._automatic_mode:
@@ -362,3 +435,5 @@ class ThrottleController(QObject):
                 errors.append(f"{signal_name}: {error}")
         if errors:
             self.operation_error.emit("; ".join(errors))
+            return False
+        return True

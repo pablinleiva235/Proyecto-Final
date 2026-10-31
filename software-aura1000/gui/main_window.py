@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import (
+    QApplication,
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -45,6 +46,7 @@ from logic.recipe_sequence import RecipeSequence, RecipeState
 class MainWindow(QMainWindow):
 
     exit_requested = pyqtSignal()
+    emergency_shutdown_requested = pyqtSignal()
 
     def __init__(
         self,
@@ -182,11 +184,13 @@ class MainWindow(QMainWindow):
             parent=self,
             digital_state_setter=self.hardware.digital_set,
             digital_hardware_reader=self.hardware.digital_read,
+            throttle_controller=self.throttle_controller,
         )
         self.module_monitor_timer = QTimer(self)
         self.module_monitor_timer.setInterval(100)
         self.module_monitor_timer.timeout.connect(self._monitor_migrated_modules)
         self._module_access = False
+        self._emergency_shutdown_in_progress = False
 
         self.door_sequence.set_can_open(
             self.interlock_controller.can_open_door
@@ -490,8 +494,14 @@ class MainWindow(QMainWindow):
         self.normal_operation_screen.set_rf_state(self.process_controller.plasma_active)
         self.process_controller.operation_error.connect(self._handle_module_error)
         self.process_controller.operation_error.connect(self.recipe_sequence.controller_error)
+        self.process_controller.alarm_raised.connect(self.recipe_sequence.process_alarm)
         self.process_controller.alarm_raised.connect(self._handle_process_alarm)
-        self.process_controller.alarm_raised.connect(self.recipe_sequence.interlock_lost)
+        self.process_controller.fault_monitoring_failed.connect(
+            self._handle_fault_monitoring_failure
+        )
+        self.throttle_controller.safety_return_finished.connect(
+            self._handle_throttle_safety_return_finished
+        )
         self.process_controller.warning_raised.connect(self._handle_process_warning)
         self.module_monitor_timer.start()
         self.maintainer_screen.set_module_controls_enabled(False)
@@ -599,6 +609,8 @@ class MainWindow(QMainWindow):
         )
         self.normal_operation_screen.set_recipe_running(False)
         self.maintainer_screen.set_manual_controls_locked(False)
+        if self._emergency_shutdown_in_progress:
+            return
         self._sync_module_permissions()
         if self.recipe_sequence.log_saved:
             message += "\n\n" + strings.tr(strings.RECIPE_LOG_SAVED_MESSAGE).format(
@@ -902,6 +914,8 @@ class MainWindow(QMainWindow):
     def _monitor_migrated_modules(self):
         self.throttle_controller.stop_if_limit_reached()
         self.process_controller.check_faults()
+        if self._emergency_shutdown_in_progress:
+            return
         for signal_name, enabled in (
             self.process_controller.fault_monitoring_state().items()
         ):
@@ -937,6 +951,37 @@ class MainWindow(QMainWindow):
         elif signal_name == "CHAMBER_TEMP":
             self.temperature_controller.set_temperature_reading(value)
 
+    def _stop_pressure_and_throttle(self, message, return_to_rest=False):
+        """Detiene ambos controles aunque no haya una receta activa."""
+        if (
+            self.pressure_controller.is_active
+            or self.throttle_controller.is_reserved_for_pressure
+        ):
+            try:
+                self.pressure_controller.abort(message)
+            except Exception as error:
+                self._handle_pressure_error(str(error))
+        if return_to_rest:
+            try:
+                self.throttle_controller.return_to_rest_for_safety()
+            except Exception as error:
+                self._handle_throttle_error(str(error))
+                self.maintainer_screen.set_operation_message(
+                    f"{message} No se pudo llevar la throttle a reposo: {error}",
+                    is_error=True,
+                )
+            return
+        try:
+            self.throttle_controller.stop()
+        except Exception as error:
+            self._handle_throttle_error(str(error))
+
+    def _handle_throttle_safety_return_finished(self, success, message):
+        self.maintainer_screen.set_operation_message(
+            message if success else f"Retorno de throttle fallido: {message}",
+            is_error=not success,
+        )
+
     def _handle_mfc_flow_fault(self, message):
         self.maintainer_screen.set_operation_message(
             f"Falla de caudal: {message} Se ejecutó el apagado seguro.", is_error=True
@@ -948,10 +993,9 @@ class MainWindow(QMainWindow):
                 self.process_controller.stop_all()
             except Exception:
                 pass
-            if self.pressure_controller.is_active:
-                self.pressure_controller.abort("Control detenido por falla de caudal MFC.")
-            else:
-                self.throttle_controller.stop()
+            self._stop_pressure_and_throttle(
+                "Control detenido por falla de caudal MFC."
+            )
             self.recipe_sequence.interlock_lost(f"Falla de caudal: {message}")
             QMessageBox.warning(
                 self, strings.tr("Falla de caudal"),
@@ -975,6 +1019,11 @@ class MainWindow(QMainWindow):
         self._handle_module_error("Temperatura", message)
 
     def _handle_process_alarm(self, message):
+        if not self.recipe_sequence.is_active:
+            self._stop_pressure_and_throttle(
+                "Control detenido por una alarma crítica de proceso.",
+                return_to_rest=True,
+            )
         if self.temperature_controller.is_active:
             self.temperature_controller.abort("Se abortó el control térmico por una alarma de proceso.")
         self.maintainer_screen.set_operation_message(message, is_error=True)
@@ -984,6 +1033,52 @@ class MainWindow(QMainWindow):
             strings.tr("Se detuvieron lámparas y plasma por una falla:\n\n" + message),
             QMessageBox.Ok,
         )
+
+    def _handle_fault_monitoring_failure(self, source, message):
+        """Aplica el estado seguro global si ya no se pueden leer interlocks de falla."""
+        self.module_monitor_timer.stop()
+        self.analog_controller.stop_monitoring()
+        self._emergency_shutdown_in_progress = True
+        self.emergency_shutdown_requested.emit()
+        details = [f"No se pudo leer {source}: {message}"]
+
+        try:
+            self.recipe_sequence.abort_for_hardware_failure(details[0])
+        except Exception as error:
+            details.append(f"No se pudo cerrar el estado de receta: {error}")
+
+        for label, action in (
+            ("Control térmico", lambda: self.temperature_controller.abort(
+                "Control detenido por falla de lectura de entradas de seguridad."
+            )),
+            ("Control de presión y throttle", lambda: self._stop_pressure_and_throttle(
+                "Control detenido por falla de lectura de entradas de seguridad."
+            )),
+            ("MFC", self.mfc_controller.shutdown),
+            ("Lámparas y plasma", self.process_controller.stop_all),
+        ):
+            try:
+                action()
+            except Exception as error:
+                details.append(f"{label}: {error}")
+
+        try:
+            errors = self.hardware.shutdown_state() or []
+            if errors:
+                details.extend(str(error) for error in errors)
+            else:
+                details.append(
+                    "Se solicitó el estado seguro del hardware sin errores reportados."
+                )
+        except Exception as error:
+            details.append(f"No se pudo ejecutar el apagado seguro: {error}")
+
+        QMessageBox.critical(
+            self,
+            strings.tr("Falla crítica de monitoreo"),
+            strings.tr("\n".join(details)),
+        )
+        QApplication.exit(1)
 
     def _handle_process_warning(self, message):
         QMessageBox.warning(

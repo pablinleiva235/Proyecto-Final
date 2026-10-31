@@ -52,6 +52,7 @@ class RecipeSequence(QObject):
         temperature_controller, process_controller, digital_state_getter=None,
         recipe_log_factory=None, parent=None, recipe_data_log_factory=None,
         digital_state_setter=None, digital_hardware_reader=None,
+        throttle_controller=None,
     ):
         super().__init__(parent)
         self.door = door_sequence
@@ -62,6 +63,7 @@ class RecipeSequence(QObject):
         self.pressure = pressure_controller
         self.temperature = temperature_controller
         self.process = process_controller
+        self.throttle = throttle_controller
         self._digital_state_getter = digital_state_getter or (lambda _name: None)
         self._digital_state_setter = digital_state_setter
         self._digital_hardware_reader = digital_hardware_reader
@@ -81,11 +83,17 @@ class RecipeSequence(QObject):
         self._recipe = None
         self._state = RecipeState.IDLE
         self._stopping = False
+        self._waiting_for_throttle_rest = False
+        self._shutdown_continuation_started = False
         self._eop = None
         self._vacuum_started = False
         self._rf_timer = QTimer(self)
         self._rf_timer.setSingleShot(True)
         self._rf_timer.timeout.connect(self._rf_time_limit_reached)
+        if self.throttle is not None:
+            self.throttle.safety_return_finished.connect(
+                self._on_safety_return_finished
+            )
 
     @property
     def state(self):
@@ -119,6 +127,8 @@ class RecipeSequence(QObject):
             return False
         self._recipe = recipe
         self._stopping = False
+        self._waiting_for_throttle_rest = False
+        self._shutdown_continuation_started = False
         self._eop = None
         self._failed = False
         self._completion_message = ""
@@ -436,6 +446,24 @@ class RecipeSequence(QObject):
         if self.is_active and not self._stopping:
             self._fail(message)
 
+    def process_alarm(self, message):
+        """Stops the recipe and returns throttle before shutdown/venting."""
+        if self.is_active and not self._stopping:
+            self._fail(message, return_throttle_to_rest=True)
+
+    def abort_for_hardware_failure(self, message):
+        """Closes recipe state without issuing more hardware commands."""
+        if not self.is_active:
+            return
+        self._rf_timer.stop()
+        self._waiting_for_throttle_rest = False
+        self._shutdown_continuation_started = True
+        self._stopping = True
+        self._failed = True
+        self._completion_message = message
+        self._shutdown_errors = []
+        self._finish(True, message)
+
     def vent_completed(self):
         if self._state != RecipeState.VENTING:
             return
@@ -528,14 +556,18 @@ class RecipeSequence(QObject):
         if not self.pressure.is_active:
             self._fail("No se pudo iniciar el control de presión.")
 
-    def _fail(self, message):
+    def _fail(self, message, return_throttle_to_rest=False):
         if self._recipe_log is not None and not self._logging_failed:
             if not self._log_event(f"ERROR DE RECETA: {message}"):
                 return
         self.error_raised.emit(message)
-        self._begin_shutdown(message, failed=True)
+        self._begin_shutdown(
+            message,
+            failed=True,
+            return_throttle_to_rest=return_throttle_to_rest,
+        )
 
-    def _begin_shutdown(self, message, failed):
+    def _begin_shutdown(self, message, failed, return_throttle_to_rest=False):
         if self._stopping or not self.is_active:
             return
         self._rf_timer.stop()
@@ -543,8 +575,9 @@ class RecipeSequence(QObject):
         self._completion_message = message
         self._failed = failed
         self._shutdown_errors = []
+        self._waiting_for_throttle_rest = False
+        self._shutdown_continuation_started = False
         self._set_state(RecipeState.STOPPING_PROCESS)
-        errors = []
         for label, action, outputs in (
             ("Desactivar RF/plasma", lambda: self.process.set_plasma(False), {"RF_ON_CMD": False}),
             ("Detener control de temperatura y apagar lámparas", self.temperature.stop,
@@ -559,28 +592,73 @@ class RecipeSequence(QObject):
             try:
                 self._perform_action(label, action, safety=True, outputs=outputs)
             except Exception as error:
-                errors.append(str(error))
+                self._shutdown_errors.append(str(error))
+
+        if return_throttle_to_rest:
+            if self.throttle is None:
+                self._shutdown_errors.append(
+                    "No hay un controlador de throttle para ordenar el retorno a reposo."
+                )
+            else:
+                self._waiting_for_throttle_rest = True
+                try:
+                    started = self.throttle.return_to_rest_for_safety()
+                except Exception as error:
+                    self._waiting_for_throttle_rest = False
+                    self._shutdown_errors.append(
+                        f"No se pudo iniciar el retorno de throttle a reposo: {error}"
+                    )
+                else:
+                    # Completion can be synchronous if throttle is already at rest.
+                    if started or not self._waiting_for_throttle_rest:
+                        return
+                    self._waiting_for_throttle_rest = False
+                    self._shutdown_errors.append(
+                        "No se pudo iniciar el retorno de throttle a reposo."
+                    )
+
+        self._continue_shutdown_after_process()
+
+    def _on_safety_return_finished(self, success, message):
+        if not self._waiting_for_throttle_rest or not self._stopping:
+            return
+        self._waiting_for_throttle_rest = False
+        if self._recipe_log is not None and not self._logging_failed:
+            self._log_event(
+                f"Retorno de throttle a reposo: {'OK' if success else 'ERROR'} | {message}"
+            )
+        if not success:
+            self._shutdown_errors.append(message)
+        QTimer.singleShot(0, self._continue_shutdown_after_process)
+
+    def _continue_shutdown_after_process(self):
+        if (
+            self._shutdown_continuation_started
+            or not self._stopping
+            or not self.is_active
+        ):
+            return
+        self._shutdown_continuation_started = True
         if self.main_vacuum.state == MainVacuumState.RUNNING:
             try:
                 self._perform_action("Desactivar Main Vacuum", self.main_vacuum.stop, safety=True,
                                      outputs={"MAIN_VACUUM_CONTROL": False})
             except Exception as error:
-                errors.append(str(error))
+                self._shutdown_errors.append(str(error))
         if self.soft_vacuum.state == SoftVacuumState.RUNNING:
             try:
                 self._perform_action("Desactivar Soft Vacuum", self.soft_vacuum.stop, safety=True,
                                      outputs={"SOFT_START_CONTROL": False})
             except Exception as error:
-                errors.append(str(error))
+                self._shutdown_errors.append(str(error))
+        if self._shutdown_errors:
+            self._completion_message += " Error durante apagado seguro: " + "; ".join(self._shutdown_errors)
+            self._failed = True
         if (self.main_vacuum.state == MainVacuumState.IDLE
                 and self.soft_vacuum.state == SoftVacuumState.IDLE
                 and not self._vacuum_started):
             self._finish(self._failed, self._completion_message)
             return
-        errors.extend(self._shutdown_errors)
-        if errors:
-            self._completion_message += " Error durante apagado seguro: " + "; ".join(errors)
-            self._failed = True
         if self.main_vacuum.state != MainVacuumState.IDLE or self.soft_vacuum.state != SoftVacuumState.IDLE:
             self._finish(True, self._completion_message + " No se pudo detener el vacío; no se inicia venteo.")
             return

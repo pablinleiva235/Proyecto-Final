@@ -8,6 +8,7 @@ class ProcessController(QObject):
     operation_error = pyqtSignal(str, str)
     alarm_raised = pyqtSignal(str)
     warning_raised = pyqtSignal(str)
+    fault_monitoring_failed = pyqtSignal(str, str)
     state_changed = pyqtSignal(str, bool)
 
     IGNITION_DELAY_S = 2.0
@@ -133,17 +134,30 @@ class ProcessController(QObject):
             self._plasma_started_at = 0.0
 
     def check_faults(self):
+        def read_fault_input(signal_name):
+            try:
+                return self._hardware.digital_read(signal_name)
+            except Exception as error:
+                raise RuntimeError(f"{signal_name}: {error}") from error
+
         try:
-            lamp1 = self._lamps13 and self._hardware.digital_read("LAMP1_FAIL")
-            lamp2 = self._lamp2 and self._hardware.digital_read("LAMP2_FAIL")
-            lamp3 = self._lamps13 and self._hardware.digital_read("LAMP3_FAIL")
+            lamp1 = self._lamps13 and read_fault_input("LAMP1_FAIL")
+            lamp2 = self._lamp2 and read_fault_input("LAMP2_FAIL")
+            lamp3 = self._lamps13 and read_fault_input("LAMP3_FAIL")
             plasma = (
                 self._plasma
                 and time.monotonic() - self._plasma_started_at > self.IGNITION_DELAY_S
-                and self._hardware.digital_read("PLASMA_FAIL")
+                and read_fault_input("PLASMA_FAIL")
             )
-            warning = self._hardware.digital_read("MAGNETRON_WARNING")
-            overheat = self._hardware.digital_read("MAGNETRON_OVERHEAT")
+            warning = read_fault_input("MAGNETRON_WARNING")
+            overheat = read_fault_input("MAGNETRON_OVERHEAT")
+        except Exception as error:
+            self.fault_monitoring_failed.emit(
+                "Entradas de falla de proceso", str(error)
+            )
+            return
+
+        try:
             failures = []
             if lamp1: failures.append("Falla en lámpara 1 (pérdida de corriente).")
             if lamp2: failures.append("Falla en lámpara 2 (pérdida de corriente).")

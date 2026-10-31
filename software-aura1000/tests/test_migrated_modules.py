@@ -33,6 +33,7 @@ class MigratedModulesTests(unittest.TestCase):
 
     def test_mfc_flow_scaling_validation_and_valve_close(self):
         self.assertEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 0.0)
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         controller = MFCController(self.hardware, can_operate=lambda: True)
         errors = []
         controller.operation_error.connect(lambda name, message: errors.append((name, message)))
@@ -70,12 +71,14 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertAlmostEqual(MFCController.voltage_to_flow("MFC2", 2.5), 0.5)
 
     def test_flow_monitor_waits_for_three_seconds_and_trips_over_tolerance(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         controller = MFCController(self.hardware, can_operate=lambda: True)
         faults = []
         controller.flow_fault.connect(faults.append)
         controller.set_flow("MFC1", 2.0)
         controller.set_valve("MFC1", True)
-        voltage = (2.0 * 1.20) / 10.0 * 5.0
+        # Una desviación del 26% supera la tolerancia de 25%.
+        voltage = (2.0 * 1.26) / (10.0 * 0.981) * 5.0
         with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 1.0, 2.0, 2.99, 3.0)):
             for _ in range(4):
                 controller.update_flow_measurement("MFC1", voltage)
@@ -83,7 +86,21 @@ class MigratedModulesTests(unittest.TestCase):
             controller.update_flow_measurement("MFC1", voltage)
         self.assertEqual(len(faults), 1)
 
+    def test_mfc1_flow_monitor_accepts_deviation_up_to_25_percent(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        controller = MFCController(self.hardware, can_operate=lambda: True)
+        faults = []
+        controller.flow_fault.connect(faults.append)
+        controller.set_flow("MFC1", 2.0)
+        controller.set_valve("MFC1", True)
+        voltage = (2.0 * 1.25) / (10.0 * 0.981) * 5.0
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 1.0, 2.0, 3.0)):
+            for _ in range(4):
+                controller.update_flow_measurement("MFC1", voltage)
+        self.assertEqual(faults, [])
+
     def test_flow_monitor_uses_mfc2_tolerance(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         controller = MFCController(self.hardware, can_operate=lambda: True)
         faults = []
         controller.flow_fault.connect(faults.append)
@@ -478,6 +495,51 @@ class MigratedModulesTests(unittest.TestCase):
         for output_name in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD", "RF_ON_CMD"):
             self.assertFalse(self.hardware.digital_read(output_name))
         controller._pulse_timer.stop()
+
+    def test_fault_input_read_error_raises_dedicated_monitoring_failure(self):
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        controller._lamps13 = True
+        failures = []
+        controller.fault_monitoring_failed.connect(
+            lambda source, message: failures.append((source, message))
+        )
+
+        digital_read = self.hardware.digital_read
+
+        def fail_lamp_fault_read(name):
+            if name == "LAMP1_FAIL":
+                raise OSError("entrada desconectada")
+            return digital_read(name)
+
+        with patch.object(self.hardware, "digital_read", side_effect=fail_lamp_fault_read):
+            controller.check_faults()
+
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(failures[0][0], "Entradas de falla de proceso")
+        self.assertIn("LAMP1_FAIL", failures[0][1])
+        self.assertIn("entrada desconectada", failures[0][1])
+
+    def test_safety_throttle_return_reaches_rest_and_releases_motor(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        controller._position_steps = 398.0
+        results = []
+        controller.safety_return_finished.connect(
+            lambda success, message: results.append((success, message))
+        )
+
+        self.assertTrue(controller.return_to_rest_for_safety())
+        for _ in range(8):
+            if not controller._timer.isActive():
+                break
+            controller._pulse()
+
+        self.assertEqual(controller.position_steps, 400.0)
+        self.assertFalse(controller.is_reserved_for_pressure)
+        self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
+        self.assertEqual(results, [(True, "La throttle llegó a la posición de reposo.")])
 
     def test_critical_process_fault_closes_mfc1_and_mfc2(self):
         mfc = MFCController(self.hardware, can_operate=lambda: True)

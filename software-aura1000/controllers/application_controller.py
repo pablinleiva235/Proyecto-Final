@@ -82,6 +82,9 @@ class ApplicationController(QObject):
         self._main_window.exit_requested.connect(
             self._handle_exit_requested
         )
+        self._main_window.emergency_shutdown_requested.connect(
+            self._handle_emergency_shutdown_requested
+        )
 
     # =========================================================================
     # Interfaz pública
@@ -184,6 +187,10 @@ class ApplicationController(QObject):
 
         self._power_controller.stop()
         self._shutdown_controller.start()
+
+    def _handle_emergency_shutdown_requested(self) -> None:
+        """Stops power polling while MainWindow performs a global safe-state write."""
+        self._power_controller.stop()
 
 
     def _handle_shutdown_requested(self) -> None:

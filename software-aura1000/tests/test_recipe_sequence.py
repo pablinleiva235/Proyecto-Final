@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 
 from PyQt5.QtWidgets import QApplication
 
+from controllers.throttle_controller import ThrottleController
 from logic.door_sequence import DoorState
 from logic.main_vacuum_sequence import MainVacuumState
 from logic.recipe_sequence import RecipeSequence, RecipeState
@@ -12,6 +13,7 @@ from logic.vent_sequence import VentState
 from gui.maintainer_screen import MaintainerScreen
 from services.recipe_service import Recipe
 from services.recipe_log import RecipeDataLog, RecipeLog
+from tests.mockScripts.mock_hardware import MockHardware
 
 
 class Door:
@@ -285,6 +287,86 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.vent.state, VentState.RUNNING)
         self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
+
+    def test_process_alarm_waits_for_throttle_rest_before_venting(self):
+        hardware = MockHardware()
+        hardware.digital_set("DRIVER_ENABLE", True)
+        hardware.set_input_state("THROTTLE_OPEN", False)
+        hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(hardware, can_operate=lambda: True)
+        throttle._position_steps = 398.0
+        self.sequence.throttle = throttle
+        throttle.safety_return_finished.connect(
+            self.sequence._on_safety_return_finished
+        )
+
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+        self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
+
+        self.sequence.process_alarm("falla crítica simulada")
+
+        self.assertEqual(self.sequence.state, RecipeState.STOPPING_PROCESS)
+        self.assertEqual(self.vent.start_calls, 0)
+        self.assertTrue(throttle._timer.isActive())
+        for _ in range(8):
+            if not throttle._timer.isActive():
+                break
+            throttle._pulse()
+        self.app.processEvents()
+
+        self.assertEqual(throttle.position_steps, 400.0)
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertEqual(self.vent.start_calls, 1)
+        self._finish_with_door_open()
+
+    def test_process_alarm_continues_shutdown_when_throttle_interlock_is_lost(self):
+        hardware = MockHardware()
+        hardware.digital_set("DRIVER_ENABLE", True)
+        throttle = ThrottleController(hardware, can_operate=lambda: False)
+        throttle._position_steps = 398.0
+        self.sequence.throttle = throttle
+        throttle.safety_return_finished.connect(
+            self.sequence._on_safety_return_finished
+        )
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+
+        self.sequence.process_alarm("falla crítica simulada")
+
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertFalse(throttle._timer.isActive())
+        self.assertFalse(hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
+        self.assertIn("interlocks", self.sequence._completion_message)
+        self._finish_with_door_open()
+
+    def test_process_alarm_continues_shutdown_after_throttle_return_timeout(self):
+        hardware = MockHardware()
+        hardware.digital_set("DRIVER_ENABLE", True)
+        hardware.set_input_state("THROTTLE_OPEN", False)
+        hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(hardware, can_operate=lambda: True)
+        self.sequence.throttle = throttle
+        throttle.safety_return_finished.connect(
+            self.sequence._on_safety_return_finished
+        )
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+
+        self.sequence.process_alarm("falla crítica simulada")
+        self.assertEqual(self.sequence.state, RecipeState.STOPPING_PROCESS)
+        self.assertEqual(self.vent.start_calls, 0)
+
+        throttle._safety_return_timed_out()
+        self.app.processEvents()
+
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertEqual(self.vent.start_calls, 1)
+        self.assertIn("tiempo límite de homing", self.sequence._completion_message)
+        self._finish_with_door_open()
 
     def test_manual_maintenance_controls_lock_and_restore(self):
         screen = MaintainerScreen()

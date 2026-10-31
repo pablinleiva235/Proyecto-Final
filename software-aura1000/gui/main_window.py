@@ -687,10 +687,13 @@ class MainWindow(QMainWindow):
             self.maintainer_screen.set_signal_active(signal_name, active)
 
     def _handle_digital_signal_sampled(self, signal_name, active):
-        if signal_name == "DRIVER_ENABLE" and self._driver_read_error:
-            self._driver_read_error = False
-            self._sync_module_permissions()
-            self._update_sequence_permissions()
+        if signal_name == "DRIVER_ENABLE":
+            if active:
+                self.maintainer_screen.clear_operation_message("DRIVER_ENABLE")
+            if self._driver_read_error:
+                self._driver_read_error = False
+                self._sync_module_permissions()
+                self._update_sequence_permissions()
         elif signal_name == "ATM_SWITCH":
             self.vent_sequence.update_atmospheric_state(active)
     """
@@ -974,6 +977,7 @@ class MainWindow(QMainWindow):
     def _handle_process_alarm(self, message):
         if self.temperature_controller.is_active:
             self.temperature_controller.abort("Se abortó el control térmico por una alarma de proceso.")
+        self.maintainer_screen.set_operation_message(message, is_error=True)
         QMessageBox.warning(
             self,
             strings.tr("Alarma de seguridad"),

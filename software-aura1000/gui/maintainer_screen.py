@@ -25,7 +25,7 @@ MaintainerScreen no:
 
 from typing import Dict, List
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -95,6 +95,10 @@ class MaintainerScreen(QWidget):
         self._manual_controls_locked = False
         self._pressure_control_active = False
         self._sequence_button_permissions = {}
+        self._operation_message_timer = QTimer(self)
+        self._operation_message_timer.setSingleShot(True)
+        self._operation_message_timer.setInterval(5000)
+        self._operation_message_timer.timeout.connect(self.clear_operation_message)
 
         self.create_widgets()
         self.setup_layout()
@@ -889,8 +893,23 @@ class MaintainerScreen(QWidget):
         widget.update()
 
     def set_operation_message(self, message, is_error=False):
+        self._operation_message_timer.stop()
         set_localized_text(self.operation_status_label, message)
         self.operation_status_label.setProperty("error", bool(is_error))
+        self.operation_status_label.style().unpolish(self.operation_status_label)
+        self.operation_status_label.style().polish(self.operation_status_label)
+        self.operation_status_label.update()
+        if message:
+            self._operation_message_timer.start()
+
+    def clear_operation_message(self, matching_text=None):
+        """Limpia el mensaje actual, opcionalmente solo si coincide con texto dado."""
+        current_message = self.operation_status_label.text()
+        if matching_text is not None and matching_text not in current_message:
+            return
+        self._operation_message_timer.stop()
+        self.operation_status_label.clear()
+        self.operation_status_label.setProperty("error", False)
         self.operation_status_label.style().unpolish(self.operation_status_label)
         self.operation_status_label.style().polish(self.operation_status_label)
         self.operation_status_label.update()

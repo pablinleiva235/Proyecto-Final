@@ -15,12 +15,21 @@ class InterlockController:
         soft_vacuum_sequence,
         main_vacuum_sequence,
         vent_sequence,
+        driver_enabled=None,
     ):
         self._vent_required = False
         self._door_sequence = door_sequence
         self._soft_vacuum_sequence = soft_vacuum_sequence
         self._main_vacuum_sequence = main_vacuum_sequence
         self._vent_sequence = vent_sequence
+        self._driver_enabled = driver_enabled or (lambda: False)
+
+    def can_operate_sequences(self):
+        """El driver debe estar confirmado físicamente antes de actuar."""
+        try:
+            return self._driver_enabled() is True
+        except Exception:
+            return False
 
     # =====================================================================
     # Permisos de acciones
@@ -33,7 +42,8 @@ class InterlockController:
         - El venteo está detenido.
         """
         return (
-            not self._vent_required
+            self.can_operate_sequences()
+            and not self._vent_required
             and
             self._soft_vacuum_sequence.state == SoftVacuumState.IDLE
             and
@@ -50,7 +60,8 @@ class InterlockController:
         - El venteo está detenido.
         """
         return (
-            self._door_sequence.state == DoorState.CLOSED
+            self.can_operate_sequences()
+            and self._door_sequence.state == DoorState.CLOSED
             and
             self._main_vacuum_sequence.state == MainVacuumState.IDLE
             and
@@ -65,7 +76,8 @@ class InterlockController:
         - El venteo está detenido.
         """
         return (
-            self._door_sequence.state == DoorState.CLOSED
+            self.can_operate_sequences()
+            and self._door_sequence.state == DoorState.CLOSED
             and
             self._soft_vacuum_sequence.state == SoftVacuumState.RUNNING
             and
@@ -78,7 +90,7 @@ class InterlockController:
         Por el momento siempre está permitido.
         Más adelante se agregarán los interlocks correspondientes a plasma y lámparas.
         """
-        return True
+        return self.can_operate_sequences()
 
     def can_start_vent(self):
         """
@@ -87,7 +99,8 @@ class InterlockController:
         - Main Vacuum está detenido.
         """
         return (
-            self._door_sequence.state == DoorState.CLOSED
+            self.can_operate_sequences()
+            and self._door_sequence.state == DoorState.CLOSED
             and
             self._soft_vacuum_sequence.state == SoftVacuumState.IDLE
             and
@@ -98,6 +111,8 @@ class InterlockController:
     # Estado de controles
     # =====================================================================
     def is_door_control_enabled(self):
+        if not self.can_operate_sequences():
+            return False
         # Determina si el botón de puerta puede utilizarse según el estado actual.
         state = self._door_sequence.state
 
@@ -119,6 +134,8 @@ class InterlockController:
         return False
 
     def is_soft_vacuum_control_enabled(self):
+        if not self.can_operate_sequences():
+            return False
         #Determina si el botón de Soft Vacuum puede utilizarse según el estado actual.
         state = self._soft_vacuum_sequence.state
 
@@ -140,6 +157,8 @@ class InterlockController:
         return False
 
     def is_main_vacuum_control_enabled(self):
+        if not self.can_operate_sequences():
+            return False
         # Determina si el control de Main Vacuum puede utilizarse.
         state = self._main_vacuum_sequence.state
 
@@ -159,6 +178,8 @@ class InterlockController:
         return False
 
     def is_vent_control_enabled(self):
+        if not self.can_operate_sequences():
+            return False
         #Determina si el control de venteo puede utilizarse.
         state = self._vent_sequence.state
 

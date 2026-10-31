@@ -12,6 +12,7 @@ alguno de los subsistemas produzca un error.
 """
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from config.digital_signals import DIGITALSIGNALS
 from services.shutdown_log import ShutdownLog
 
 
@@ -42,16 +43,22 @@ class ShutdownSequence(QObject):
         errors = []
         shutdown_log.log("Inicio del apagado seguro")
         errors.extend(shutdown_log.errors)
-        errors.extend(self._shutdown_sequences(shutdown_log))
-        try:
-            hardware_errors = self._hardware.shutdown_state(
-                result_callback=shutdown_log.log_result
+        if self._enable_driver_for_shutdown(shutdown_log, errors):
+            errors.extend(self._shutdown_sequences(shutdown_log))
+            try:
+                hardware_errors = self._hardware.shutdown_state(
+                    result_callback=shutdown_log.log_result
+                )
+                errors.extend(hardware_errors or [])
+            except Exception as error:
+                message = f"Estado seguro global del hardware: {error}"
+                errors.append(message)
+                shutdown_log.log_result("Estado seguro global del hardware", False, str(error))
+        else:
+            self._restore_driver_initial_state(shutdown_log, errors)
+            shutdown_log.log(
+                "Se omitió la escritura de módulos porque DRIVER_ENABLE no pudo confirmarse activo."
             )
-            errors.extend(hardware_errors or [])
-        except Exception as error:
-            message = f"Estado seguro global del hardware: {error}"
-            errors.append(message)
-            shutdown_log.log_result("Estado seguro global del hardware", False, str(error))
 
         errors.extend(shutdown_log.errors)
         if errors:
@@ -66,6 +73,42 @@ class ShutdownSequence(QObject):
                 " | ".join(errors)
             )
         self.sequence_completed.emit()
+
+    def _enable_driver_for_shutdown(self, shutdown_log, errors):
+        """Habilita y confirma el driver antes de escribir salidas de módulos."""
+        try:
+            if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+                self._hardware.digital_set("DRIVER_ENABLE", True)
+            if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+                raise RuntimeError("la lectura física continúa inactiva")
+            shutdown_log.log_result(
+                "DRIVER_ENABLE para apagado", True,
+                "salida activa confirmada físicamente",
+            )
+            return True
+        except Exception as error:
+            message = f"No se pudo confirmar DRIVER_ENABLE activa para el apagado: {error}"
+            errors.append(message)
+            shutdown_log.log_result("DRIVER_ENABLE para apagado", False, str(error))
+            return False
+
+    def _restore_driver_initial_state(self, shutdown_log, errors):
+        """Al fallar la habilitación, solo restaura DRIVER_ENABLE a su estado inicial."""
+        config = DIGITALSIGNALS["DRIVER_ENABLE"]
+        initial_active = int(config["initial_state"]) == int(config["active_state"])
+        try:
+            self._hardware.digital_set("DRIVER_ENABLE", initial_active)
+            actual = self._hardware.digital_read("DRIVER_ENABLE")
+            if actual is not initial_active:
+                raise RuntimeError("la lectura física no coincide con initial_state")
+            shutdown_log.log_result(
+                "DRIVER_ENABLE estado inicial", True,
+                f"estado lógico confirmado={initial_active}",
+            )
+        except Exception as error:
+            message = f"No se pudo restaurar DRIVER_ENABLE a initial_state: {error}"
+            errors.append(message)
+            shutdown_log.log_result("DRIVER_ENABLE estado inicial", False, str(error))
 
     def _shutdown_sequences(self, shutdown_log):
         """

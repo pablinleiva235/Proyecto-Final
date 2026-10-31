@@ -41,6 +41,7 @@ class SoftVacuumSequence(QObject):
 
         self._hardware = hardware
         self._can_start = can_start
+        self._can_operate = None
 
         self._state = SoftVacuumState.IDLE
 
@@ -55,6 +56,9 @@ class SoftVacuumSequence(QObject):
         si Soft Vacuum puede iniciarse.
         """
         self._can_start = can_start
+
+    def set_can_operate(self, can_operate):
+        self._can_operate = can_operate
 
     def toggle(self):
         """Activa o desactiva Soft Vacuum."""
@@ -94,7 +98,7 @@ class SoftVacuumSequence(QObject):
                 SoftVacuumState.STARTING
             )
 
-            self._hardware.digital_set(
+            self._write_signal(
                 "SOFT_START_CONTROL",
                 ACTIVE,
             )
@@ -108,6 +112,10 @@ class SoftVacuumSequence(QObject):
 
     def stop(self):
         """Desactiva Soft Vacuum."""
+
+        if self._can_operate is not None and not self._can_operate():
+            self.sequence_error.emit("DRIVER_ENABLE debe estar activo para accionar Soft Vacuum.")
+            return
 
         if self._state in (
             SoftVacuumState.STARTING,
@@ -148,10 +156,15 @@ class SoftVacuumSequence(QObject):
     def _set_safe_outputs(self):
         """Lleva Soft Vacuum a su estado seguro."""
 
-        self._hardware.digital_set(
+        self._write_signal(
             "SOFT_START_CONTROL",
             INACTIVE,
         )
+
+    def _write_signal(self, signal_name, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar Soft Vacuum.")
+        self._hardware.digital_set(signal_name, active)
 
     def _set_state(self, state):
         """Actualiza y comunica el estado."""

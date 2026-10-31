@@ -479,6 +479,69 @@ class MigratedModulesTests(unittest.TestCase):
             self.assertFalse(self.hardware.digital_read(output_name))
         controller._pulse_timer.stop()
 
+    def test_critical_process_fault_closes_mfc1_and_mfc2(self):
+        mfc = MFCController(self.hardware, can_operate=lambda: True)
+        process = ProcessController(
+            self.hardware,
+            can_operate=lambda: True,
+            mfc_controller=mfc,
+        )
+        valve_states = []
+        alarms = []
+        mfc.valve_state_changed.connect(
+            lambda name, opened: valve_states.append((name, opened))
+        )
+        process.alarm_raised.connect(alarms.append)
+
+        for name, flow in (("MFC1", 2.0), ("MFC2", 0.4)):
+            mfc.set_flow(name, flow)
+            mfc.set_valve(name, True)
+        process.start_lamps13(10)
+        self.hardware.set_input_state("LAMP1_FAIL", True)
+
+        process.check_faults()
+
+        for name in ("MFC1", "MFC2"):
+            self.assertFalse(self.hardware.digital_read(f"{name}_OPEN"))
+            self.assertEqual(self.hardware.get_analog_output(f"{name}_SETPOINT"), 0.0)
+            self.assertIn((name, False), valve_states)
+        self.assertTrue(alarms)
+        self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
+        process._pulse_timer.stop()
+
+    def test_mfc_close_error_does_not_prevent_other_close_or_alarm(self):
+        mfc = MFCController(self.hardware, can_operate=lambda: True)
+        process = ProcessController(
+            self.hardware,
+            can_operate=lambda: True,
+            mfc_controller=mfc,
+        )
+        alarms = []
+        process.alarm_raised.connect(alarms.append)
+        mfc.set_flow("MFC1", 2.0)
+        mfc.set_flow("MFC2", 0.4)
+        mfc.set_valve("MFC1", True)
+        mfc.set_valve("MFC2", True)
+        process.set_lamps13(True)
+        self.hardware.set_input_state("LAMP1_FAIL", True)
+
+        digital_set = self.hardware.digital_set
+
+        def fail_mfc1_close(signal_name, active):
+            if signal_name == "MFC1_OPEN" and not active:
+                raise RuntimeError("falló la salida MFC1")
+            digital_set(signal_name, active)
+
+        with patch.object(self.hardware, "digital_set", side_effect=fail_mfc1_close):
+            process.check_faults()
+
+        self.assertTrue(self.hardware.digital_read("MFC1_OPEN"))
+        self.assertFalse(self.hardware.digital_read("MFC2_OPEN"))
+        self.assertEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 0.0)
+        self.assertEqual(self.hardware.get_analog_output("MFC2_SETPOINT"), 0.0)
+        self.assertTrue(alarms)
+
     def test_process_fault_inputs_high_at_rest_do_not_raise_alarm(self):
         controller = ProcessController(self.hardware, can_operate=lambda: True)
         alarms = []

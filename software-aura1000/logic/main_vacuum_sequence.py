@@ -43,6 +43,7 @@ class MainVacuumSequence(QObject):
         self._hardware = hardware
         self._can_start = can_start
         self._can_stop = can_stop
+        self._can_operate = None
 
         self._state = MainVacuumState.IDLE
 
@@ -64,6 +65,9 @@ class MainVacuumSequence(QObject):
         si Main Vacuum puede detenerse.
         """
         self._can_stop = can_stop
+
+    def set_can_operate(self, can_operate):
+        self._can_operate = can_operate
 
     def toggle(self):
         """Activa o desactiva Main Vacuum."""
@@ -99,7 +103,7 @@ class MainVacuumSequence(QObject):
                 MainVacuumState.STARTING
             )
 
-            self._hardware.digital_set(
+            self._write_signal(
                 "MAIN_VACUUM_CONTROL",
                 ACTIVE,
             )
@@ -115,6 +119,10 @@ class MainVacuumSequence(QObject):
         """Desactiva Main Vacuum."""
 
         if self._state != MainVacuumState.RUNNING:
+            return
+
+        if self._can_operate is not None and not self._can_operate():
+            self.sequence_error.emit("DRIVER_ENABLE debe estar activo para accionar Main Vacuum.")
             return
 
         if self._can_stop is not None:
@@ -160,10 +168,15 @@ class MainVacuumSequence(QObject):
     def _set_safe_outputs(self):
         """Lleva Main Vacuum a su estado seguro."""
 
-        self._hardware.digital_set(
+        self._write_signal(
             "MAIN_VACUUM_CONTROL",
             INACTIVE,
         )
+
+    def _write_signal(self, signal_name, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar Main Vacuum.")
+        self._hardware.digital_set(signal_name, active)
 
     def _set_state(self, state):
         """Actualiza y comunica el estado."""

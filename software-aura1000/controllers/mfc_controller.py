@@ -62,7 +62,7 @@ class MFCController(QObject):
             if not self._can_operate():
                 self._clear_samples()
                 raise RuntimeError("El vacío principal debe estar activo para controlar los MFC.")
-            self._hardware.analog_write(config["output"], voltage)
+            self._write_analog(config["output"], voltage)
             self._targets[mfc_name] = flow
             self._clear_samples(mfc_name)
             self._fault_latched = False
@@ -80,16 +80,16 @@ class MFCController(QObject):
                 self._clear_samples()
                 raise RuntimeError("El vacío principal debe estar activo para controlar los MFC.")
             if opened:
-                self._hardware.digital_set(config["valve"], True)
+                self._write_digital(config["valve"], True)
             else:
                 self._clear_samples(mfc_name)
                 errors = []
                 try:
-                    self._hardware.analog_write(config["output"], 0.0)
+                    self._write_analog(config["output"], 0.0)
                 except Exception as error:
                     errors.append(f"setpoint a cero: {error}")
                 try:
-                    self._hardware.digital_set(config["valve"], False)
+                    self._write_digital(config["valve"], False)
                     self._valves[mfc_name] = False
                     self._targets[mfc_name] = 0.0
                 except Exception as error:
@@ -140,6 +140,18 @@ class MFCController(QObject):
         names = (mfc_name,) if mfc_name else tuple(self._samples)
         for name in names:
             self._samples[name].clear()
+
+    def _require_driver_enabled(self):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para modificar las salidas de MFC.")
+
+    def _write_digital(self, signal_name, active):
+        self._require_driver_enabled()
+        self._hardware.digital_set(signal_name, active)
+
+    def _write_analog(self, signal_name, value):
+        self._require_driver_enabled()
+        self._hardware.analog_write(signal_name, value)
 
     @classmethod
     def _config(cls, name):

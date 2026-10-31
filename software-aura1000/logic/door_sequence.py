@@ -42,6 +42,7 @@ class DoorSequence(QObject):
 
         self._hardware = hardware
         self._can_open = can_open
+        self._can_operate = None
 
         # El estado inicial coincide con el estado seguro configurado:
         # DOOR_CLOSE_CMD activo y DOOR_OPEN_CMD inactivo.
@@ -58,6 +59,9 @@ class DoorSequence(QObject):
         si la puerta puede abrirse.
         """
         self._can_open = can_open
+
+    def set_can_operate(self, can_operate):
+        self._can_operate = can_operate
 
     def toggle(self):
         """Solicita abrir o cerrar la puerta según el estado actual."""
@@ -76,6 +80,10 @@ class DoorSequence(QObject):
 
     def open(self):
         """Ejecuta el comando físico de apertura."""
+
+        if self._can_operate is not None and not self._can_operate():
+            self.sequence_error.emit("DRIVER_ENABLE debe estar activo para accionar la puerta.")
+            return
 
         if self._state in (
             DoorState.OPENING,
@@ -98,13 +106,13 @@ class DoorSequence(QObject):
             )
 
             # Primero se elimina cualquier orden de cierre.
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_CLOSE_CMD",
                 INACTIVE,
             )
 
             # Luego se solicita la apertura.
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_OPEN_CMD",
                 ACTIVE,
             )
@@ -119,6 +127,10 @@ class DoorSequence(QObject):
     def close(self):
         """Ejecuta el comando físico de cierre."""
 
+        if self._can_operate is not None and not self._can_operate():
+            self.sequence_error.emit("DRIVER_ENABLE debe estar activo para accionar la puerta.")
+            return
+
         if self._state in (
             DoorState.OPENING,
             DoorState.CLOSING,
@@ -131,13 +143,13 @@ class DoorSequence(QObject):
             )
 
             # Primero se elimina cualquier orden de apertura.
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_OPEN_CMD",
                 INACTIVE,
             )
 
             # Luego se solicita el cierre.
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_CLOSE_CMD",
                 ACTIVE,
             )
@@ -147,9 +159,14 @@ class DoorSequence(QObject):
             )
 
             # agregar una falla acá para probar 
-
+            print("Cierre de puerta completado.")
         except Exception as error:
             self._handle_error(error)
+
+    def _write_signal(self, signal_name, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar la puerta.")
+        self._hardware.digital_set(signal_name, active)
 
     def _set_state(self, state):
         """Actualiza y comunica el estado de la puerta."""
@@ -164,12 +181,12 @@ class DoorSequence(QObject):
         """
 
         try:
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_OPEN_CMD",
                 INACTIVE,
             )
 
-            self._hardware.digital_set(
+            self._write_signal(
                 "DOOR_CLOSE_CMD",
                 INACTIVE,
             )

@@ -66,9 +66,21 @@ class Hardware:
     def shutdown_state(self, result_callback=None):
         """Intenta cada salida de estado seguro por separado y devuelve fallas."""
         errors = []
+        driver_config = DIGITALSIGNALS.get("DRIVER_ENABLE")
         for signal_name, signal in DIGITALSIGNALS.items():
             if signal["dir"] != "OUT":
                 continue
+            if signal_name == "DRIVER_ENABLE":
+                continue
+            if driver_config is not None:
+                try:
+                    if self.digital_read("DRIVER_ENABLE") is not True:
+                        raise RuntimeError("DRIVER_ENABLE no está confirmado activo")
+                except Exception as error:
+                    message = f"{signal_name}: escritura omitida: {error}"
+                    errors.append(message)
+                    self._report_shutdown_result(result_callback, signal_name, False, message)
+                    continue
             requested_value = int(signal["initial_state"])
             logical_initial = requested_value == signal["active_state"]
             try:
@@ -126,6 +138,8 @@ class Hardware:
 
         for signal_name in ANALOG_OUTPUTS:
             try:
+                if driver_config is not None and self.digital_read("DRIVER_ENABLE") is not True:
+                    raise RuntimeError("DRIVER_ENABLE no está confirmado activo")
                 self.analog_write(signal_name, 0.0)
                 self._report_shutdown_result(
                     result_callback,
@@ -142,6 +156,27 @@ class Hardware:
                     False,
                     f"setpoint solicitado: 0.0 V; escritura ERROR: {error}",
                 )
+
+        if driver_config is None:
+            return errors
+        driver_initial_active = (
+            int(driver_config["initial_state"]) == int(driver_config["active_state"])
+        )
+        try:
+            self.digital_set("DRIVER_ENABLE", driver_initial_active)
+            driver_verified = self.digital_read("DRIVER_ENABLE") is driver_initial_active
+            if not driver_verified:
+                raise RuntimeError("la lectura física no coincide con initial_state")
+            self._report_shutdown_result(
+                result_callback,
+                "DRIVER_ENABLE",
+                True,
+                f"estado inicial confirmado={driver_initial_active}",
+            )
+        except Exception as error:
+            message = f"DRIVER_ENABLE: no se pudo aplicar initial_state: {error}"
+            errors.append(message)
+            self._report_shutdown_result(result_callback, "DRIVER_ENABLE", False, str(error))
         return errors
 
     @staticmethod

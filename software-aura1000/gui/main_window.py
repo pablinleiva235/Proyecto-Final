@@ -22,6 +22,7 @@ from controllers.pressure_controller import PressureController
 from controllers.process_controller import ProcessController
 from controllers.temperature_controller import TemperatureController
 from PyQt5.QtCore import QTimer
+from config.digital_signals import DIGITALSIGNALS
 from logic.door_sequence import DoorState
 
 from gui.widgets.top_bar_widget import TopBarWidget
@@ -118,6 +119,7 @@ class MainWindow(QMainWindow):
             poll_interval_ms=100,
             can_toggle=self._can_toggle_manual_output,
         )
+        self._driver_read_error = False
 
         # Controlador de interlocks - Determina el uso seguro de las secuencias según el estado del equipo
         self.interlock_controller = InterlockController(
@@ -125,6 +127,10 @@ class MainWindow(QMainWindow):
             soft_vacuum_sequence=self.soft_vacuum_sequence,
             main_vacuum_sequence=self.main_vacuum_sequence,
             vent_sequence=self.vent_sequence,
+            driver_enabled=lambda: (
+                not self._driver_read_error
+                and self.hardware.digital_read("DRIVER_ENABLE")
+            ),
         )
 
         self.analog_controller = AnalogSignalController(
@@ -155,6 +161,7 @@ class MainWindow(QMainWindow):
             hardware=self.hardware,
             can_operate=self._can_control_process_modules,
             can_enable_plasma=self.mfc_controller.can_enable_plasma,
+            mfc_controller=self.mfc_controller,
             parent=self,
         )
         self.temperature_controller = TemperatureController(
@@ -184,8 +191,14 @@ class MainWindow(QMainWindow):
         self.door_sequence.set_can_open(
             self.interlock_controller.can_open_door
         )
+        self.door_sequence.set_can_operate(
+            self.interlock_controller.can_operate_sequences
+        )
         self.soft_vacuum_sequence.set_can_start(
             self.interlock_controller.can_start_soft_vacuum
+        )
+        self.soft_vacuum_sequence.set_can_operate(
+            self.interlock_controller.can_operate_sequences
         )
         self.main_vacuum_sequence.set_can_start(
             self.interlock_controller.can_start_main_vacuum
@@ -193,8 +206,14 @@ class MainWindow(QMainWindow):
         self.main_vacuum_sequence.set_can_stop(
             self.interlock_controller.can_stop_main_vacuum
         )
+        self.main_vacuum_sequence.set_can_operate(
+            self.interlock_controller.can_operate_sequences
+        )
         self.vent_sequence.set_can_start(
             self.interlock_controller.can_start_vent
+        )
+        self.vent_sequence.set_can_operate(
+            self.interlock_controller.can_operate_sequences
         )
         
     def setup_layout(self):
@@ -633,6 +652,9 @@ class MainWindow(QMainWindow):
         print(
             f"[SignalController] ERROR {signal_name}: {message}"
         )
+        if signal_name == "DRIVER_ENABLE":
+            self._driver_read_error = True
+            self._update_sequence_permissions()
 
     def _can_toggle_manual_output(self, signal_name, requested_state):
         """Aplica los permisos existentes a las salidas manuales asociadas."""
@@ -651,7 +673,11 @@ class MainWindow(QMainWindow):
         signal_name,
         active,
     ):
-        if signal_name in ("DOOR_OPEN", "DOOR_CLOSE"):
+        if signal_name == "DRIVER_ENABLE":
+            self._driver_read_error = False
+            self._sync_module_permissions()
+            self._update_sequence_permissions()
+        elif signal_name in ("DOOR_OPEN", "DOOR_CLOSE"):
             self._sync_module_permissions()
 
     def _display_digital_signal_state(self, signal_name, active):
@@ -661,7 +687,11 @@ class MainWindow(QMainWindow):
             self.maintainer_screen.set_signal_active(signal_name, active)
 
     def _handle_digital_signal_sampled(self, signal_name, active):
-        if signal_name == "ATM_SWITCH":
+        if signal_name == "DRIVER_ENABLE" and self._driver_read_error:
+            self._driver_read_error = False
+            self._sync_module_permissions()
+            self._update_sequence_permissions()
+        elif signal_name == "ATM_SWITCH":
             self.vent_sequence.update_atmospheric_state(active)
     """
     def _confirm_exit(self):
@@ -791,6 +821,8 @@ class MainWindow(QMainWindow):
         )
 
     def _can_control_process_modules(self):
+        if not self.interlock_controller.can_operate_sequences():
+            return False
         door_is_closed = (
             self.door_sequence.state == DoorState.CLOSED
             and self.signal_controller.get_last_state("DOOR_CLOSE") is True
@@ -809,6 +841,14 @@ class MainWindow(QMainWindow):
             return
         self._module_access = allowed
         if not allowed:
+            try:
+                driver_was_enabled = (
+                    self.hardware.digital_read("DRIVER_ENABLE") is True
+                )
+            except Exception:
+                driver_was_enabled = None
+            if not self._ensure_driver_enabled_for_safe_shutdown():
+                return
             if self.recipe_sequence.state in (
                 RecipeState.STOPPING_PROCESS,
                 RecipeState.VENTING,
@@ -828,6 +868,33 @@ class MainWindow(QMainWindow):
                 self.process_controller.stop_all()
             except Exception as error:
                 self._handle_module_error("Apagado seguro", str(error))
+            if driver_was_enabled is False:
+                driver = DIGITALSIGNALS["DRIVER_ENABLE"]
+                initial_active = (
+                    int(driver["initial_state"]) == int(driver["active_state"])
+                )
+                try:
+                    self.hardware.digital_set("DRIVER_ENABLE", initial_active)
+                except Exception as error:
+                    self._handle_module_error(
+                        "Apagado seguro",
+                        f"No se pudo restaurar DRIVER_ENABLE a initial_state: {error}",
+                    )
+
+    def _ensure_driver_enabled_for_safe_shutdown(self):
+        """Habilita y confirma el driver antes de una parada automática de módulos."""
+        try:
+            if self.hardware.digital_read("DRIVER_ENABLE") is not True:
+                self.hardware.digital_set("DRIVER_ENABLE", True)
+            if self.hardware.digital_read("DRIVER_ENABLE") is not True:
+                raise RuntimeError("la lectura física continúa inactiva")
+            return True
+        except Exception as error:
+            self._handle_module_error(
+                "Apagado seguro",
+                f"No se pudo confirmar DRIVER_ENABLE activa; se omitieron escrituras de módulos: {error}",
+            )
+            return False
 
     def _monitor_migrated_modules(self):
         self.throttle_controller.stop_if_limit_reached()

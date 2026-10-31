@@ -49,6 +49,7 @@ class VentSequence(QObject):
 
         self._hardware = hardware
         self._can_start = can_start
+        self._can_operate = None
         self._state = VentState.IDLE
         self._consecutive_atm_readings = 0
 
@@ -67,6 +68,9 @@ class VentSequence(QObject):
     def set_can_start(self, can_start):
         """Configura la validación de inicio."""
         self._can_start = can_start
+
+    def set_can_operate(self, can_operate):
+        self._can_operate = can_operate
 
     def toggle(self):
         """Activa o detiene manualmente el venteo."""
@@ -103,7 +107,7 @@ class VentSequence(QObject):
                 VentState.STARTING
             )
 
-            self._hardware.digital_set(
+            self._write_signal(
                 "VENT_VALVE_CONTROL",
                 ACTIVE,
             )
@@ -124,6 +128,10 @@ class VentSequence(QObject):
         """
 
         if self._state != VentState.RUNNING:
+            return
+
+        if self._can_operate is not None and not self._can_operate():
+            self.sequence_error.emit("DRIVER_ENABLE debe estar activo para accionar el venteo.")
             return
 
         try:
@@ -210,10 +218,15 @@ class VentSequence(QObject):
     def _set_safe_outputs(self):
         """Cierra la válvula de venteo."""
 
-        self._hardware.digital_set(
+        self._write_signal(
             "VENT_VALVE_CONTROL",
             INACTIVE,
         )
+
+    def _write_signal(self, signal_name, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar el venteo.")
+        self._hardware.digital_set(signal_name, active)
 
     def _reset_atmospheric_detection(self):
         self._stabilization_timer.stop()

@@ -31,21 +31,11 @@ class MockHardware:
         self.initialize_DIO()
         self.initialize_AD()
 
-        print(
-            "[MockHardware] Hardware simulado inicializado."
-        )
-
     def digital_read(self, signal_name):
-        """Simula la lectura de una señal digital."""
-        DIGITALSIGNALS[signal_name]
-        state = self._digital_states[signal_name]
-
-        # print(
-        #     f"[MockHardware] READ "
-        #     f"{signal_name} -> {state}"
-        # )
-
-        return state
+        """Devuelve el estado digital actual sin iniciar sondeos ni mutarlo."""
+        if signal_name not in DIGITALSIGNALS:
+            raise KeyError(f"Señal digital no configurada: {signal_name}")
+        return self._digital_states[signal_name]
 
     def digital_set(
         self,
@@ -58,14 +48,7 @@ class MockHardware:
         if signal["dir"] != "OUT":
             raise ValueError(f"La señal {signal_name} no está configurada como salida.")
 
-        self._digital_states[
-            signal_name
-        ] = bool(active)
-
-        print(
-            f"[MockHardware] WRITE "
-            f"{signal_name} -> {bool(active)}"
-        )
+        self._digital_states[signal_name] = bool(active)
 
     def initialize_DIO(self):
         """Inicializa el estado lógico de salidas como el hardware real."""
@@ -85,11 +68,12 @@ class MockHardware:
 
         Utilizado únicamente durante pruebas con MockHardware.
         """
+        signal = DIGITALSIGNALS.get(signal_name)
+        if signal is None:
+            raise KeyError(f"Señal digital no configurada: {signal_name}")
+        if signal["dir"] != "IN":
+            raise ValueError(f"La señal {signal_name} no está configurada como entrada.")
         self._digital_states[signal_name] = bool(active)
-        print(
-            f"[MockHardware] INPUT "
-            f"{signal_name} -> {bool(active)}"
-        )
 
     def initialize_AD(self):
         """Simula la inicialización de la placa analógica."""
@@ -126,7 +110,10 @@ class MockHardware:
         self._analog_values[signal_name] = float(value)
 
     def get_analog_output(self, signal_name):
-        return self._analog_outputs.get(signal_name, 0.0)
+        from config.analog_signals import ANALOG_OUTPUTS
+        if signal_name not in ANALOG_OUTPUTS:
+            raise KeyError(f"Salida analógica no configurada: {signal_name}")
+        return self._analog_outputs[signal_name]
 
 
     def shutdown_state(self, result_callback=None):
@@ -136,10 +123,6 @@ class MockHardware:
         Lleva todas las salidas digitales al estado lógico
         correspondiente a su initial_state.
         """
-        print(
-            "[MockHardware] shutdown_state()"
-        )
-
         errors = []
         for signal_name, signal in DIGITALSIGNALS.items():
             if signal["dir"] != "OUT":

@@ -12,11 +12,19 @@ class ProcessController(QObject):
 
     IGNITION_DELAY_S = 2.0
 
-    def __init__(self, hardware, can_operate=None, can_enable_plasma=None, parent=None):
+    def __init__(
+        self,
+        hardware,
+        can_operate=None,
+        can_enable_plasma=None,
+        parent=None,
+        mfc_controller=None,
+    ):
         super().__init__(parent)
         self._hardware = hardware
         self._can_operate = can_operate or (lambda: True)
         self._can_enable_plasma = can_enable_plasma or (lambda: True)
+        self._mfc_controller = mfc_controller
         self._lamps13 = False
         self._lamp2 = False
         self._plasma = False
@@ -143,8 +151,15 @@ class ProcessController(QObject):
             if plasma: failures.append("Falla en plasma (no encendió o se interrumpió la RF).")
             if overheat: failures.append("Sobretemperatura del magnetrón.")
             if failures:
-                self.stop_all()
-                self._write("ALARM_INDICATION", True)
+                try:
+                    self.stop_all()
+                except Exception as error:
+                    self.operation_error.emit("Apagado por falla crítica", str(error))
+                self._close_mfc_valves()
+                try:
+                    self._write("ALARM_INDICATION", True)
+                except Exception as error:
+                    self.operation_error.emit("Indicador de alarma", str(error))
                 self.alarm_raised.emit("\n".join(failures))
             elif warning and not self._warning_shown:
                 self._warning_shown = True
@@ -155,6 +170,17 @@ class ProcessController(QObject):
                 self._write("ALARM_INDICATION", False)
         except Exception as error:
             self.operation_error.emit("Monitoreo de fallas", str(error))
+
+    def _close_mfc_valves(self):
+        if self._mfc_controller is None:
+            return
+        for mfc_name in ("MFC1", "MFC2"):
+            try:
+                self._mfc_controller.set_valve(mfc_name, False)
+            except Exception as error:
+                self.operation_error.emit(
+                    f"Cierre de {mfc_name}", str(error)
+                )
 
     def stop_all(self):
         self._pulse_timer.stop()
@@ -206,4 +232,6 @@ class ProcessController(QObject):
             raise RuntimeError("Para activar lámparas o plasma, el vacío principal debe estar activo y la puerta cerrada.")
 
     def _write(self, signal, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para modificar las salidas de proceso.")
         self._hardware.digital_set(signal, active)

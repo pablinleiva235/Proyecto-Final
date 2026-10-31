@@ -91,7 +91,7 @@ class ThrottleController(QObject):
                 self._starting_motion = False
             if limit_active:
                 if self._automatic_mode and self._homing_active and not closing:
-                    self._hardware.digital_set("STEPPER_STEP", False)
+                    self._write("STEPPER_STEP", False)
                     self._step_state = False
                     return
                 if self._automatic_mode:
@@ -99,10 +99,10 @@ class ThrottleController(QObject):
                 else:
                     self.movement_changed.emit(False, "final de carrera alcanzado")
                 return
-            self._hardware.digital_set("STEPPER_DIR", self._closing)
-            self._hardware.digital_set("STEPPER_HALF_STEP", bool(half_step))
-            self._hardware.digital_set("STEPPER_STEP", False)
-            self._hardware.digital_set("STEPPER_OUTPUT_ENABLE", True)
+            self._write("STEPPER_DIR", self._closing)
+            self._write("STEPPER_HALF_STEP", bool(half_step))
+            self._write("STEPPER_STEP", False)
+            self._write("STEPPER_OUTPUT_ENABLE", True)
             self._step_state = False
             self._motion_half_step = bool(half_step)
             self._remaining_steps = remaining_steps
@@ -193,15 +193,15 @@ class ThrottleController(QObject):
         if self._timer.isActive() and self._closing == bool(closing):
             self._timer.setInterval(pulse_interval_ms)
             if self._motion_half_step != bool(half_step):
-                self._hardware.digital_set("STEPPER_STEP", False)
-                self._hardware.digital_set("STEPPER_HALF_STEP", bool(half_step))
+                self._write("STEPPER_STEP", False)
+                self._write("STEPPER_HALF_STEP", bool(half_step))
                 self._step_state = False
                 self._motion_half_step = bool(half_step)
             return
         if self._timer.isActive():
             self._timer.stop()
             self._step_state = False
-            self._hardware.digital_set("STEPPER_STEP", False)
+            self._write("STEPPER_STEP", False)
         self._start_motion(bool(closing), pulse_interval_ms, half_step=half_step)
 
     def stop_pressure_motion(self, release=True):
@@ -210,12 +210,12 @@ class ThrottleController(QObject):
         self._step_state = False
         error = None
         try:
-            self._hardware.digital_set("STEPPER_STEP", False)
+            self._write("STEPPER_STEP", False)
         except Exception as stop_error:
             error = str(stop_error)
         if release:
             try:
-                self._hardware.digital_set("STEPPER_OUTPUT_ENABLE", False)
+                self._write("STEPPER_OUTPUT_ENABLE", False)
             except Exception as stop_error:
                 error = f"{error}; {stop_error}" if error else str(stop_error)
         self._closing = None
@@ -269,7 +269,7 @@ class ThrottleController(QObject):
                 if self._automatic_mode and self._homing_active and not self._closing:
                     self._timer.stop()
                     self._step_state = False
-                    self._hardware.digital_set("STEPPER_STEP", False)
+                    self._write("STEPPER_STEP", False)
                     self._remaining_steps = None
                     self.movement_changed.emit(False, "detenido")
                     if self._limit_stable["THROTTLE_OPEN"]:
@@ -283,7 +283,7 @@ class ThrottleController(QObject):
                     self.stop()
                 return
             self._step_state = not self._step_state
-            self._hardware.digital_set("STEPPER_STEP", self._step_state)
+            self._write("STEPPER_STEP", self._step_state)
             if self._step_state:
                 if self._position_steps is not None:
                     increment = 0.5 if self._motion_half_step else 1.0
@@ -293,7 +293,7 @@ class ThrottleController(QObject):
                     if self._remaining_steps <= 0:
                         self._timer.stop()
                         self._step_state = False
-                        self._hardware.digital_set("STEPPER_STEP", False)
+                        self._write("STEPPER_STEP", False)
                         self._closing = None
                         self._remaining_steps = None
                         if self._automatic_mode:
@@ -345,6 +345,11 @@ class ThrottleController(QObject):
                     self._homing_active = False
                     self._move_to_rest_position()
 
+    def _write(self, signal_name, active):
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar la throttle.")
+        self._hardware.digital_set(signal_name, active)
+
     def _safe_stop(self):
         self._timer.stop()
         self._step_state = False
@@ -352,7 +357,7 @@ class ThrottleController(QObject):
         errors = []
         for signal_name in ("STEPPER_STEP", "STEPPER_OUTPUT_ENABLE"):
             try:
-                self._hardware.digital_set(signal_name, False)
+                self._write(signal_name, False)
             except Exception as error:
                 errors.append(f"{signal_name}: {error}")
         if errors:

@@ -70,6 +70,7 @@ class MaintainerScreen(QWidget):
     vent_chamber_sequence_requested = pyqtSignal()
     mfc_flow_requested = pyqtSignal(str, float)
     mfc_valve_requested = pyqtSignal(str, bool)
+    mfc_calibration_requested = pyqtSignal(str, float)
     throttle_move_requested = pyqtSignal(bool)
     throttle_stop_requested = pyqtSignal()
     throttle_steps_requested = pyqtSignal(bool, int, bool)
@@ -288,6 +289,8 @@ class MaintainerScreen(QWidget):
         self.mfc2_card.flow_requested.connect(self.mfc_flow_requested.emit)
         self.mfc1_card.valve_requested.connect(self.mfc_valve_requested.emit)
         self.mfc2_card.valve_requested.connect(self.mfc_valve_requested.emit)
+        self.mfc1_card.calibration_requested.connect(self.mfc_calibration_requested.emit)
+        self.mfc2_card.calibration_requested.connect(self.mfc_calibration_requested.emit)
         self.throttle_open_button.pressed.connect(lambda: self.throttle_move_requested.emit(False))
         self.throttle_close_button.pressed.connect(lambda: self.throttle_move_requested.emit(True))
         self.throttle_open_button.released.connect(self.throttle_stop_requested.emit)
@@ -758,6 +761,10 @@ class MaintainerScreen(QWidget):
     def set_mfc_valve_state(self, name, opened):
         card = self.mfc1_card if name == "MFC1" else self.mfc2_card
         card.set_valve_state(opened)
+
+    def set_mfc_calibration_running(self, name, running):
+        card = self.mfc1_card if name == "MFC1" else self.mfc2_card
+        card.set_calibration_running(running)
 
     def set_throttle_moving(self, moving, direction):
         state = direction.upper() if moving else "DETENIDO"

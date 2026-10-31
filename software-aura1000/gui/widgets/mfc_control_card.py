@@ -19,6 +19,7 @@ from config_gui.strings import tr
 class MFCControlCard(QFrame):
     flow_requested = pyqtSignal(str, float)
     valve_requested = pyqtSignal(str, bool)
+    calibration_requested = pyqtSignal(str, float)
 
     def __init__(self, name, gas, maximum_flow, minimum_flow=0.0, parent=None):
         super().__init__(parent)
@@ -28,6 +29,8 @@ class MFCControlCard(QFrame):
         self.setObjectName("MFCControlCard")
         self._valve_open = False
         self._measurement_fault = False
+        self._controls_enabled = True
+        self._calibration_running = False
         self.status_indicator = StatusIndicatorWidget("off", "Válvula cerrada")
 
         header = QHBoxLayout()
@@ -70,6 +73,8 @@ class MFCControlCard(QFrame):
         self.setpoint.setMaximumWidth(150)
         self.apply_button = QPushButton("Aplicar")
         self.apply_button.setObjectName("MFCControlButton")
+        self.calibrate_button = QPushButton("Calibrar offset de salida")
+        self.calibrate_button.setObjectName("MFCControlButton")
         setpoint_row.addWidget(self.setpoint_label)
         setpoint_controls = QHBoxLayout()
         setpoint_controls.addWidget(self.setpoint, 1)
@@ -100,9 +105,13 @@ class MFCControlCard(QFrame):
         layout.addLayout(details)
         layout.addWidget(self.progress)
         layout.addLayout(setpoint_row)
+        layout.addWidget(self.calibrate_button)
         layout.addWidget(self.valve_button)
 
         self.apply_button.clicked.connect(self._request_flow)
+        self.calibrate_button.clicked.connect(
+            lambda: self.calibration_requested.emit(self.name, self.setpoint.value())
+        )
         self.valve_button.clicked.connect(
             lambda checked: self.valve_requested.emit(self.name, checked)
         )
@@ -158,6 +167,14 @@ class MFCControlCard(QFrame):
         self.status_indicator.set_state(state, label)
 
     def set_controls_enabled(self, enabled):
-        enabled = bool(enabled)
-        for widget in (self.setpoint, self.apply_button, self.valve_button):
+        self._controls_enabled = bool(enabled)
+        self._update_controls_enabled()
+
+    def set_calibration_running(self, running):
+        self._calibration_running = bool(running)
+        self._update_controls_enabled()
+
+    def _update_controls_enabled(self):
+        enabled = self._controls_enabled and not self._calibration_running
+        for widget in (self.setpoint, self.apply_button, self.calibrate_button, self.valve_button):
             widget.setEnabled(enabled)

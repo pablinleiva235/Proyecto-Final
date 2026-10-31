@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from PyQt5.QtWidgets import QApplication
 
 from controllers.throttle_controller import ThrottleController
+from controllers.mfc_controller import MFCController
 from logic.door_sequence import DoorState
 from logic.main_vacuum_sequence import MainVacuumState
 from logic.recipe_sequence import RecipeSequence, RecipeState
@@ -62,6 +63,12 @@ class Mfc:
 
     def set_valve(self, name, opened):
         self.calls.append(("valve", name, opened))
+
+    def output_offset(self, name):
+        return MFCController._CONFIG[name]["offset"]
+
+    def flow_to_voltage(self, name, value, offset=None):
+        return MFCController.flow_to_voltage(name, value, offset=offset)
 
     def shutdown(self):
         self.calls.append(("shutdown",))

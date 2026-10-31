@@ -72,6 +72,55 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertAlmostEqual(MFCController.voltage_to_flow("MFC1", 2.5), 4.905)
         self.assertAlmostEqual(MFCController.voltage_to_flow("MFC2", 2.5), 0.5)
 
+    def test_mfc_output_offset_calibration_is_persisted_and_keeps_read_conversion(self):
+        class MemorySettings:
+            NoError = 0
+            values = {}
+
+            def __init__(self, *args):
+                pass
+
+            def value(self, key, default=None, type=None):
+                value = self.values.get(key, default)
+                return type(value) if type is not None else value
+
+            def setValue(self, key, value):
+                self.values[key] = value
+
+            def sync(self):
+                pass
+
+            def status(self):
+                return self.NoError
+
+        MemorySettings.values = {}
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        with patch("controllers.mfc_controller.QSettings", MemorySettings):
+            controller = MFCController(self.hardware, can_operate=lambda: True)
+            results = []
+            controller.calibration_finished.connect(lambda *args: results.append(args))
+            controller.calibrate_output_offset("MFC1", 2.0)
+            measured_voltage = 2.4 / (10.0 * 0.981) * 5.0
+            for _ in range(4):
+                controller.update_flow_measurement("MFC1", measured_voltage)
+            controller._finish_calibration("MFC1")
+
+            self.assertEqual(len(results), 1)
+            self.assertTrue(results[0][1])
+            self.assertAlmostEqual(results[0][2], 0.4)
+            self.assertTrue(results[0][4])
+            self.assertFalse(controller._valves["MFC1"])
+            self.assertEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 0.0)
+            self.assertAlmostEqual(MFCController.voltage_to_flow("MFC1", measured_voltage), 2.4)
+
+            reloaded = MFCController(self.hardware, can_operate=lambda: True)
+            self.assertAlmostEqual(reloaded.output_offset("MFC1"), 0.4)
+            reloaded.set_flow("MFC1", 3.0)
+            self.assertAlmostEqual(
+                self.hardware.get_analog_output("MFC1_SETPOINT"),
+                (3.0 - 0.4) / 0.981 / 10.0 * 5.0,
+            )
+
     def test_flow_monitor_waits_for_three_seconds_and_trips_over_tolerance(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)
         controller = MFCController(self.hardware, can_operate=lambda: True)

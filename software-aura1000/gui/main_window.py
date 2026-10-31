@@ -399,11 +399,21 @@ class MainWindow(QMainWindow):
         # Controles de MFC, throttle, lámparas y plasma.
         self.maintainer_screen.mfc_flow_requested.connect(self.mfc_controller.set_flow)
         self.maintainer_screen.mfc_valve_requested.connect(self.mfc_controller.set_valve)
+        self.maintainer_screen.mfc_calibration_requested.connect(
+            self.mfc_controller.calibrate_output_offset
+        )
+        self.mfc_controller.calibration_state_changed.connect(
+            self.maintainer_screen.set_mfc_calibration_running
+        )
+        self.mfc_controller.calibration_finished.connect(
+            self._show_mfc_calibration_result
+        )
         self.mfc_controller.flow_applied.connect(self.maintainer_screen.set_mfc_flow)
         self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
         self.mfc_controller.flow_applied.connect(
             lambda name, value: self.recipe_sequence.module_action_confirmed(
-                f"{name} flow", f"{value:g} SLPM; {self.mfc_controller.flow_to_voltage(name, value):.3f} V"
+                f"{name} flow",
+                f"{value:g} SLPM; {self.mfc_controller.flow_to_voltage(name, value, offset=self.mfc_controller.output_offset(name)):.3f} V",
             )
         )
         self.mfc_controller.valve_state_changed.connect(
@@ -930,6 +940,24 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_operation_message(
             f"{module_name}: {message}", is_error=True
         )
+
+    def _show_mfc_calibration_result(self, name, success, offset, error, saved):
+        title = strings.tr("Calibración de MFC")
+        if success:
+            message = strings.tr(
+                "La calibración de {name} fue exitosa. Offset de salida guardado: {offset:.4f} SLPM."
+            ).format(name=name, offset=offset)
+            QMessageBox.information(self, title, message, QMessageBox.Ok)
+        else:
+            if saved:
+                message = strings.tr(
+                    "La calibración de {name} no pudo finalizar correctamente, pero se guardó el offset de salida {offset:.4f} SLPM. Motivo: {error}"
+                ).format(name=name, offset=offset, error=error or "Error desconocido")
+            else:
+                message = strings.tr(
+                    "No se pudo completar la calibración de {name}. No se guardó un offset nuevo. Motivo: {error}"
+                ).format(name=name, error=error or "Error desconocido")
+            QMessageBox.warning(self, title, message, QMessageBox.Ok)
 
     def _handle_throttle_error(self, message):
         self.maintainer_screen.set_throttle_moving(False, "detenido")

@@ -339,38 +339,39 @@ class MaintainerScreen(QWidget):
         sequences_layout.setHorizontalSpacing(12)
         sequences_layout.setVerticalSpacing(12)
 
+        sequences_layout.addWidget(self.module_signals_group, 0, 0, 1, 2)
+
         sequences_layout.addWidget(
             self.door_sequence_button,
-            0,
+            1,
             0,
         )
 
         sequences_layout.addWidget(
             self.soft_vacuum_sequence_button,
-            0,
+            1,
             1,
         )
 
         sequences_layout.addWidget(
             self.main_vacuum_sequence_button,
-            1,
+            2,
             0,
         )
 
         sequences_layout.addWidget(
             self.vent_chamber_sequence_button,
-            1,
+            2,
             1,
         )
 
-        sequences_layout.addWidget(self.mfc1_card, 2, 0)
-        sequences_layout.addWidget(self.mfc2_card, 2, 1)
-        sequences_layout.addWidget(self.throttle_group, 3, 0)
-        sequences_layout.addWidget(self.throttle_limits_group, 3, 1)
-        sequences_layout.addWidget(self.process_group, 4, 1)
-        sequences_layout.addWidget(self.temperature_group, 4, 0)
-        sequences_layout.addWidget(self.analog_readouts_group, 5, 0, 1, 2)
-        sequences_layout.addWidget(self.module_signals_group, 6, 0, 1, 2)
+        sequences_layout.addWidget(self.mfc1_card, 3, 0)
+        sequences_layout.addWidget(self.mfc2_card, 3, 1)
+        sequences_layout.addWidget(self.throttle_group, 4, 0)
+        sequences_layout.addWidget(self.throttle_limits_group, 4, 1)
+        sequences_layout.addWidget(self.process_group, 5, 1)
+        sequences_layout.addWidget(self.temperature_group, 5, 0)
+        sequences_layout.addWidget(self.analog_readouts_group, 6, 0, 1, 2)
 
         sequences_layout.setColumnStretch(
             0,
@@ -382,13 +383,13 @@ class MaintainerScreen(QWidget):
             1,
         )
 
-        sequences_layout.setRowStretch(0, 0)
         sequences_layout.setRowStretch(1, 0)
         sequences_layout.setRowStretch(2, 0)
         sequences_layout.setRowStretch(3, 0)
         sequences_layout.setRowStretch(4, 0)
         sequences_layout.setRowStretch(5, 0)
         sequences_layout.setRowStretch(6, 0)
+        sequences_layout.setRowStretch(7, 0)
 
         self.sequences_scroll_area = QScrollArea(self.sequences_tab)
         self.sequences_scroll_area.setWidgetResizable(True)

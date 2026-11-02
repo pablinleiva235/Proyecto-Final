@@ -46,6 +46,8 @@ class ThrottleController(QObject):
 
     def start(self, closing):
         if self._automatic_mode:
+            # debugg de control de presion y throttle
+            print("[THROTTLE] Movimiento manual rechazado: control automático de presión activo.")
             self.operation_error.emit("El movimiento manual está bloqueado durante el control automático de presión.")
             return
         try:
@@ -53,6 +55,8 @@ class ThrottleController(QObject):
             if not closing and self._limit_stable["THROTTLE_OPEN"]:
                 self._set_position_steps(0.0)
         except Exception as error:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] No se pudieron leer los finales de carrera antes de mover: {error}")
             self.operation_error.emit(str(error))
             return
         self._start_motion(bool(closing), self.PULSE_INTERVAL_MS)
@@ -64,9 +68,13 @@ class ThrottleController(QObject):
     def move_steps(self, closing, steps, half_step=False):
         """Ejecuta una ráfaga donde cada paso es un pulso del controlador."""
         if self._automatic_mode:
+            # debugg de control de presion y throttle
+            print("[THROTTLE] Movimiento por pasos rechazado: control automático de presión activo.")
             self.operation_error.emit("El movimiento por pasos está bloqueado durante el control de presión.")
             return
         if self._timer.isActive():
+            # debugg de control de presion y throttle
+            print("[THROTTLE] Movimiento por pasos rechazado: ya hay un movimiento activo.")
             self.operation_error.emit("Detenga el movimiento actual antes de solicitar pasos.")
             return
         try:
@@ -78,6 +86,8 @@ class ThrottleController(QObject):
                 half_step=bool(half_step), remaining_steps=count,
             )
         except (TypeError, ValueError, OverflowError) as error:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] Solicitud de pasos inválida: {error}")
             self.operation_error.emit(str(error))
 
     @property
@@ -97,6 +107,9 @@ class ThrottleController(QObject):
             finally:
                 self._starting_motion = False
             if limit_active:
+                limit_name = "THROTTLE_CLOSED" if closing else "THROTTLE_OPEN"
+                # debugg de control de presion y throttle
+                print(f"[THROTTLE] Movimiento no iniciado: final {limit_name} ya activo.")
                 if self._automatic_mode and self._homing_active and not closing:
                     self._write("STEPPER_STEP", False)
                     self._step_state = False
@@ -117,12 +130,28 @@ class ThrottleController(QObject):
             direction = "cerrando" if self._closing else "abriendo"
             if remaining_steps is not None and not self._automatic_mode:
                 direction += " pasos"
+            mode = "automático" if self._automatic_mode else "manual"
+            if remaining_steps is None:
+                step_description = "movimiento continuo"
+            elif self._automatic_mode:
+                step_description = f"{remaining_steps} pulsos programados"
+            else:
+                step_description = f"{remaining_steps} pasos solicitados"
+            # debugg de control de presion y throttle
+            print(
+                f"[THROTTLE] Inicio {mode}: {direction}; {step_description}; "
+                f"intervalo={pulse_interval_ms} ms; medio paso="
+                f"{'sí' if half_step else 'no'}; posición="
+                f"{self._position_steps!r} pasos."
+            )
             self.movement_changed.emit(True, direction)
         except Exception as error:
             self._safe_stop()
             if self._automatic_mode:
                 self._fail_automatic_motion(str(error))
             else:
+                # debugg de control de presion y throttle
+                print(f"[THROTTLE] No se pudo iniciar el movimiento manual: {error}")
                 self.operation_error.emit(str(error))
 
     def move_to_pressure_start_position(self):
@@ -135,6 +164,11 @@ class ThrottleController(QObject):
             raise RuntimeError("El posicionamiento requiere vacío principal activo y puerta cerrada.")
         self._automatic_mode = True
         self._remaining_steps = None
+        # debugg de control de presion y throttle
+        print(
+            f"[THROTTLE] Posicionamiento inicial para presión: "
+            f"posición actual={self._position_steps!r} pasos."
+        )
         try:
             self._sample_limit_states()
             if self._limit_stable["THROTTLE_OPEN"]:
@@ -145,6 +179,8 @@ class ThrottleController(QObject):
         if self._position_steps is None:
             self._homing_active = True
             self._closing = False
+            # debugg de control de presion y throttle
+            print("[THROTTLE] Posición desconocida; iniciando homing hacia THROTTLE_OPEN.")
             self._homing_timer.start(self.HOMING_TIMEOUT_MS)
             self._start_motion(False, self.PULSE_INTERVAL_MS)
             if not self._timer.isActive() and self._automatic_mode and not self._homing_active:
@@ -170,6 +206,8 @@ class ThrottleController(QObject):
             )
 
         self._safety_return_active = True
+        # debugg de control de presion y throttle
+        print("[THROTTLE] Inicio del retorno de seguridad a la posición de reposo.")
         self._safety_return_timer.start(self.HOMING_TIMEOUT_MS)
         try:
             self.move_to_pressure_start_position()
@@ -192,12 +230,20 @@ class ThrottleController(QObject):
             else:
                 self._homing_active = True
                 self._closing = False
+                # debugg de control de presion y throttle
+                print("[THROTTLE] Posición desconocida; iniciando homing para reposición.")
                 self._homing_timer.start(self.HOMING_TIMEOUT_MS)
                 self._start_motion(False, self.PULSE_INTERVAL_MS)
                 if not self._timer.isActive() and self._automatic_mode and not self._homing_active:
                     self._fail_automatic_motion("No se pudo iniciar el homing para volver a reposo.")
                 return
         distance = self.REST_POSITION_STEPS - self._position_steps
+        # debugg de control de presion y throttle
+        print(
+            f"[THROTTLE] Reposición automática: posición={self._position_steps:.1f} "
+            f"pasos; objetivo={self.REST_POSITION_STEPS} pasos; "
+            f"distancia={distance:+.1f} pasos."
+        )
         if distance == 0:
             self._homing_active = False
             self.initial_position_reached.emit()
@@ -254,6 +300,8 @@ class ThrottleController(QObject):
             self._automatic_mode = False
         self.movement_changed.emit(False, "detenido")
         if error:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] Error al detener el movimiento automático: {error}")
             self.operation_error.emit(error)
         if cancel_safety_return:
             self.safety_return_finished.emit(
@@ -262,6 +310,8 @@ class ThrottleController(QObject):
         return error is None
 
     def _fail_automatic_motion(self, message):
+        # debugg de control de presion y throttle
+        print(f"[THROTTLE] Falló el movimiento automático: {message}")
         safety_return = self._safety_return_active
         self._safety_return_timer.stop()
         self._safety_return_active = False
@@ -280,10 +330,17 @@ class ThrottleController(QObject):
         self._safety_return_timer.stop()
         stopped = self.stop_pressure_motion(release=True)
         if not success:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] Falló el retorno de seguridad: {message}")
             self.safety_return_finished.emit(
                 False, message or "No se pudo llevar la throttle a reposo."
             )
         elif stopped:
+            # debugg de control de presion y throttle
+            print(
+                f"[THROTTLE] Retorno de seguridad completado; "
+                f"posición={self._position_steps!r} pasos."
+            )
             self.safety_return_finished.emit(
                 True, "La throttle llegó a la posición de reposo."
             )
@@ -301,12 +358,23 @@ class ThrottleController(QObject):
 
     def stop(self):
         if self._automatic_mode:
+            # debugg de control de presion y throttle
+            print("[THROTTLE] Detención manual rechazada: use el control de presión.")
             self.operation_error.emit("Use el botón Detener del control de presión para detener el movimiento automático.")
             return
         try:
+            was_moving = self._timer.isActive()
             self._safe_stop()
+            if was_moving:
+                # debugg de control de presion y throttle
+                print(
+                    f"[THROTTLE] Movimiento manual detenido; "
+                    f"posición={self._position_steps!r} pasos."
+                )
             self.movement_changed.emit(False, "detenido")
         except Exception as error:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] Error al detener el movimiento manual: {error}")
             self.operation_error.emit(str(error))
 
     def stop_if_limit_reached(self):
@@ -346,6 +414,9 @@ class ThrottleController(QObject):
                 elif self._automatic_mode:
                     self._fail_automatic_motion("Se alcanzó un final de carrera antes de completar el movimiento.")
                 else:
+                    limit_name = "THROTTLE_CLOSED" if self._closing else "THROTTLE_OPEN"
+                    # debugg de control de presion y throttle
+                    print(f"[THROTTLE] Movimiento manual detenido por límite {limit_name}.")
                     self.stop()
                 return
             self._step_state = not self._step_state
@@ -369,12 +440,19 @@ class ThrottleController(QObject):
                             self._homing_active = False
                             self.initial_position_reached.emit()
                         else:
+                            # debugg de control de presion y throttle
+                            print(
+                                f"[THROTTLE] Ráfaga manual completada; "
+                                f"posición={self._position_steps!r} pasos."
+                            )
                             self.movement_changed.emit(False, "detenido")
         except Exception as error:
             if self._automatic_mode:
                 self._fail_automatic_motion(str(error))
             else:
                 self.stop()
+                # debugg de control de presion y throttle
+                print(f"[THROTTLE] Error durante el movimiento manual: {error}")
                 self.operation_error.emit(str(error))
 
     def _homing_timed_out(self):
@@ -413,6 +491,11 @@ class ThrottleController(QObject):
         )
         if stable != self._limit_stable[name]:
             self._limit_stable[name] = stable
+            # debugg de control de presion y throttle
+            print(
+                f"[THROTTLE] Final {name}: "
+                f"{'ACTIVO' if stable else 'INACTIVO'} estable."
+            )
             self.limit_state_changed.emit(name, stable)
             if name == "THROTTLE_OPEN" and stable:
                 self._set_position_steps(0.0)
@@ -434,6 +517,12 @@ class ThrottleController(QObject):
         if self._hardware.digital_read("DRIVER_ENABLE") is not True:
             raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar la throttle.")
         self._hardware.digital_set(signal_name, active)
+        if signal_name in ("STEPPER_DIR", "STEPPER_HALF_STEP", "STEPPER_OUTPUT_ENABLE"):
+            # debugg de control de presion y throttle
+            print(
+                f"[THROTTLE] Señal {signal_name} cambiada a "
+                f"{'ACTIVO' if active else 'INACTIVO'}."
+            )
 
     def _safe_stop(self):
         self._timer.stop()
@@ -446,6 +535,8 @@ class ThrottleController(QObject):
             except Exception as error:
                 errors.append(f"{signal_name}: {error}")
         if errors:
+            # debugg de control de presion y throttle
+            print(f"[THROTTLE] Falló la parada segura: {'; '.join(errors)}")
             self.operation_error.emit("; ".join(errors))
             return False
         return True

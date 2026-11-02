@@ -30,6 +30,7 @@ class ProcessController(QObject):
         self._lamp2 = False
         self._plasma = False
         self._plasma_started_at = 0.0
+        self._plasma_grace_debug_reported = False
         self._warning_shown = False
         self._pulse_timer = QTimer(self)
         self._pulse_timer.setSingleShot(True)
@@ -120,6 +121,7 @@ class ProcessController(QObject):
                 self._write("RF_ON_CMD", True)
                 self._plasma = True
                 self._plasma_started_at = time.monotonic()
+                self._plasma_grace_debug_reported = False
                 self.state_changed.emit("plasma", True)
             except Exception as error:
                 try:
@@ -127,7 +129,10 @@ class ProcessController(QObject):
                 except Exception:
                     pass
                 self._plasma = False
+                self._plasma_grace_debug_reported = False
                 self.state_changed.emit("plasma", False)
+                # debugg de contorl de lamparas y plasma
+                print(f"[PLASMA] Error al activar: {error}")
                 self.operation_error.emit("Plasma", str(error))
         else:
             self._set_output("RF_ON_CMD", "plasma", False)
@@ -144,14 +149,28 @@ class ProcessController(QObject):
             lamp1 = self._lamps13 and read_fault_input("LAMP1_FAIL")
             lamp2 = self._lamp2 and read_fault_input("LAMP2_FAIL")
             lamp3 = self._lamps13 and read_fault_input("LAMP3_FAIL")
-            plasma = (
-                self._plasma
-                and time.monotonic() - self._plasma_started_at > self.IGNITION_DELAY_S
-                and read_fault_input("PLASMA_FAIL")
+            plasma_elapsed = time.monotonic() - self._plasma_started_at
+            plasma_grace_passed = (
+                self._plasma and plasma_elapsed > self.IGNITION_DELAY_S
             )
+            plasma_fail_state = (
+                read_fault_input("PLASMA_FAIL") if plasma_grace_passed else False
+            )
+            plasma = plasma_grace_passed and plasma_fail_state
+            if plasma_grace_passed and not self._plasma_grace_debug_reported:
+                self._plasma_grace_debug_reported = True
+                # debugg de contorl de lamparas y plasma
+                print(
+                    f"[PLASMA] Venció la gracia de ignición: "
+                    f"{plasma_elapsed:.2f} s; PLASMA_FAIL lógico="
+                    f"{'ACTIVO' if plasma_fail_state else 'INACTIVO'}; "
+                    f"alarma={'SÍ' if plasma else 'NO'}."
+                )
             warning = read_fault_input("MAGNETRON_WARNING")
             overheat = read_fault_input("MAGNETRON_OVERHEAT")
         except Exception as error:
+            # debugg de contorl de lamparas y plasma
+            print(f"[PROCESO] Error de monitoreo de entradas de falla: {error}")
             self.fault_monitoring_failed.emit(
                 "Entradas de falla de proceso", str(error)
             )
@@ -165,6 +184,8 @@ class ProcessController(QObject):
             if plasma: failures.append("Falla en plasma (no encendió o se interrumpió la RF).")
             if overheat: failures.append("Sobretemperatura del magnetrón.")
             if failures:
+                # debugg de contorl de lamparas y plasma
+                print(f"[PROCESO] Falla crítica detectada: {'; '.join(failures)}")
                 try:
                     self.stop_all()
                 except Exception as error:
@@ -206,6 +227,7 @@ class ProcessController(QObject):
                 errors.append(f"{signal}: {error}")
         self._lamps13 = self._lamp2 = self._plasma = False
         self._plasma_started_at = 0.0
+        self._plasma_grace_debug_reported = False
         for name in ("lamps13", "lamp2", "plasma"):
             self.state_changed.emit(name, False)
         if errors:
@@ -248,4 +270,26 @@ class ProcessController(QObject):
     def _write(self, signal, active):
         if self._hardware.digital_read("DRIVER_ENABLE") is not True:
             raise RuntimeError("DRIVER_ENABLE debe estar activo para modificar las salidas de proceso.")
-        self._hardware.digital_set(signal, active)
+        try:
+            self._hardware.digital_set(signal, active)
+            if signal in (
+                "LAMP1_ON_CMD",
+                "LAMP2_ON_CMD",
+                "LAMP3_ON_CMD",
+                "RF_ON_CMD",
+            ):
+                # debugg de contorl de lamparas y plasma
+                print(
+                    f"[PROCESO] Señal {signal} cambiada a "
+                    f"{'ACTIVO' if active else 'INACTIVO'}."
+                )
+        except Exception as error:
+            if signal in (
+                "LAMP1_ON_CMD",
+                "LAMP2_ON_CMD",
+                "LAMP3_ON_CMD",
+                "RF_ON_CMD",
+            ):
+                # debugg de contorl de lamparas y plasma
+                print(f"[PROCESO] Error al cambiar {signal}: {error}")
+            raise

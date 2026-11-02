@@ -461,6 +461,7 @@ def trigger_lamps_1_3(win):
         if seconds <= 0 or seconds > 28:
             raise ValueError("Fuera de rango")
     except ValueError:
+        # debugg de contorl de lamparas y plasma
         print("[WARN] Tiempo de pulso inválido. Ingrese un valor entre 0 y 28 segundos.")
         return
 
@@ -473,7 +474,12 @@ def trigger_lamps_1_3(win):
     update_vent_button_state(win)
 
     win.hw.digital_set("LAMP1_ON_CMD", ACTIVE)
+    # debugg de contorl de lamparas y plasma
+    print("[PROCESO] Señal LAMP1_ON_CMD cambiada a ACTIVO.")
     win.hw.digital_set("LAMP3_ON_CMD", ACTIVE)
+    # debugg de contorl de lamparas y plasma
+    print("[PROCESO] Señal LAMP3_ON_CMD cambiada a ACTIVO.")
+    # debugg de contorl de lamparas y plasma
     print(f"[INFO] Lámparas 1 y 3 ENCENDIDAS por {seconds} segundos.")
 
     # SACAR ESTA LINEA LUEGO DE PROBAR
@@ -484,19 +490,26 @@ def trigger_lamps_1_3(win):
         # Si durante la espera se cortó el vacío o se deshabilitaron los controles,
         # 'state_lamps13_pulsing' ya habrá sido puesto a False en set_mfc_lamps_controls_enabled
         if not win.state_lamps13_pulsing:
+            # debugg de contorl de lamparas y plasma
             print("[INFO] El pulso de lámparas fue abortado por seguridad antes de tiempo.")
             return
 
         win.hw.digital_set("LAMP1_ON_CMD", INACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal LAMP1_ON_CMD cambiada a INACTIVO.")
         win.hw.digital_set("LAMP3_ON_CMD", INACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal LAMP3_ON_CMD cambiada a INACTIVO.")
         win.state_lamps13_pulsing = False
         btn.setStyleSheet("")
+        # debugg de contorl de lamparas y plasma
         print("[INFO] Lámparas 1 y 3 APAGADAS (Fin de pulso). Precalentamiento completo.")
 
         """# Habilita Plasma solo si el vacío principal se mantuvo encendido
         if win.ui.MenuPrincipal_btn_main_vacuum.text() == "Main Vacuum Off":
             win.ui.MenuPrincipal_btn_plasma.setEnabled(True)
         else:
+            # debugg de contorl de lamparas y plasma
             print("[WARN] Vacío no activo al finalizar el pulso; Plasma no habilitado.")
         """
         update_vent_button_state(win)
@@ -512,15 +525,21 @@ def toggle_lamp_2(win):
 
     if btn.text() == "Lamp 2 On":
         win.hw.digital_set("LAMP2_ON_CMD", ACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal LAMP2_ON_CMD cambiada a ACTIVO.")
         win.lamp2_on = True # Flag para la funcion de deteccion de fallas, que solamente detecta al estar activas
         btn.setText("Lamp 2 Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+        # debugg de contorl de lamparas y plasma
         print("[INFO] Lámpara 2 (Central) Encendida.")
     else:
         win.hw.digital_set("LAMP2_ON_CMD", INACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal LAMP2_ON_CMD cambiada a INACTIVO.")
         win.lamp2_on = False # Vuelvo el flag a False una vez apagada para que no detecte fallas
         btn.setText("Lamp 2 On")
         btn.setStyleSheet("")
+        # debugg de contorl de lamparas y plasma
         print("[INFO] Lámpara 2 (Central) Apagada.")
 
     update_vent_button_state(win)
@@ -535,16 +554,22 @@ def toggle_plasma(win):
 
     if btn.text() == "Plasma On":
         win.hw.digital_set("RF_ON_CMD", ACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal RF_ON_CMD cambiada a ACTIVO.")
         win.rf_on = True
         win.rf_on_time = time.time()  # Marca de tiempo de encendido
         btn.setText("Plasma Off")
         btn.setStyleSheet("background-color: #ff9800; color: black; font-weight: bold;")
+        # debugg de contorl de lamparas y plasma
         print("[INFO] Plasma Encendido.")
     else:
         win.hw.digital_set("RF_ON_CMD", INACTIVE)
+        # debugg de contorl de lamparas y plasma
+        print("[PROCESO] Señal RF_ON_CMD cambiada a INACTIVO.")
         win.rf_on = False
         btn.setText("Plasma On")
         btn.setStyleSheet("")
+        # debugg de contorl de lamparas y plasma
         print("[INFO] Plasma Apagado.")
 
         # Habilitar boton de Lámparas 1 y 3 solo si el Vacío Principal está activo

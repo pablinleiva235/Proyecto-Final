@@ -31,6 +31,7 @@ class PressureController(QObject):
         self._target = None
         self._target_reached = False
         self._state = "detenido"
+        self._last_debug_correction = None
         self._watchdog = QTimer(self)
         self._watchdog.setInterval(100)
         self._watchdog.timeout.connect(self._check_runtime_conditions)
@@ -74,6 +75,8 @@ class PressureController(QObject):
 
     def start(self, target_torr):
         if self.is_active:
+            # debugg de control de presion y throttle
+            print("[PRESIÓN] Inicio rechazado: el control automático ya está activo.")
             self.operation_error.emit("El control automático de presión ya está activo.")
             return
         try:
@@ -93,6 +96,12 @@ class PressureController(QObject):
                 )
             self._target = target
             self._target_reached = False
+            self._last_debug_correction = None
+            # debugg de control de presion y throttle
+            print(
+                f"[PRESIÓN] Inicio: objetivo={target:.3f} Torr; "
+                f"presión actual={self._pressure:.3f} Torr."
+            )
             self._set_state("posicionando")
             self._watchdog.start()
             self._throttle.move_to_pressure_start_position()
@@ -102,10 +111,17 @@ class PressureController(QObject):
                 self._throttle.stop_pressure_motion(release=True)
             self._target = None
             self._set_state("detenido")
+            # debugg de control de presion y throttle
+            print(f"[PRESIÓN] No se pudo iniciar el control: {error}")
             self.operation_error.emit(str(error))
 
     def stop(self, return_to_rest=True):
         """Detiene el lazo; en parada normal retorna a reposo si es seguro."""
+        # debugg de control de presion y throttle
+        print(
+            f"[PRESIÓN] Solicitud de detención; retorno a reposo="
+            f"{'sí' if return_to_rest else 'no'}."
+        )
         if self._state == "reposicionando":
             self._watchdog.stop()
             self._target = None
@@ -158,8 +174,17 @@ class PressureController(QObject):
         error = self._target - pressure
         if abs(error) <= self.DEADBAND_TORR:
             self._throttle.stop_pressure_motion(release=False)
+            if self._last_debug_correction != ("banda muerta",):
+                # debugg de control de presion y throttle
+                print(
+                    f"[PRESIÓN] En banda muerta: actual={pressure:.3f} Torr; "
+                    f"objetivo={self._target:.3f} Torr; error={error:+.3f} Torr."
+                )
+                self._last_debug_correction = ("banda muerta",)
             if not self._target_reached:
                 self._target_reached = True
+                # debugg de control de presion y throttle
+                print(f"[PRESIÓN] Objetivo alcanzado: {self._target:.3f} Torr.")
                 self.setpoint_reached.emit(self._target)
             return
 
@@ -178,7 +203,18 @@ class PressureController(QObject):
         else:
             pulse_interval_ms = 10
             half_step = True
-        self._throttle.start_pressure_motion(error > 0, pulse_interval_ms, half_step)
+        closing = error > 0
+        correction = ("cerrando" if closing else "abriendo", pulse_interval_ms, half_step)
+        if correction != self._last_debug_correction:
+            # debugg de control de presion y throttle
+            print(
+                f"[PRESIÓN] Corrección: presión={pressure:.3f} Torr; "
+                f"objetivo={self._target:.3f} Torr; error={error:+.3f} Torr; "
+                f"throttle {correction[0]}, intervalo={pulse_interval_ms} ms, "
+                f"medio paso={'sí' if half_step else 'no'}."
+            )
+            self._last_debug_correction = correction
+        self._throttle.start_pressure_motion(closing, pulse_interval_ms, half_step)
 
     def _check_runtime_conditions(self):
         if not self.is_active:
@@ -196,6 +232,8 @@ class PressureController(QObject):
             self._stop_with_error(message)
 
     def _stop_with_error(self, message):
+        # debugg de control de presion y throttle
+        print(f"[PRESIÓN] Detención por error: {message}")
         self._watchdog.stop()
         self._target = None
         try:
@@ -205,5 +243,8 @@ class PressureController(QObject):
             self.operation_error.emit(message)
 
     def _set_state(self, state):
+        if self._state != state:
+            # debugg de control de presion y throttle
+            print(f"[PRESIÓN] Estado: {self._state} -> {state}.")
         self._state = state
         self.state_changed.emit(state)

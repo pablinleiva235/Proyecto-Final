@@ -85,6 +85,8 @@ class TemperatureController(QObject):
 
     def start(self, target_c):
         if self.is_active:
+            # debugg de contorl de lamparas y plasma
+            print("[TEMP] Inicio rechazado: el control automático ya está activo.")
             self.operation_error.emit("El control automático de temperatura ya está activo.")
             return
         try:
@@ -107,6 +109,8 @@ class TemperatureController(QObject):
             self._start_temperature = self._temperature
             self._target_reached = False
             self._set_state("precalentando")
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] Inicio de control: objetivo={target:.1f} °C, temperatura inicial={self._temperature:.1f} °C.")
             self._watchdog.start()
             if not self._process.set_lamps13(True) or not self._process.set_lamp2(True):
                 self._abort("No se pudieron activar las lámparas para el precalentamiento.")
@@ -115,9 +119,13 @@ class TemperatureController(QObject):
             self._target = None
             self._ramp_active = False
             self._set_state("detenido")
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] No se pudo iniciar el control: {error}")
             self.operation_error.emit(str(error))
 
     def stop(self):
+        # debugg de contorl de lamparas y plasma
+        print("[TEMP] Solicitud de detención del control térmico.")
         self._watchdog.stop()
         self._assist_timer.stop()
         self._assist_active = False
@@ -126,6 +134,8 @@ class TemperatureController(QObject):
         self._waiting_first_dip = False
         self._post_ramp_above_high = False
         if not self._turn_lamps_off():
+            # debugg de contorl de lamparas y plasma
+            print("[TEMP] Error al apagar todas las lámparas durante la detención.")
             self.operation_error.emit("No se pudieron confirmar todas las lámparas apagadas.")
         self._set_state("detenido")
 
@@ -138,6 +148,8 @@ class TemperatureController(QObject):
             return
         if self._ramp_active:
             if temperature >= self._ramp_threshold():
+                # debugg de contorl de lamparas y plasma
+                print(f"[TEMP] Umbral de rampa alcanzado a {temperature:.1f} °C; apagando LAMP1/LAMP3.")
                 if not self._process.set_lamps13(False):
                     self._abort("No se pudieron apagar las lámparas externas al finalizar la rampa.")
                     return
@@ -145,6 +157,8 @@ class TemperatureController(QObject):
                 self._waiting_first_dip = True
                 self._post_ramp_above_high = False
                 self._set_state("manteniendo")
+                # debugg de contorl de lamparas y plasma
+                print(f"[TEMP] Rampa completada a {temperature:.1f} °C; comienza mantenimiento.")
             return
 
         low = self._target - self.HYSTERESIS_C
@@ -167,19 +181,27 @@ class TemperatureController(QObject):
                 self._abort("No se pudieron activar las lámparas externas para asistir la recuperación térmica.")
                 return
             self._assist_active = True
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] Asistencia térmica: pulso LAMP1/LAMP3 a {temperature:.1f} °C por {self.ASSIST_PULSE_MS} ms.")
             self._assist_timer.start(self.ASSIST_PULSE_MS)
 
         if temperature <= low and not self._process.lamp2_active:
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] {temperature:.1f} °C <= límite inferior {low:.1f} °C; encendiendo LAMP2.")
             if not self._process.set_lamp2(True):
                 self._abort("No se pudo encender la lámpara central.")
                 return
         elif temperature >= high and self._process.lamp2_active:
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] {temperature:.1f} °C >= límite superior {high:.1f} °C; apagando LAMP2.")
             if not self._process.set_lamp2(False):
                 self._abort("No se pudo apagar la lámpara central.")
                 return
 
         if not self._target_reached and abs(temperature - self._target) <= self.RECIPE_REACHED_TOLERANCE_C:
             self._target_reached = True
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] Objetivo alcanzado: {self._target:.1f} °C; lectura={temperature:.1f} °C.")
             self.setpoint_reached.emit(self._target)
 
     def _ramp_threshold(self):
@@ -194,6 +216,8 @@ class TemperatureController(QObject):
         if not self._assist_active:
             return
         self._assist_active = False
+        # debugg de contorl de lamparas y plasma
+        print("[TEMP] Fin del pulso de asistencia térmica; apagando LAMP1/LAMP3.")
         if self.is_active and not self._process.set_lamps13(False):
             self._abort("No se pudieron apagar las lámparas externas al finalizar el pulso de asistencia.")
 
@@ -206,6 +230,8 @@ class TemperatureController(QObject):
             self._abort("Se perdió la lectura actualizada de la termocupla.")
 
     def _abort(self, message):
+        # debugg de contorl de lamparas y plasma
+        print(f"[TEMP] Abortando control térmico: {message}")
         self._watchdog.stop()
         self._assist_timer.stop()
         self._assist_active = False
@@ -224,5 +250,8 @@ class TemperatureController(QObject):
         return outer_lamps_off and center_lamp_off
 
     def _set_state(self, state):
+        if self._state != state:
+            # debugg de contorl de lamparas y plasma
+            print(f"[TEMP] Estado: {self._state} -> {state}.")
         self._state = state
         self.state_changed.emit(state)

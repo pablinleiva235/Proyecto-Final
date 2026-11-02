@@ -25,8 +25,17 @@ class SimulationController(QObject):
 
             if event.key() == Qt.Key_F:
                 self._toggle_input("LAMP1_FAIL")
+                self._toggle_input("LAMP3_FAIL")
                 return True
 
+            if event.key() == Qt.Key_Z:
+                self._toggle_input("LAMP2_FAIL")
+                return True
+            
+            if event.key() == Qt.Key_X:
+                self._toggle_input("PLASMA_FAIL")
+                return True
+            
         return super().eventFilter(obj,event)
 
     def _toggle_input(self,signal_name):

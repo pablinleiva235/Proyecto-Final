@@ -51,6 +51,7 @@ import config_gui.strings as myStr
 from gui.widgets.signal_widget import SignalWidget
 from gui.widgets.analog_readout_card import AnalogReadoutCard
 from gui.widgets.mfc_control_card import MFCControlCard
+from config.pressure_limits import minimum_process_pressure
 from gui.widgets.localization import set_localized_text
 from gui.widgets.status_indicator import StatusIndicatorWidget
 
@@ -520,11 +521,12 @@ class MaintainerScreen(QWidget):
         pressure_setpoint_row = QHBoxLayout()
         pressure_setpoint_row.addWidget(QLabel(myStr.MAINTAINER_PRESSURE_SETPOINT))
         self.pressure_setpoint = QDoubleSpinBox()
-        self.pressure_setpoint.setRange(0.0, 3.0)
+        self.pressure_setpoint.setRange(minimum_process_pressure(0.0), 3.0)
         self.pressure_setpoint.setDecimals(3)
         self.pressure_setpoint.setSingleStep(0.05)
         self.pressure_setpoint.setSuffix(" Torr")
         self.pressure_setpoint.setObjectName("MaintenanceSetpointInput")
+        self.mfc1_card.setpoint.valueChanged.connect(self.update_pressure_minimum)
         pressure_setpoint_row.addWidget(self.pressure_setpoint)
         pressure_controls.addLayout(pressure_setpoint_row)
         pressure_buttons = QVBoxLayout()
@@ -758,6 +760,11 @@ class MaintainerScreen(QWidget):
     def set_mfc_flow(self, name, flow):
         card = self.mfc1_card if name == "MFC1" else self.mfc2_card
         card.set_setpoint(float(flow))
+        if name == "MFC1":
+            self.update_pressure_minimum(float(flow))
+
+    def update_pressure_minimum(self, o2_flow):
+        self.pressure_setpoint.setMinimum(minimum_process_pressure(o2_flow))
 
     def set_mfc_valve_state(self, name, opened):
         card = self.mfc1_card if name == "MFC1" else self.mfc2_card

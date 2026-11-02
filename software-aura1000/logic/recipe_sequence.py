@@ -546,7 +546,9 @@ class RecipeSequence(QObject):
             return
         if not self._perform_action(
             f"Activar control de presión a {self._recipe.process_pressure:g} Torr",
-            lambda: self.pressure.start(self._recipe.process_pressure),
+            lambda: self.pressure.start(
+                self._recipe.process_pressure, o2_flow=self._recipe.o2_flow
+            ),
             outputs={"consigna_presion": f"{self._recipe.process_pressure:g} Torr",
                      "STEPPER_OUTPUT_ENABLE": True, "STEPPER_HALF_STEP": False,
                      "STEPPER_STEP": "pulsos repetitivos omitidos"},

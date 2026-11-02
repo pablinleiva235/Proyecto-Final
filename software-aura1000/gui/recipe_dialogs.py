@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 
 import config_gui.strings as text
 from services.recipe_service import Recipe, RecipeService
+from config.pressure_limits import minimum_process_pressure
 
 
 class RecipeEditorDialog(QDialog):
@@ -64,6 +65,8 @@ class RecipeEditorDialog(QDialog):
             self.parameter_edits[key] = edit
             form.addRow(f"{text.tr(label)} ({unit})", edit)
 
+        self.parameter_edits["o2_flow"].textChanged.connect(self._update_process_pressure_minimum)
+
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         buttons.button(QDialogButtonBox.Save).setText(text.tr(text.RECIPE_SAVE_BUTTON))
         buttons.button(QDialogButtonBox.Cancel).setText(text.tr(text.RECIPE_CANCEL_BUTTON))
@@ -76,6 +79,19 @@ class RecipeEditorDialog(QDialog):
         layout.addLayout(form)
         layout.addWidget(buttons)
         self.setMinimumWidth(480)
+        self._update_process_pressure_minimum()
+
+    def _update_process_pressure_minimum(self):
+        try:
+            minimum = minimum_process_pressure(
+                self.parameter_edits["o2_flow"].text().strip().replace(",", ".")
+            )
+        except (TypeError, ValueError):
+            minimum = minimum_process_pressure(0.0)
+        self._process_pressure_minimum = minimum
+        self.parameter_edits["process_pressure"].setToolTip(
+            f"Mínimo para el flujo de O₂ actual: {minimum:.2f} Torr"
+        )
 
     def _accept_recipe(self):
         name = self.name_edit.text().strip()
@@ -117,7 +133,7 @@ class RecipeEditorDialog(QDialog):
             "o2_flow": (0.0, 6.5),
             "n2_flow": (0.1, 0.65),
             "base_pressure": (float(self._pressure_min), 3.0),
-            "process_pressure": (0.0, 3.0),
+            "process_pressure": (minimum_process_pressure(values["o2_flow"]), 3.0),
             "process_temperature": (130.0, 190.0),
         }
         adjusted_values = []

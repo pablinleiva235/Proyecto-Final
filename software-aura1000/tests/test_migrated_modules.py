@@ -14,6 +14,7 @@ from controllers.process_controller import ProcessController
 from controllers.pressure_controller import PressureController
 from controllers.throttle_controller import ThrottleController
 from controllers.temperature_controller import TemperatureController
+from config.pressure_limits import minimum_process_pressure
 from gui.maintainer_screen import MaintainerScreen
 from gui.widgets.localization import translate_widget_tree
 import config_gui.strings as strings
@@ -472,6 +473,28 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertFalse(throttle._timer.isActive())
         self.assertFalse(throttle._automatic_mode)
 
+    def test_pressure_minimum_curve_interpolates_table_and_caps_above_six(self):
+        expected = (0.83, 1.14, 1.51, 1.86, 2.23, 2.63, 3.0)
+        for flow, pressure in enumerate(expected):
+            self.assertAlmostEqual(minimum_process_pressure(flow), pressure)
+        self.assertAlmostEqual(minimum_process_pressure(0.5), 0.985)
+        self.assertEqual(minimum_process_pressure(6.5), 3.0)
+
+    def test_pressure_controller_enforces_flow_dependent_minimum(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        pressure = PressureController(throttle, can_operate=lambda: True)
+        errors = []
+        pressure.operation_error.connect(errors.append)
+        pressure.set_pressure_reading(0.5)
+
+        pressure.start(1.13, o2_flow=1.0)
+        self.assertEqual(pressure.state, "detenido")
+        self.assertTrue(errors)
+        pressure.start(1.14, o2_flow=1.0)
+        self.assertEqual(pressure.state, "posicionando")
+        pressure.stop()
+
     def test_pressure_control_does_not_take_over_manual_throttle_motion(self):
         throttle = ThrottleController(self.hardware, can_operate=lambda: True)
         pressure = PressureController(throttle, can_operate=lambda: True)
@@ -488,12 +511,14 @@ class MigratedModulesTests(unittest.TestCase):
     def test_maintainer_pressure_controls_are_limited_to_three_torr(self):
         screen = MaintainerScreen()
         screen.set_module_controls_enabled(True)
-        self.assertEqual(screen.pressure_setpoint.minimum(), 0.0)
+        self.assertEqual(screen.pressure_setpoint.minimum(), 0.83)
         self.assertEqual(screen.pressure_setpoint.maximum(), 3.0)
         self.assertTrue(screen.pressure_start_button.isEnabled())
         self.assertFalse(screen.pressure_stop_button.isEnabled())
         self.assertEqual(screen.temperature_setpoint.minimum(), 130.0)
         self.assertEqual(screen.temperature_setpoint.maximum(), 190.0)
+        screen.mfc1_card.setpoint.setValue(2.0)
+        self.assertAlmostEqual(screen.pressure_setpoint.minimum(), 1.51)
 
     def test_temperature_ramp_and_hysteresis_use_managed_lamp_outputs(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)
@@ -614,6 +639,13 @@ class MigratedModulesTests(unittest.TestCase):
         recipe.process_temperature = 200.0
         with self.assertRaises(RecipeError):
             service.validate(recipe)
+
+        recipe.process_temperature = 150.0
+        recipe.process_pressure = 1.13
+        with self.assertRaises(RecipeError):
+            service.validate(recipe)
+        recipe.process_pressure = 1.14
+        service.validate(recipe)
 
     def test_recipe_rf_time_defaults_for_legacy_files_and_round_trips(self):
         with TemporaryDirectory() as folder:

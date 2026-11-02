@@ -453,7 +453,9 @@ class MainWindow(QMainWindow):
         self.throttle_controller.operation_error.connect(self._handle_throttle_error)
         self.throttle_controller.operation_error.connect(self.recipe_sequence.controller_error)
         self.maintainer_screen.pressure_start_requested.connect(
-            self.pressure_controller.start
+            lambda target: self.pressure_controller.start(
+                target, o2_flow=self.maintainer_screen.mfc1_card.setpoint.value()
+            )
         )
         self.maintainer_screen.pressure_stop_requested.connect(
             self.pressure_controller.stop
@@ -647,7 +649,9 @@ class MainWindow(QMainWindow):
 
     def start_recipe_pressure_control(self, recipe):
         """Punto de entrada para la etapa de presión del coordinador de recetas."""
-        self.pressure_controller.start(recipe.process_pressure)
+        self.pressure_controller.start(
+            recipe.process_pressure, o2_flow=recipe.o2_flow
+        )
 
     def stop_recipe_pressure_control(self):
         """Detiene el lazo si la secuencia de receta aborta o cambia de etapa."""

@@ -6,6 +6,7 @@ import time
 from collections import deque
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from config.pressure_limits import minimum_process_pressure
 
 
 class PressureController(QObject):
@@ -73,7 +74,7 @@ class PressureController(QObject):
         if self.is_active:
             self._stop_with_error(message)
 
-    def start(self, target_torr):
+    def start(self, target_torr, o2_flow=0.0):
         if self.is_active:
             # debugg de control de presion y throttle
             print("[PRESIÓN] Inicio rechazado: el control automático ya está activo.")
@@ -81,8 +82,12 @@ class PressureController(QObject):
             return
         try:
             target = float(target_torr)
-            if not math.isfinite(target) or not 0.0 <= target <= self.MAX_PRESSURE_TORR:
-                raise ValueError("El setpoint debe ser un valor finito entre 0 y 3 Torr.")
+            minimum = minimum_process_pressure(o2_flow)
+            if not math.isfinite(target) or not minimum <= target <= self.MAX_PRESSURE_TORR:
+                raise ValueError(
+                    f"El setpoint debe estar entre {minimum:.2f} y "
+                    f"{self.MAX_PRESSURE_TORR:g} Torr para {float(o2_flow):g} SLPM de O2."
+                )
             if not self._can_operate():
                 raise RuntimeError("El control requiere vacío principal activo y puerta cerrada.")
             if self._pressure is None or self._last_reading_at is None:

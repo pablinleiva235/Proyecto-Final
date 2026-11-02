@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 import config_gui.strings as text
+from config.pressure_limits import minimum_process_pressure
 
 
 class RecipeError(ValueError):
@@ -44,7 +45,6 @@ class RecipeService:
     FLOW_LIMITS_MIX = {"o2_flow": 1.0, "n2_flow": 0.1}
     FLOW_LIMITS = {"o2_flow": 6.5, "n2_flow": 0.65}
     BASE_PRESSURE_MAX_TORR = 3.0
-    PROCESS_PRESSURE_MIN_TORR = 1.5
     PROCESS_PRESSURE_MAX_TORR = 3.0
     PROCESS_TEMPERATURE_MIN_C = 130.0
     PROCESS_TEMPERATURE_MAX_C = 190.0
@@ -129,6 +129,12 @@ class RecipeService:
                 raise RecipeError(text.RECIPE_ERROR_N2_RANGE)
             if key == "process_pressure" and value > self.PROCESS_PRESSURE_MAX_TORR:
                 raise RecipeError(text.RECIPE_ERROR_PROCESS_PRESSURE_RANGE)
+            if key == "process_pressure" and value < minimum_process_pressure(recipe.o2_flow):
+                raise RecipeError(
+                    text.RECIPE_ERROR_PROCESS_PRESSURE_MINIMUM.format(
+                        minimum=minimum_process_pressure(recipe.o2_flow)
+                    )
+                )
             if key == "base_pressure" and value > self.BASE_PRESSURE_MAX_TORR:
                 raise RecipeError(text.RECIPE_ERROR_BASE_PRESSURE_RANGE)
             if key == "process_temperature" and not (

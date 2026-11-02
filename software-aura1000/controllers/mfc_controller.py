@@ -135,6 +135,10 @@ class MFCController(QObject):
     def can_enable_plasma(self):
         return self._valves["MFC1"] and self._targets["MFC1"] > 0
 
+    def target_flow(self, mfc_name):
+        self._config(mfc_name)
+        return self._targets[mfc_name]
+
     def update_flow_measurement(self, mfc_name, voltage):
         try:
             flow = self.voltage_to_flow(mfc_name, voltage)

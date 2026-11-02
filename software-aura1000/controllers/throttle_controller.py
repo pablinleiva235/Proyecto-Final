@@ -11,12 +11,14 @@ class ThrottleController(QObject):
     automatic_motion_failed = pyqtSignal(str)
     safety_return_finished = pyqtSignal(bool, str)
     limit_state_changed = pyqtSignal(str, bool)
+    startup_homing_completed = pyqtSignal()
+    startup_homing_failed = pyqtSignal(str)
 
-    PULSE_INTERVAL_MS = 5
+    PULSE_INTERVAL_MS = 4
     REST_POSITION_STEPS = 400
     HOMING_TIMEOUT_MS = 30000
     MAX_BURST_STEPS = 1400
-    LIMIT_DEBOUNCE_READS = 3
+    LIMIT_DEBOUNCE_READS = 5
 
     def __init__(self, hardware, can_operate=None, parent=None):
         super().__init__(parent)
@@ -31,6 +33,10 @@ class ThrottleController(QObject):
         self._remaining_steps = None
         self._motion_half_step = False
         self._starting_motion = False
+        self._startup_homing_active = False
+        self._startup_homing_motion_started = False
+        self._startup_homing_samples = 0
+        self._startup_driver_enabled = False
         self._limit_counts = {"THROTTLE_OPEN": 0, "THROTTLE_CLOSED": 0}
         self._limit_stable = {"THROTTLE_OPEN": False, "THROTTLE_CLOSED": False}
         self._homing_timer = QTimer(self)
@@ -89,6 +95,54 @@ class ThrottleController(QObject):
             # debugg de control de presion y throttle
             print(f"[THROTTLE] Solicitud de pasos inválida: {error}")
             self.operation_error.emit(str(error))
+
+    def home_on_startup(self):
+        """Home toward THROTTLE_OPEN without requiring process vacuum."""
+        if self._automatic_mode or self._safety_return_active:
+            raise RuntimeError("La throttle estÃ¡ reservada para otro movimiento.")
+        if self._timer.isActive():
+            raise RuntimeError("Detenga el movimiento actual de la throttle antes del homing de startup.")
+        if self._startup_homing_active:
+            return
+
+        self._limit_counts = {"THROTTLE_OPEN": 0, "THROTTLE_CLOSED": 0}
+        self._limit_stable = {"THROTTLE_OPEN": False, "THROTTLE_CLOSED": False}
+        self._startup_homing_samples = 0
+        self._startup_homing_motion_started = False
+        self._startup_driver_enabled = False
+        self._step_state = False
+        self._closing = False
+        self._startup_homing_active = True
+        self._homing_timer.start(self.HOMING_TIMEOUT_MS)
+        self._timer.start(self.PULSE_INTERVAL_MS)
+
+    def stop_startup_homing(self):
+        """Stop startup homing and leave the stepper driver disabled."""
+        self._timer.stop()
+        self._homing_timer.stop()
+        was_active = self._startup_homing_active or self._startup_driver_enabled
+        self._startup_homing_active = False
+        self._startup_homing_motion_started = False
+        self._startup_homing_samples = 0
+        self._step_state = False
+        self._closing = None
+        errors = []
+        if was_active:
+            for signal_name in ("STEPPER_STEP", "STEPPER_OUTPUT_ENABLE"):
+                try:
+                    self._hardware.digital_set(signal_name, False)
+                except Exception as error:
+                    errors.append(f"{signal_name}: {error}")
+        try:
+            self._hardware.digital_set("DRIVER_ENABLE", False)
+            if self._hardware.digital_read("DRIVER_ENABLE") is not False:
+                raise RuntimeError("DRIVER_ENABLE continÃºa activo")
+        except Exception as error:
+            errors.append(f"DRIVER_ENABLE: {error}")
+        self._startup_driver_enabled = False
+        if errors:
+            return "; ".join(errors)
+        return None
 
     @property
     def is_reserved_for_pressure(self):
@@ -391,6 +445,9 @@ class ThrottleController(QObject):
     def _pulse(self):
         if not self._timer.isActive():
             return
+        if self._startup_homing_active:
+            self._pulse_startup_homing()
+            return
         try:
             if not self._can_operate():
                 if self._automatic_mode:
@@ -455,7 +512,66 @@ class ThrottleController(QObject):
                 print(f"[THROTTLE] Error durante el movimiento manual: {error}")
                 self.operation_error.emit(str(error))
 
+    def _pulse_startup_homing(self):
+        try:
+            if (
+                self._hardware.digital_read("DOOR_CLOSE") is not True
+                or self._hardware.digital_read("DOOR_OPEN") is not False
+            ):
+                raise RuntimeError("El homing del throttle requiere la puerta cerrada.")
+
+            open_limit = self._limit_reached()
+            self._startup_homing_samples += 1
+            if open_limit:
+                self._finish_startup_homing()
+                return
+
+            if not self._startup_homing_motion_started:
+                if self._startup_homing_samples < self.LIMIT_DEBOUNCE_READS:
+                    return
+                self._hardware.digital_set("DRIVER_ENABLE", True)
+                if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+                    raise RuntimeError("No se pudo confirmar DRIVER_ENABLE para el homing.")
+                self._startup_driver_enabled = True
+                self._write("STEPPER_DIR", False)
+                self._write("STEPPER_HALF_STEP", False)
+                self._write("STEPPER_STEP", False)
+                self._write("STEPPER_OUTPUT_ENABLE", True)
+                self._startup_homing_motion_started = True
+                self.movement_changed.emit(True, "abriendo (homing de startup)")
+
+            self._step_state = not self._step_state
+            self._write("STEPPER_STEP", self._step_state)
+        except Exception as error:
+            self._fail_startup_homing(str(error))
+
+    def _finish_startup_homing(self):
+        cleanup_error = self.stop_startup_homing()
+        if cleanup_error:
+            self._set_position_steps(None)
+            self.movement_changed.emit(False, "detenido")
+            self.startup_homing_failed.emit(
+                f"El throttle llegÃ³ al final abierto, pero fallÃ³ la liberaciÃ³n del driver: {cleanup_error}"
+            )
+            return
+        self._set_position_steps(0.0)
+        self.movement_changed.emit(False, "homing completado")
+        self.startup_homing_completed.emit()
+
+    def _fail_startup_homing(self, message):
+        self._set_position_steps(None)
+        cleanup_error = self.stop_startup_homing()
+        self.movement_changed.emit(False, "detenido")
+        if cleanup_error:
+            message = f"{message}; no se pudo dejar la throttle segura: {cleanup_error}"
+        self.startup_homing_failed.emit(message)
+
     def _homing_timed_out(self):
+        if self._startup_homing_active:
+            self._fail_startup_homing(
+                "No se confirmÃ³ THROTTLE_OPEN durante el homing de startup."
+            )
+            return
         if self._automatic_mode and self._homing_active:
             self._fail_automatic_motion("No se confirmó el final de carrera de apertura durante el homing.")
 

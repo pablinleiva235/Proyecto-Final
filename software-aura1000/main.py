@@ -222,6 +222,10 @@ def main():
         settings_manager=settings_manager,
     )
 
+    startup_sequence.set_throttle_controller(
+        main_window.throttle_controller,
+    )
+
     # =========================================================================
     # Controlador general de la aplicación
     # =========================================================================

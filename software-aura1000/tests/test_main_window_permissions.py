@@ -142,6 +142,44 @@ class _EmergencyWindowHarness:
         self.throttle_error = message
 
 
+class _MaintenancePressureController:
+    def __init__(self, state="detenido"):
+        self.state = state
+        self.is_active = state in ("posicionando", "regulando", "reposicionando")
+        self.stop_calls = []
+
+    def stop(self, return_to_rest=True):
+        self.stop_calls.append(return_to_rest)
+
+
+class _MaintenanceThrottleController:
+    def __init__(self, at_rest=False, returning=False):
+        self.is_at_rest_position = at_rest
+        self.is_returning_to_rest = returning
+        self.return_calls = 0
+
+    def return_to_rest_for_safety(self):
+        self.return_calls += 1
+
+
+class _MaintenanceRecipe:
+    is_active = False
+
+
+class _MaintenancePressureWindow:
+    def __init__(self, pressure_state="detenido", at_rest=False):
+        self.pressure_controller = _MaintenancePressureController(pressure_state)
+        self.throttle_controller = _MaintenanceThrottleController(at_rest)
+        self.recipe_sequence = _MaintenanceRecipe()
+        self._maintenance_low_pressure_seen = False
+
+    def _handle_throttle_error(self, message):
+        self.throttle_error = message
+
+    def handle_low_pressure(self, pressure):
+        MainWindow._handle_maintenance_low_pressure(self, pressure)
+
+
 def _make_active_pressure_safety_window(recipe_active=False):
     from controllers.pressure_controller import PressureController
     from controllers.throttle_controller import ThrottleController
@@ -180,6 +218,33 @@ class MainWindowPermissionRefreshTests(unittest.TestCase):
             self.window.maintainer_screen.sequence_permissions,
             self.window.interlock_controller.permissions,
         )
+
+
+    def test_low_pressure_requests_only_one_rest_return_per_episode(self):
+        window = _MaintenancePressureWindow()
+
+        window.handle_low_pressure(0.079)
+        window.handle_low_pressure(0.05)
+        self.assertEqual(window.throttle_controller.return_calls, 1)
+
+        window.handle_low_pressure(0.08)
+        window.handle_low_pressure(0.079)
+        self.assertEqual(window.throttle_controller.return_calls, 2)
+
+    def test_active_pressure_control_uses_its_normal_rest_return(self):
+        window = _MaintenancePressureWindow(pressure_state="regulando")
+
+        window.handle_low_pressure(0.07)
+
+        self.assertEqual(window.pressure_controller.stop_calls, [True])
+        self.assertEqual(window.throttle_controller.return_calls, 0)
+
+    def test_low_pressure_does_not_repeat_return_when_throttle_is_at_rest(self):
+        window = _MaintenancePressureWindow(at_rest=True)
+
+        window.handle_low_pressure(0.07)
+
+        self.assertEqual(window.throttle_controller.return_calls, 0)
 
     def test_driver_read_error_refreshes_sequence_permissions(self):
         MainWindow._handle_signal_error(

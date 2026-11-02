@@ -26,6 +26,7 @@ class RecipeState(Enum):
     STARTING_SOFT_VACUUM = "starting_soft_vacuum"
     STARTING_MAIN_VACUUM = "starting_main_vacuum"
     PUMPING_TO_BASE = "pumping_to_base"
+    POSITIONING_THROTTLE = "positioning_throttle"
     STARTING_GAS_FLOW = "starting_gas_flow"
     CONTROLLING_PRESSURE = "controlling_pressure"
     CONTROLLING_TEMPERATURE = "controlling_temperature"
@@ -83,6 +84,7 @@ class RecipeSequence(QObject):
         self._state = RecipeState.IDLE
         self._stopping = False
         self._waiting_for_throttle_rest = False
+        self._waiting_for_throttle_before_gas_flow = False
         self._shutdown_continuation_started = False
         self._eop = None
         self._vacuum_started = False
@@ -127,6 +129,7 @@ class RecipeSequence(QObject):
         self._recipe = recipe
         self._stopping = False
         self._waiting_for_throttle_rest = False
+        self._waiting_for_throttle_before_gas_flow = False
         self._shutdown_continuation_started = False
         self._eop = None
         self._failed = False
@@ -275,7 +278,7 @@ class RecipeSequence(QObject):
                 return
         if name == "BARATRON" and self._state == RecipeState.PUMPING_TO_BASE:
             if value <= self._recipe.base_pressure:
-                self._start_gas_flow()
+                self._prepare_throttle_before_gas_flow()
         elif name == "EOP":
             self._eop = value
             if self._state == RecipeState.RUNNING_PLASMA and value < 2.0:
@@ -298,7 +301,8 @@ class RecipeSequence(QObject):
         if not self.is_active or self._stopping:
             return
         if name == "BARATRON" and self._state in (
-            RecipeState.PUMPING_TO_BASE, RecipeState.STARTING_GAS_FLOW,
+            RecipeState.PUMPING_TO_BASE, RecipeState.POSITIONING_THROTTLE,
+            RecipeState.STARTING_GAS_FLOW,
             RecipeState.CONTROLLING_PRESSURE,
         ):
             self._fail(f"Se perdió la lectura BARATRON: {message}")
@@ -511,6 +515,26 @@ class RecipeSequence(QObject):
             return
         self._finish(self._failed, self._completion_message)
 
+    def _prepare_throttle_before_gas_flow(self):
+        if self.throttle is None or self.throttle.is_at_rest_position:
+            self._start_gas_flow()
+            return
+        if not self._set_state(RecipeState.POSITIONING_THROTTLE):
+            return
+        self._waiting_for_throttle_before_gas_flow = True
+        try:
+            started = self.throttle.return_to_rest_for_safety()
+        except Exception as error:
+            self._waiting_for_throttle_before_gas_flow = False
+            self._fail(
+                f"No se pudo llevar la throttle a reposo antes de los MFC: {error}"
+            )
+            return
+        if started or not self._waiting_for_throttle_before_gas_flow:
+            return
+        self._waiting_for_throttle_before_gas_flow = False
+        self._fail("No se pudo iniciar el posicionamiento de throttle antes de los MFC.")
+
     def _start_gas_flow(self):
         if not self.is_active:
             return
@@ -573,6 +597,7 @@ class RecipeSequence(QObject):
             return
         self._rf_timer.stop()
         self._stopping = True
+        self._waiting_for_throttle_before_gas_flow = False
         self._completion_message = message
         self._failed = failed
         self._shutdown_errors = []
@@ -621,6 +646,23 @@ class RecipeSequence(QObject):
         self._continue_shutdown_after_process()
 
     def _on_safety_return_finished(self, success, message):
+        if self._waiting_for_throttle_before_gas_flow and not self._stopping:
+            self._waiting_for_throttle_before_gas_flow = False
+            if self._recipe_log is not None and not self._logging_failed:
+                self._log_event(
+                    f"Posicionamiento de throttle antes de MFC: "
+                    f"{'OK' if success else 'ERROR'} | {message}"
+                )
+            if not self.is_active:
+                return
+            if success and self.throttle.is_at_rest_position:
+                self._start_gas_flow()
+            else:
+                self._fail(
+                    "No se puede iniciar el flujo MFC porque la throttle "
+                    f"no llegó a reposo: {message}"
+                )
+            return
         if not self._waiting_for_throttle_rest or not self._stopping:
             return
         self._waiting_for_throttle_rest = False
@@ -670,7 +712,7 @@ class RecipeSequence(QObject):
             return
         if not self.is_active:
             return
-        if self.vent.state != VentState.RUNNING:
+        if self.vent.state not in (VentState.STARTING, VentState.RUNNING):
             self._finish(True, self._completion_message + " No se pudo iniciar el venteo.")
 
     def _finish(self, failed, message):

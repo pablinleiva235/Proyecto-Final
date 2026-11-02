@@ -24,6 +24,7 @@ from controllers.process_controller import ProcessController
 from controllers.temperature_controller import TemperatureController
 from PyQt5.QtCore import QTimer
 from config.digital_signals import DIGITALSIGNALS
+from config.pressure_limits import THROTTLE_REST_PRESSURE_THRESHOLD_TORR
 from logic.door_sequence import DoorState
 
 from gui.widgets.top_bar_widget import TopBarWidget
@@ -154,6 +155,7 @@ class MainWindow(QMainWindow):
             can_operate=self._can_control_process_modules,
             parent=self,
         )
+        self.vent_sequence.set_throttle_controller(self.throttle_controller)
         self.pressure_controller = PressureController(
             throttle_controller=self.throttle_controller,
             can_operate=self._can_control_process_modules,
@@ -191,6 +193,7 @@ class MainWindow(QMainWindow):
         self.module_monitor_timer.timeout.connect(self._monitor_migrated_modules)
         self._module_access = False
         self._emergency_shutdown_in_progress = False
+        self._maintenance_low_pressure_seen = False
 
         self.door_sequence.set_can_open(
             self.interlock_controller.can_open_door
@@ -983,8 +986,33 @@ class MainWindow(QMainWindow):
     def _handle_analog_value(self, signal_name, value):
         if signal_name == "BARATRON":
             self.pressure_controller.set_pressure_reading(value)
+            if not self.recipe_sequence.is_active:
+                self._handle_maintenance_low_pressure(value)
         elif signal_name == "CHAMBER_TEMP":
             self.temperature_controller.set_temperature_reading(value)
+
+    def _handle_maintenance_low_pressure(self, pressure):
+        if pressure >= THROTTLE_REST_PRESSURE_THRESHOLD_TORR:
+            self._maintenance_low_pressure_seen = False
+            return
+        if self._maintenance_low_pressure_seen:
+            return
+        self._maintenance_low_pressure_seen = True
+
+        if self.pressure_controller.state == "reposicionando":
+            return
+        if self.pressure_controller.is_active:
+            self.pressure_controller.stop(return_to_rest=True)
+            return
+        if (
+            self.throttle_controller.is_at_rest_position
+            or self.throttle_controller.is_returning_to_rest
+        ):
+            return
+        try:
+            self.throttle_controller.return_to_rest_for_safety()
+        except Exception as error:
+            self._handle_throttle_error(str(error))
 
     def _stop_pressure_and_throttle(self, message, return_to_rest=False):
         """Detiene ambos controles aunque no haya una receta activa."""

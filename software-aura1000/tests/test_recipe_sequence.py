@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 from controllers.throttle_controller import ThrottleController
@@ -48,7 +49,7 @@ class Vent:
 
     def start(self):
         self.start_calls += 1
-        self.state = VentState.RUNNING
+        self.state = getattr(self, "start_state", VentState.RUNNING)
 
     def stop(self):
         self.state = VentState.IDLE
@@ -77,7 +78,7 @@ class Mfc:
 class Pressure:
     is_active = False
 
-    def start(self, value):
+    def start(self, value, **_kwargs):
         self.target = value
         self.is_active = True
 
@@ -107,6 +108,36 @@ class Process:
         self.plasma_active = False
 
 
+class Throttle(QObject):
+    safety_return_finished = pyqtSignal(bool, str)
+
+    def __init__(self):
+        super().__init__()
+        self.position_steps = 400.0
+        self.return_calls = 0
+        self.complete_return_automatically = False
+
+    @property
+    def is_at_rest_position(self):
+        return self.position_steps == 400.0
+
+    def return_to_rest_for_safety(self):
+        self.return_calls += 1
+        if self.complete_return_automatically:
+            self.position_steps = 400.0
+            self.safety_return_finished.emit(True, "La throttle llegó a reposo.")
+            return False
+        return True
+
+    def complete_return(self, success=True):
+        if success:
+            self.position_steps = 400.0
+        self.safety_return_finished.emit(
+            success,
+            "La throttle llegó a reposo." if success else "No se alcanzó reposo.",
+        )
+
+
 class RecipeSequenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -124,6 +155,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.pressure = Pressure()
         self.temperature = Temperature()
         self.process = Process()
+        self.throttle = Throttle()
         self.digital_states = {
             "DOOR_OPEN": False,
             "DOOR_CLOSE": True,
@@ -138,6 +170,7 @@ class RecipeSequenceTests(unittest.TestCase):
             recipe_data_log_factory=lambda: RecipeDataLog(self.data_log_path),
             digital_state_setter=self._digital_set,
             digital_hardware_reader=lambda name: self.digital_states.get(name),
+            throttle_controller=self.throttle,
         )
         self.recipe = Recipe("test", "test", 2, 0.2, 1, 1.5, 150)
 
@@ -203,6 +236,55 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertTrue(self.sequence.data_log_saved)
         csv_text = self.data_log_path.read_text(encoding="utf-8")
         self.assertIn(",BARATRON,1,Torr", csv_text)
+
+    def test_recipe_positions_throttle_before_mfc_at_base_pressure_above_threshold(self):
+        self.recipe.base_pressure = 0.09
+        self.throttle.position_steps = 100.0
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+
+        self.sequence.update_analog("BARATRON", 0.09)
+
+        self.assertEqual(self.sequence.state, RecipeState.POSITIONING_THROTTLE)
+        self.assertEqual(self.throttle.return_calls, 1)
+        self.assertFalse(any(call[0] in ("flow", "valve") for call in self.mfc.calls))
+
+        self.throttle.complete_return()
+
+        self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
+        self.assertTrue(any(call[0] == "flow" for call in self.mfc.calls))
+        self.assertTrue(any(call[0] == "valve" for call in self.mfc.calls))
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_recipe_base_pressure_below_threshold_still_waits_for_throttle(self):
+        self.recipe.base_pressure = 0.06
+        self.throttle.position_steps = 10.0
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+
+        self.sequence.update_analog("BARATRON", 0.07)
+        self.assertEqual(self.sequence.state, RecipeState.PUMPING_TO_BASE)
+        self.assertEqual(self.throttle.return_calls, 0)
+
+        self.sequence.update_analog("BARATRON", 0.06)
+        self.assertEqual(self.sequence.state, RecipeState.POSITIONING_THROTTLE)
+        self.assertFalse(any(call[0] in ("flow", "valve") for call in self.mfc.calls))
+        self.throttle.complete_return()
+        self.assertTrue(any(call[0] == "flow" for call in self.mfc.calls))
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_recipe_does_not_activate_mfc_when_throttle_return_fails(self):
+        self.recipe.base_pressure = 0.09
+        self.throttle.position_steps = 100.0
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 0.09)
+
+        self.throttle.complete_return(success=False)
+
+        self.assertFalse(any(call[0] in ("flow", "valve") for call in self.mfc.calls))
+        self.assertTrue(self.sequence._failed)
+        self.sequence._finish(True, "Prueba finalizada.")
 
     def test_rf_time_limit_runs_safe_shutdown(self):
         self.sequence.start(self.recipe)
@@ -293,6 +375,20 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertFalse(self.pressure.is_active)
         self.assertEqual(self.vent.state, VentState.RUNNING)
         self._finish_with_door_open()
+
+    def test_recipe_waits_while_vent_start_is_preparing_throttle(self):
+        self.vent.start_state = VentState.STARTING
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+        self.sequence.stop()
+
+        self.assertEqual(self.vent.start_calls, 1)
+        self.assertEqual(self.vent.state, VentState.STARTING)
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+
+        self.vent.state = VentState.RUNNING
+        self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.COMPLETED)
 
     def test_process_alarm_waits_for_throttle_rest_before_venting(self):
@@ -310,7 +406,10 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 1.0)
+        while throttle.is_moving:
+            throttle._pulse()
         self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
+        throttle._position_steps = 398.0
 
         self.sequence.process_alarm("falla crítica simulada")
 
@@ -337,6 +436,7 @@ class RecipeSequenceTests(unittest.TestCase):
         throttle.safety_return_finished.connect(
             self.sequence._on_safety_return_finished
         )
+        self.recipe.base_pressure = 0.5
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 1.0)
@@ -359,6 +459,7 @@ class RecipeSequenceTests(unittest.TestCase):
         throttle.safety_return_finished.connect(
             self.sequence._on_safety_return_finished
         )
+        self.recipe.base_pressure = 0.5
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 1.0)

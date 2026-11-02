@@ -227,6 +227,33 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertEqual(controller.position_steps, 11.0)
         self.assertEqual(positions, [11.0, 12.0, 13.0, 12.5, 12.0, 11.5, 11.0])
 
+    def test_throttle_position_never_goes_negative_when_opening(self):
+        controller = ThrottleController(self.hardware, can_operate=lambda: True)
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        controller._position_steps = 0.5
+        positions = []
+        controller.position_changed.connect(positions.append)
+
+        controller.move_steps(closing=False, steps=1, half_step=True)
+        for _ in range(2):
+            controller._pulse()
+        self.assertEqual(controller.position_steps, 0.0)
+        self.assertEqual(positions, [0.0])
+
+        controller.move_steps(closing=False, steps=2, half_step=True)
+        for _ in range(4):
+            controller._pulse()
+        self.assertEqual(controller.position_steps, 0.0)
+        self.assertEqual(positions, [0.0])
+
+        controller.move_steps(closing=True, steps=1, half_step=True)
+        for _ in range(2):
+            controller._pulse()
+        self.assertEqual(controller.position_steps, 0.5)
+        self.assertEqual(positions, [0.0, 0.5])
+
     def test_maintainer_displays_estimated_throttle_position_and_unknown_reference(self):
         screen = MaintainerScreen()
         self.assertEqual(screen.throttle_limits_group.title(), "Estado de throttle")

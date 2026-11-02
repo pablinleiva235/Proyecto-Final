@@ -1,15 +1,17 @@
 import unittest
 
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QObject, pyqtSignal
 from PyQt5.QtTest import QTest
 
 from config.digital_signals import INACTIVE
+from controllers.throttle_controller import ThrottleController
 from controllers.signal_controller import SignalController
 from logic.vent_sequence import (
     VENT_STABILIZATION_TIME_MS,
     VentSequence,
     VentState,
 )
+from tests.mockScripts.mock_hardware import MockHardware
 
 
 class Hardware:
@@ -17,6 +19,7 @@ class Hardware:
         self.readings = {
             "ATM_SWITCH": False,
             "VENT_VALVE_CONTROL": False,
+            "DRIVER_ENABLE": True,
         }
         self.outputs = []
 
@@ -25,6 +28,37 @@ class Hardware:
 
     def digital_set(self, signal_name, active):
         self.outputs.append((signal_name, active))
+        self.readings[signal_name] = active
+
+
+class ThrottleHomeStub(QObject):
+    startup_homing_completed = pyqtSignal()
+    startup_homing_failed = pyqtSignal(str)
+
+    def __init__(self, at_initial_position=False):
+        super().__init__()
+        self._at_initial_position = at_initial_position
+        self.home_calls = 0
+        self.is_moving = False
+
+    @property
+    def is_at_initial_position(self):
+        return self._at_initial_position
+
+    def home_on_startup(self):
+        self.home_calls += 1
+        self._at_initial_position = False
+
+    def stop(self):
+        self.is_moving = False
+
+    def stop_startup_homing(self):
+        self.is_moving = False
+        return None
+
+    def complete_homing(self):
+        self._at_initial_position = True
+        self.startup_homing_completed.emit()
 
 
 class VentSequenceTests(unittest.TestCase):
@@ -99,6 +133,83 @@ class VentSequenceTests(unittest.TestCase):
             self.hardware.outputs[-1],
             ("VENT_VALVE_CONTROL", INACTIVE),
         )
+
+    def test_vent_waits_for_throttle_homing_before_opening_vent_valve(self):
+        self.vent.stop()
+        throttle = ThrottleHomeStub(at_initial_position=False)
+        self.vent.set_throttle_controller(throttle)
+
+        self.vent.start()
+
+        self.assertEqual(self.vent.state, VentState.STARTING)
+        self.assertEqual(throttle.home_calls, 1)
+        self.assertFalse(self.hardware.digital_read("VENT_VALVE_CONTROL"))
+
+        throttle.complete_homing()
+
+        self.assertEqual(self.vent.state, VentState.RUNNING)
+        self.assertTrue(self.hardware.digital_read("VENT_VALVE_CONTROL"))
+
+    def test_vent_skips_homing_when_throttle_is_already_at_initial_position(self):
+        self.vent.stop()
+        throttle = ThrottleHomeStub(at_initial_position=True)
+        self.vent.set_throttle_controller(throttle)
+
+        self.vent.start()
+
+        self.assertEqual(throttle.home_calls, 0)
+        self.assertEqual(self.vent.state, VentState.RUNNING)
+        self.assertTrue(self.hardware.digital_read("VENT_VALVE_CONTROL"))
+
+    def test_vent_stays_closed_when_throttle_homing_fails(self):
+        self.vent.stop()
+        throttle = ThrottleHomeStub(at_initial_position=False)
+        self.vent.set_throttle_controller(throttle)
+        errors = []
+        self.vent.sequence_error.connect(errors.append)
+
+        self.vent.start()
+        throttle.startup_homing_failed.emit("No se confirmó THROTTLE_OPEN dentro del tiempo límite.")
+
+        self.assertEqual(self.vent.state, VentState.ERROR)
+        self.assertFalse(self.hardware.digital_read("VENT_VALVE_CONTROL"))
+        self.assertIn("falló el homing", errors[-1])
+
+    def test_shutdown_cancels_pending_throttle_homing(self):
+        self.vent.stop()
+        throttle = ThrottleHomeStub(at_initial_position=False)
+        self.vent.set_throttle_controller(throttle)
+        self.vent.start()
+
+        self.vent.shutdown()
+        throttle.complete_homing()
+
+        self.assertEqual(self.vent.state, VentState.IDLE)
+        self.assertFalse(self.hardware.digital_read("VENT_VALVE_CONTROL"))
+
+    def test_vent_homes_real_throttle_before_opening_vent_valve(self):
+        hardware = MockHardware()
+        hardware.digital_set("DRIVER_ENABLE", True)
+        hardware.set_input_state("THROTTLE_OPEN", False)
+        hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(hardware, can_operate=lambda: False)
+        vent = VentSequence(hardware)
+        vent.set_throttle_controller(throttle)
+
+        vent.start()
+
+        self.assertEqual(vent.state, VentState.STARTING)
+        self.assertFalse(hardware.digital_read("VENT_VALVE_CONTROL"))
+        for _ in range(throttle.LIMIT_DEBOUNCE_READS):
+            throttle._pulse()
+        hardware.set_input_state("THROTTLE_OPEN", True)
+        for _ in range(throttle.LIMIT_DEBOUNCE_READS):
+            throttle._pulse()
+
+        self.assertEqual(throttle.position_steps, 0.0)
+        self.assertTrue(throttle.is_at_initial_position)
+        self.assertEqual(vent.state, VentState.RUNNING)
+        self.assertTrue(hardware.digital_read("VENT_VALVE_CONTROL"))
 
 
 class SignalSampleTests(unittest.TestCase):

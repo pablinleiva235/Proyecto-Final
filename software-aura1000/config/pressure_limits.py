@@ -10,6 +10,8 @@ PRESSURE_MINIMUM_BY_O2_FLOW = (
     (6.0, 3.0),
 )
 
+THROTTLE_REST_PRESSURE_THRESHOLD_TORR = 0.08
+
 
 def minimum_process_pressure(o2_flow):
     """Return the linearly interpolated minimum pressure, in Torr."""

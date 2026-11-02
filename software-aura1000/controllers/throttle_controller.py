@@ -71,6 +71,28 @@ class ThrottleController(QObject):
     def position_steps(self):
         return self._position_steps
 
+    @property
+    def is_at_initial_position(self):
+        return (
+            self._position_steps == 0
+            and self._limit_stable["THROTTLE_OPEN"]
+        )
+
+    @property
+    def is_moving(self):
+        return self._timer.isActive()
+
+    @property
+    def is_at_rest_position(self):
+        return (
+            self._position_steps == self.REST_POSITION_STEPS
+            and not self.is_moving
+        )
+
+    @property
+    def is_returning_to_rest(self):
+        return self._safety_return_active
+
     def move_steps(self, closing, steps, half_step=False):
         """Ejecuta una ráfaga donde cada paso es un pulso del controlador."""
         if self._automatic_mode:
@@ -484,6 +506,8 @@ class ThrottleController(QObject):
                     position = self._position_steps + (
                         increment if self._closing else -increment
                     )
+                    if not self._closing:
+                        position = max(0.0, position)
                     self._set_position_steps(position)
                 if self._remaining_steps is not None:
                     self._remaining_steps -= 1

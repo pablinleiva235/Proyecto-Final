@@ -824,8 +824,8 @@ class MainWindow(QMainWindow):
         self._update_sequence_permissions()
 
     def _handle_door_sequence_error(self, message):
-        print(
-            f"[DoorSequence] ERROR: {message}"
+        self._handle_functional_sequence_error(
+            "Puerta", self.door_sequence.state == DoorState.ERROR, message
         )
 
 # Soft Vacumm
@@ -840,9 +840,10 @@ class MainWindow(QMainWindow):
         self._update_sequence_permissions()
 
     def _handle_soft_vacuum_sequence_error(self,message):
-        print(
-            "[SoftVacuumSequence] "
-            f"ERROR: {message}"
+        self._handle_functional_sequence_error(
+            "Soft Vacuum",
+            self.soft_vacuum_sequence.state == SoftVacuumState.ERROR,
+            message,
         )
 
 # Main Vacuum
@@ -867,9 +868,24 @@ class MainWindow(QMainWindow):
                 self.soft_vacuum_sequence.stop()
 
     def _handle_main_vacuum_sequence_error(self,message):
-        print(
-            "[MainVacuumSequence] "
-            f"ERROR: {message}"
+        self._handle_functional_sequence_error(
+            "Main Vacuum",
+            self.main_vacuum_sequence.state == MainVacuumState.ERROR,
+            message,
+        )
+
+    def _handle_functional_sequence_error(self, sequence_name, is_hardware_failure, message):
+        """Presenta errores recuperables y deriva fallas de hardware al apagado global."""
+        print(f"[{sequence_name}] ERROR: {message}")
+        if is_hardware_failure:
+            self._handle_critical_hardware_failure(sequence_name, message)
+            return
+
+        QMessageBox.warning(
+            self,
+            strings.tr(f"Error en secuencia: {sequence_name}"),
+            strings.tr(message),
+            QMessageBox.Ok,
         )
 
     def _handle_vent_state_changed(self,state):
@@ -912,9 +928,8 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_vent_sequence_error(self,message):
-        print(
-            "[VentSequence] "
-            f"ERROR: {message}"
+        self._handle_functional_sequence_error(
+            "Venteo", self.vent_sequence.state == VentState.ERROR, message
         )
 
     def _can_control_process_modules(self):
@@ -1232,12 +1247,20 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_fault_monitoring_failure(self, source, message):
-        """Aplica el estado seguro global si ya no se pueden leer interlocks de falla."""
+        """Aplica el estado seguro global si falla la lectura de interlocks de seguridad."""
+        self._handle_critical_hardware_failure(
+            f"lectura de {source}", message
+        )
+
+    def _handle_critical_hardware_failure(self, source, message):
+        """Detiene controles, asegura el hardware, informa y cierra la aplicación."""
+        if self._emergency_shutdown_in_progress:
+            return
         self.module_monitor_timer.stop()
         self.analog_controller.stop_monitoring()
         self._emergency_shutdown_in_progress = True
         self.emergency_shutdown_requested.emit()
-        details = [f"No se pudo leer {source}: {message}"]
+        details = [f"Falla crítica en {source}: {message}"]
 
         try:
             self.recipe_sequence.abort_for_hardware_failure(details[0])
@@ -1246,10 +1269,10 @@ class MainWindow(QMainWindow):
 
         for label, action in (
             ("Control térmico", lambda: self.temperature_controller.abort(
-                "Control detenido por falla de lectura de entradas de seguridad."
+                "Control detenido por una falla crítica de hardware."
             )),
             ("Control de presión y throttle", lambda: self._stop_pressure_and_throttle(
-                "Control detenido por falla de lectura de entradas de seguridad."
+                "Control detenido por una falla crítica de hardware."
             )),
             ("MFC", self.mfc_controller.shutdown),
             ("Lámparas y plasma", self.process_controller.stop_all),
@@ -1272,7 +1295,7 @@ class MainWindow(QMainWindow):
 
         QMessageBox.critical(
             self,
-            strings.tr("Falla crítica de monitoreo"),
+            strings.tr("Falla crítica de hardware"),
             strings.tr("\n".join(details)),
         )
         QApplication.exit(1)

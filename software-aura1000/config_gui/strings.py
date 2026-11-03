@@ -617,6 +617,11 @@ _SPANISH_TO_ENGLISH = {
     "Errores durante el apagado": "Shutdown errors",
     "Se encontraron errores durante el apagado. Revise el registro:": "Errors occurred during shutdown. Please review the log:",
     "Alarma de seguridad": "Safety alarm",
+    "Error en secuencia": "Sequence error",
+    "Falla crítica de hardware": "Critical hardware failure",
+    "Falla crítica en": "Critical failure in",
+    "Puerta": "Door",
+    "Venteo": "Vent",
     "Advertencia del magnetrón": "Magnetron warning",
     "Se detuvieron lámparas y plasma por una falla:": "Lamps and plasma were stopped due to a fault:",
     "El vacío principal debe estar activo para controlar los MFC.": "Main vacuum must be active to control the MFCs.",
@@ -706,9 +711,11 @@ def tr(value):
     for prefix in (
         "MFC1", "MFC2", "MFC", "Throttle", "Lámparas 1 y 3", "Plasma",
         "lamp2", "Monitoreo de fallas", "Apagado seguro",
+        "Falla crítica en", "Error en secuencia",
     ):
         if value.startswith(prefix + ": "):
-            return prefix + ": " + tr(value[len(prefix) + 2:])
+            translated_prefix = _SPANISH_TO_ENGLISH.get(prefix, prefix)
+            return translated_prefix + ": " + tr(value[len(prefix) + 2:])
     if "\n" in value:
         return "\n".join(tr(line) for line in value.split("\n"))
     for source, translated in _SPANISH_TO_ENGLISH.items():

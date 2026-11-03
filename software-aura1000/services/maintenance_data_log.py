@@ -39,7 +39,7 @@ class MaintenanceDataLog:
     @staticmethod
     def new_path(now=None):
         now = now or datetime.now().astimezone()
-        stamp = now.strftime("%Y%m%d_%H%M%S_%f")
+        stamp = now.strftime("%Y%m%d_%H%M")
         return MAINTENANCE_DATA_DIRECTORY / f"mantenimiento_{stamp}.csv"
 
     @property

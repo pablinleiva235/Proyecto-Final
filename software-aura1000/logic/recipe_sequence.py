@@ -92,6 +92,9 @@ class RecipeSequence(QObject):
         self._rf_timer = QTimer(self)
         self._rf_timer.setSingleShot(True)
         self._rf_timer.timeout.connect(self._rf_time_limit_reached)
+        self._data_sample_timer = QTimer(self)
+        self._data_sample_timer.setInterval(1000)
+        self._data_sample_timer.timeout.connect(self._record_process_sample)
         if self.throttle is not None:
             self.throttle.safety_return_finished.connect(
                 self._on_safety_return_finished
@@ -205,6 +208,9 @@ class RecipeSequence(QObject):
             return False
         if not self._set_state(RecipeState.WAITING_FOR_WAFER):
             return False
+        if not self._record_process_sample():
+            return False
+        self._data_sample_timer.start()
         if not self._perform_action("Abrir puerta para cargar la oblea", self.door.open,
                                     outputs={"DOOR_CLOSE_CMD": False, "DOOR_OPEN_CMD": True}):
             return False
@@ -270,13 +276,6 @@ class RecipeSequence(QObject):
         self.cache_analog(name, value)
         if not self.is_active:
             return
-        if name in ("BARATRON", "CHAMBER_TEMP") and not self._data_logging_failed:
-            reading = self._analog_readings.get(name)
-            timestamp = reading[1] if reading is not None else None
-            if not self._recipe_data_log.record(name, value, timestamp):
-                self._data_logging_failed = True
-                self._handle_data_log_failure()
-                return
         if name == "BARATRON" and self._state == RecipeState.PUMPING_TO_BASE:
             if value <= self._recipe.base_pressure:
                 self._prepare_throttle_before_gas_flow()
@@ -289,6 +288,24 @@ class RecipeSequence(QObject):
                     "RF apagada por EOP inferior a 2 V; continúa el cierre normal de la receta.",
                     failed=False,
                 )
+
+    def _record_process_sample(self):
+        if (not self.is_active or self._recipe_data_log is None
+                or self._data_logging_failed):
+            return False
+        values = {}
+        for name in ("BARATRON", "CHAMBER_TEMP", "MFC1_FLOW", "MFC2_FLOW"):
+            reading = self._analog_readings.get(name)
+            values[name] = reading[0] if reading is not None else None
+        values["THROTTLE_POSITION"] = (
+            self.throttle.position_steps if self.throttle is not None else None
+        )
+        values["PLASMA"] = self.process.plasma_active
+        if not self._recipe_data_log.record(values):
+            self._data_logging_failed = True
+            self._handle_data_log_failure()
+            return False
+        return True
 
     def cache_analog(self, name, value):
         try:
@@ -720,6 +737,7 @@ class RecipeSequence(QObject):
 
     def _finish(self, failed, message):
         self._rf_timer.stop()
+        self._data_sample_timer.stop()
         self._finalizing = True
         final_state = RecipeState.ERROR if failed else RecipeState.COMPLETED
         if self._recipe_log is not None and not self._logging_failed:
@@ -810,8 +828,9 @@ class RecipeSequence(QObject):
         if self._recipe_data_log is None:
             return
         self._data_logging_failed = True
+        self._data_sample_timer.stop()
         message = (
-            f"No se pudieron guardar los datos de presión y temperatura en "
+            f"No se pudieron guardar las variables de proceso en "
             f"{self._recipe_data_log.path}: {self._recipe_data_log.error or 'error de escritura'}"
         )
         if self.is_active:

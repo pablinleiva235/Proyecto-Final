@@ -239,7 +239,10 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertTrue(self.sequence.log_saved)
         self.assertTrue(self.sequence.data_log_saved)
         csv_text = self.data_log_path.read_text(encoding="utf-8")
-        self.assertIn(",BARATRON,1,Torr", csv_text)
+        self.assertTrue(csv_text.startswith(
+            "timestamp,pressure_Torr,temperature_C,MFC1_flow_SLPM,MFC2_flow_SLPM,"
+            "throttle_position_steps,plasma_state"
+        ))
 
     def test_recipe_positions_throttle_before_mfc_at_base_pressure_above_threshold(self):
         self.recipe.base_pressure = 0.09
@@ -327,15 +330,30 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self._finish_with_door_open()
 
-    def test_process_data_csv_records_pressure_and_temperature_during_recipe(self):
+    def test_process_data_csv_records_all_maintenance_variables_during_recipe(self):
+        import csv
+
         self.sequence.start(self.recipe)
+        self.assertTrue(self.sequence._data_sample_timer.isActive())
+        self.assertEqual(self.sequence._data_sample_timer.interval(), 1000)
         self.sequence.update_analog("BARATRON", 0.7)
         self.sequence.update_analog("CHAMBER_TEMP", 143.25)
-        rows = self.data_log_path.read_text(encoding="utf-8").splitlines()
-        self.assertEqual(rows[0], "timestamp,señal,valor,unidad")
-        self.assertTrue(any(",BARATRON,0.7,Torr" in row for row in rows))
-        self.assertTrue(any(",CHAMBER_TEMP,143.25,°C" in row for row in rows))
+        self.sequence.update_analog("MFC1_FLOW", 1.2)
+        self.sequence.update_analog("MFC2_FLOW", 0.4)
+        self.throttle.position_steps = 27.5
+        self.process.plasma_active = True
+        self.assertTrue(self.sequence._record_process_sample())
         self.sequence.confirm_wafer_loaded(False)
+        self.assertFalse(self.sequence._data_sample_timer.isActive())
+
+        with self.data_log_path.open(encoding="utf-8", newline="") as data_file:
+            rows = list(csv.DictReader(data_file))
+        self.assertEqual(rows[-1]["pressure_Torr"], "0.7")
+        self.assertEqual(rows[-1]["temperature_C"], "143.25")
+        self.assertEqual(rows[-1]["MFC1_flow_SLPM"], "1.2")
+        self.assertEqual(rows[-1]["MFC2_flow_SLPM"], "0.4")
+        self.assertEqual(rows[-1]["throttle_position_steps"], "27.5")
+        self.assertEqual(rows[-1]["plasma_state"], "ON")
 
     def test_data_log_write_failure_runs_safe_shutdown(self):
         class FailingDataLog:
@@ -343,8 +361,12 @@ class RecipeSequenceTests(unittest.TestCase):
                 inner_self.path = self.data_log_path
                 inner_self.error = None
                 inner_self.available = True
+                inner_self.calls = 0
 
             def record(inner_self, *_args):
+                inner_self.calls += 1
+                if inner_self.calls == 1:
+                    return True
                 inner_self.error = "disco lleno"
                 inner_self.available = False
                 return False
@@ -358,9 +380,11 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 0.5)
+        self.sequence._record_process_sample()
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
+        self.assertFalse(self.sequence._data_sample_timer.isActive())
         self._finish_with_door_open()
         self.assertEqual(self.sequence.state, RecipeState.ERROR)
         self.assertFalse(finished[0][0])

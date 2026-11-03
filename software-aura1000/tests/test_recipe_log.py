@@ -48,24 +48,37 @@ class RecipeLogTests(unittest.TestCase):
             self.assertIn("Salidas: DOOR_CLOSE_CMD=INACTIVO, DOOR_OPEN_CMD=ACTIVO, MFC1_SETPOINT=2.5 V", line)
             self.assertIn("EOP=NO DISPONIBLE", line)
 
-    def test_recipe_data_csv_records_each_signal_and_overwrites(self):
+    def test_recipe_data_csv_records_wide_maintenance_schema_and_overwrites(self):
+        import csv
+
         with TemporaryDirectory() as folder:
             path = Path(folder) / "recipe_data.csv"
+            values = {
+                "BARATRON": 0.82,
+                "CHAMBER_TEMP": 154.5,
+                "MFC1_FLOW": 1.1,
+                "MFC2_FLOW": None,
+                "THROTTLE_POSITION": 12,
+                "PLASMA": True,
+            }
             first = RecipeDataLog(path)
-            self.assertTrue(first.record("BARATRON", 0.82, "2026-10-26T14:25:30.875-03:00"))
-            self.assertTrue(first.record("CHAMBER_TEMP", 154.5, "2026-10-26T14:25:30.975-03:00"))
+            self.assertTrue(first.record(values, "2026-10-26T14:25:30.875-03:00"))
             first.close()
-            rows = path.read_text(encoding="utf-8").splitlines()
-            self.assertEqual(rows[0], "timestamp,señal,valor,unidad")
-            self.assertIn("2026-10-26T14:25:30.875-03:00,BARATRON,0.82,Torr", rows)
-            self.assertIn("2026-10-26T14:25:30.975-03:00,CHAMBER_TEMP,154.5,°C", rows)
+            with path.open(encoding="utf-8", newline="") as data_file:
+                rows = list(csv.DictReader(data_file))
+            self.assertEqual(rows[0]["pressure_Torr"], "0.82")
+            self.assertEqual(rows[0]["temperature_C"], "154.5")
+            self.assertEqual(rows[0]["MFC1_flow_SLPM"], "1.1")
+            self.assertEqual(rows[0]["MFC2_flow_SLPM"], "")
+            self.assertEqual(rows[0]["throttle_position_steps"], "12")
+            self.assertEqual(rows[0]["plasma_state"], "ON")
 
             second = RecipeDataLog(path)
-            self.assertTrue(second.record("BARATRON", 0.4, "2026-10-26T14:26:00.000-03:00"))
+            self.assertTrue(second.record({"BARATRON": 0.4}))
             second.close()
             content = path.read_text(encoding="utf-8")
-            self.assertIn("0.4,Torr", content)
-            self.assertNotIn("0.82,Torr", content)
+            self.assertIn(",0.4,,,,,", content)
+            self.assertNotIn("0.82", content)
 
     def test_completion_popup_includes_saved_log_path(self):
         class DummyScreen:

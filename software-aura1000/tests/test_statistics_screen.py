@@ -145,6 +145,24 @@ class StatisticsScreenTests(unittest.TestCase):
             self.assertEqual(screen.data_path, maintenance)
             self.assertEqual(screen.pressure_plot.points, [(0.0, 0.8)])
 
+    def test_loads_wide_recipe_csv_with_all_maintenance_signals(self):
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "recipe_data_1.csv"
+            path.write_text(
+                "timestamp,pressure_Torr,temperature_C,MFC1_flow_SLPM,MFC2_flow_SLPM,"
+                "throttle_position_steps,plasma_state\n"
+                "2026-11-03T12:00:00-03:00,0.4,80,1.5,0.2,120,ON\n",
+                encoding="utf-8",
+            )
+            screen = StatisticsScreen(data_path=path)
+
+        self.assertEqual(screen.pressure_plot.points, [(0.0, 0.4)])
+        self.assertEqual(screen.temperature_plot.points, [(0.0, 80.0)])
+        self.assertEqual(screen.mfc1_plot.points, [(0.0, 1.5)])
+        self.assertEqual(screen.mfc2_plot.points, [(0.0, 0.2)])
+        self.assertEqual(screen.throttle_plot.points, [(0.0, 120.0)])
+        self.assertEqual(screen.plasma_plot.points, [(0.0, 1.0)])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@
 from datetime import datetime
 from pathlib import Path
 import csv
+from services.maintenance_data_log import MAINTENANCE_COLUMNS
 
 
 RECIPE_LOG_PATH = Path(__file__).resolve().parents[1] / "logs" / "recipe.log"
@@ -41,7 +42,7 @@ PROCESS_DATA_UNITS = {"BARATRON": "Torr", "CHAMBER_TEMP": "°C"}
 
 
 class RecipeDataLog:
-    """CSV de lecturas de presión y temperatura para graficar la receta."""
+    """Writes process data samples for a recipe."""
 
     def __init__(self, path=None):
         self.path = Path(path or RECIPE_DATA_PATH)
@@ -52,7 +53,8 @@ class RecipeDataLog:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self._file = self.path.open("w", encoding="utf-8", newline="")
             self._writer = csv.writer(self._file)
-            self._writer.writerow(("timestamp", "señal", "valor", "unidad"))
+            headers = ("timestamp", *(column for column, _, _ in MAINTENANCE_COLUMNS))
+            self._writer.writerow(headers)
             self._file.flush()
         except (OSError, ValueError) as error:
             self.error = str(error)
@@ -62,15 +64,21 @@ class RecipeDataLog:
     def available(self):
         return self._file is not None and self.error is None
 
-    def record(self, signal, value, timestamp=None):
+    def record(self, values, timestamp=None):
         if not self.available:
             return False
-        unit = PROCESS_DATA_UNITS.get(signal)
-        if unit is None:
-            return True
         try:
             timestamp = timestamp or datetime.now().astimezone().isoformat(timespec="milliseconds")
-            self._writer.writerow((timestamp, signal, f"{float(value):g}", unit))
+            row = [timestamp]
+            for _, signal, _ in MAINTENANCE_COLUMNS:
+                value = values.get(signal)
+                if value is None:
+                    row.append("")
+                elif signal == "PLASMA":
+                    row.append("ON" if bool(value) else "OFF")
+                else:
+                    row.append(f"{float(value):g}")
+            self._writer.writerow(row)
             self._file.flush()
             return True
         except (OSError, ValueError, TypeError) as error:

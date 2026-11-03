@@ -144,6 +144,11 @@ class MainWindow(QMainWindow):
                 not self._driver_read_error
                 and self.hardware.digital_read("DRIVER_ENABLE")
             ),
+            processes_inactive=lambda: not (
+                self.process_controller.lamps13_active
+                or self.process_controller.lamp2_active
+                or self.process_controller.plasma_active
+            ),
         )
 
         self.analog_controller = AnalogSignalController(

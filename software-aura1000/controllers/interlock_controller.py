@@ -16,6 +16,7 @@ class InterlockController:
         main_vacuum_sequence,
         vent_sequence,
         driver_enabled=None,
+        processes_inactive=None,
     ):
         self._vent_required = False
         self._door_sequence = door_sequence
@@ -23,6 +24,7 @@ class InterlockController:
         self._main_vacuum_sequence = main_vacuum_sequence
         self._vent_sequence = vent_sequence
         self._driver_enabled = driver_enabled or (lambda: False)
+        self._processes_inactive = processes_inactive or (lambda: True)
 
     def can_operate_sequences(self):
         """El driver debe estar confirmado físicamente antes de actuar."""
@@ -97,9 +99,15 @@ class InterlockController:
         El venteo puede iniciarse únicamente si:
         - Soft Vacuum está detenido.
         - Main Vacuum está detenido.
+        - Todas las lámparas están apagadas y el plasma está inactivo.
         """
+        try:
+            processes_are_inactive = self._processes_inactive() is True
+        except Exception:
+            processes_are_inactive = False
         return (
             self.can_operate_sequences()
+            and processes_are_inactive
             and self._door_sequence.state == DoorState.CLOSED
             and
             self._soft_vacuum_sequence.state == SoftVacuumState.IDLE

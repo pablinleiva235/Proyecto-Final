@@ -737,6 +737,16 @@ class MigratedModulesTests(unittest.TestCase):
             self.assertFalse(self.hardware.digital_read(output_name))
         controller._pulse_timer.stop()
 
+    def test_process_controller_exposes_outer_lamp_activity(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+
+        self.assertFalse(controller.lamps13_active)
+        self.assertTrue(controller.set_lamps13(True))
+        self.assertTrue(controller.lamps13_active)
+        self.assertTrue(controller.set_lamps13(False))
+        self.assertFalse(controller.lamps13_active)
+
     def test_fault_input_read_error_raises_dedicated_monitoring_failure(self):
         controller = ProcessController(self.hardware, can_operate=lambda: True)
         controller._lamps13 = True

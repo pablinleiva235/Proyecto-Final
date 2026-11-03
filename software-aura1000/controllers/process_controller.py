@@ -41,6 +41,10 @@ class ProcessController(QObject):
             self.stop_all()
 
     @property
+    def lamps13_active(self):
+        return self._lamps13
+
+    @property
     def lamp2_active(self):
         return self._lamp2
 

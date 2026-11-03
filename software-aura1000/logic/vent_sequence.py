@@ -52,8 +52,6 @@ class VentSequence(QObject):
         self._can_operate = None
         self._state = VentState.IDLE
         self._consecutive_atm_readings = 0
-        self._throttle_controller = None
-        self._waiting_for_throttle_homing = False
 
         self._stabilization_timer = QTimer(self)
         self._stabilization_timer.setSingleShot(True)
@@ -61,26 +59,6 @@ class VentSequence(QObject):
         self._stabilization_timer.timeout.connect(
             self._finish_vent
         )
-
-    def set_throttle_controller(self, throttle_controller):
-        """Configura la throttle que debe estar abierta antes del venteo."""
-        if self._throttle_controller is throttle_controller:
-            return
-        if self._throttle_controller is not None:
-            self._throttle_controller.startup_homing_completed.disconnect(
-                self._handle_throttle_homing_completed
-            )
-            self._throttle_controller.startup_homing_failed.disconnect(
-                self._handle_throttle_homing_failed
-            )
-        self._throttle_controller = throttle_controller
-        if throttle_controller is not None:
-            throttle_controller.startup_homing_completed.connect(
-                self._handle_throttle_homing_completed
-            )
-            throttle_controller.startup_homing_failed.connect(
-                self._handle_throttle_homing_failed
-            )
 
     @property
     def state(self):
@@ -129,28 +107,15 @@ class VentSequence(QObject):
                 VentState.STARTING
             )
 
-            if (
-                self._throttle_controller is not None
-                and not self._throttle_controller.is_at_initial_position
-            ):
-                self._write_signal("VENT_VALVE_CONTROL", INACTIVE)
-                if self._throttle_controller.is_moving:
-                    self._throttle_controller.stop()
-                self._waiting_for_throttle_homing = True
-                self._throttle_controller.home_on_startup()
-                return
-
             self._activate_vent()
 
         except Exception as error:
-            self._waiting_for_throttle_homing = False
             self._handle_error(error)
 
     def _activate_vent(self):
-        if self._throttle_controller is not None:
-            self._hardware.digital_set("DRIVER_ENABLE", True)
-            if self._hardware.digital_read("DRIVER_ENABLE") is not True:
-                raise RuntimeError("No se pudo habilitar DRIVER_ENABLE después del homing de throttle.")
+        self._hardware.digital_set("DRIVER_ENABLE", True)
+        if self._hardware.digital_read("DRIVER_ENABLE") is not True:
+            raise RuntimeError("No se pudo habilitar DRIVER_ENABLE para el venteo.")
 
         self._write_signal(
             "VENT_VALVE_CONTROL",
@@ -159,30 +124,6 @@ class VentSequence(QObject):
 
         self._set_state(
             VentState.RUNNING
-        )
-
-    def _handle_throttle_homing_completed(self):
-        if not self._waiting_for_throttle_homing:
-            return
-        self._waiting_for_throttle_homing = False
-        if not self._throttle_controller.is_at_initial_position:
-            self._handle_error(
-                RuntimeError("El homing no confirmó THROTTLE_OPEN en paso 0.")
-            )
-            return
-        try:
-            self._activate_vent()
-        except Exception as error:
-            self._handle_error(error)
-
-    def _handle_throttle_homing_failed(self, message):
-        if not self._waiting_for_throttle_homing:
-            return
-        self._waiting_for_throttle_homing = False
-        self._reset_atmospheric_detection()
-        self._set_state(VentState.ERROR)
-        self.sequence_error.emit(
-            f"No se inició el venteo porque falló el homing de throttle: {message}"
         )
 
     def stop(self):
@@ -221,15 +162,8 @@ class VentSequence(QObject):
         Cancela cualquier venteo y cierra la válvula.
         """
         self._reset_atmospheric_detection()
-        cancel_throttle_homing = self._waiting_for_throttle_homing
-        self._waiting_for_throttle_homing = False
         try:
             self._set_safe_outputs()
-
-            if cancel_throttle_homing and self._throttle_controller is not None:
-                cleanup_error = self._throttle_controller.stop_startup_homing()
-                if cleanup_error:
-                    raise RuntimeError(cleanup_error)
 
             if self._state != VentState.IDLE:
                 self._set_state(
@@ -321,7 +255,6 @@ class VentSequence(QObject):
         """Gestiona errores de la secuencia."""
 
         self._reset_atmospheric_detection()
-        self._waiting_for_throttle_homing = False
 
         try:
             self._set_safe_outputs()

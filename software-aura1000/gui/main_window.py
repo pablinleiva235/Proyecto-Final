@@ -165,7 +165,6 @@ class MainWindow(QMainWindow):
             can_operate=self._can_control_process_modules,
             parent=self,
         )
-        self.vent_sequence.set_throttle_controller(self.throttle_controller)
         self.pressure_controller = PressureController(
             throttle_controller=self.throttle_controller,
             can_operate=self._can_control_process_modules,

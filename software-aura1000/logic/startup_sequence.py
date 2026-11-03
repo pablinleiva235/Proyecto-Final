@@ -55,12 +55,9 @@ class StartupSequence(QObject):
 
         self._hardware = hardware
         self._initialize_analog = bool(initialize_analog)
-        self._throttle_controller = None
 
         self._elapsed_ms = 0
         self._running = False
-        self._preheat_complete = False
-        self._throttle_homing_complete = False
 
         self._timer = QTimer(self)
         self._timer.setInterval(
@@ -70,28 +67,6 @@ class StartupSequence(QObject):
         self._timer.timeout.connect(
             self._update_progress
         )
-
-    def set_throttle_controller(self, throttle_controller):
-        """Attach the throttle controller after MainWindow creates it."""
-        if self._running:
-            raise RuntimeError("No se puede cambiar el throttle durante el startup.")
-        if self._throttle_controller is throttle_controller:
-            return
-        if self._throttle_controller is not None:
-            self._throttle_controller.startup_homing_completed.disconnect(
-                self._handle_throttle_homing_completed
-            )
-            self._throttle_controller.startup_homing_failed.disconnect(
-                self._handle_throttle_homing_failed
-            )
-        self._throttle_controller = throttle_controller
-        if throttle_controller is not None:
-            throttle_controller.startup_homing_completed.connect(
-                self._handle_throttle_homing_completed
-            )
-            throttle_controller.startup_homing_failed.connect(
-                self._handle_throttle_homing_failed
-            )
 
     # =========================================================================
     # Interfaz pública
@@ -106,8 +81,6 @@ class StartupSequence(QObject):
         try:
             self._running = True
             self._elapsed_ms = 0
-            self._preheat_complete = False
-            self._throttle_homing_complete = False
 
             self.startup_started.emit()
             self.progress_changed.emit(0)
@@ -137,9 +110,6 @@ class StartupSequence(QObject):
             if self._initialize_analog:
                 self._hardware.initialize_AD()
 
-            if self._throttle_controller is None:
-                raise RuntimeError("No se configurÃ³ el controlador de throttle.")
-            self._throttle_controller.home_on_startup()
 
             # Comienza la temporización del precalentamiento.
             self._timer.start()
@@ -184,22 +154,7 @@ class StartupSequence(QObject):
         )
 
         if self._elapsed_ms >= self.STARTUP_DURATION_MS:
-            self._preheat_complete = True
             self._timer.stop()
-            self._try_complete_startup()
-
-    def _handle_throttle_homing_completed(self):
-        if not self._running:
-            return
-        self._throttle_homing_complete = True
-        self._try_complete_startup()
-
-    def _handle_throttle_homing_failed(self, message):
-        if self._running:
-            self._handle_error(RuntimeError(f"Fallo el homing del throttle: {message}"))
-
-    def _try_complete_startup(self):
-        if self._running and self._preheat_complete and self._throttle_homing_complete:
             self._complete_startup()
 
     # =========================================================================
@@ -241,15 +196,6 @@ class StartupSequence(QObject):
         self._running = False
 
         message = str(error)
-        if self._throttle_controller is not None:
-            try:
-                cleanup_error = self._throttle_controller.stop_startup_homing()
-                if cleanup_error:
-                    message += (
-                        f" No se pudo dejar el driver de throttle inactivo: {cleanup_error}"
-                    )
-            except Exception as throttle_error:
-                message += f" No se pudo detener el throttle: {throttle_error}"
         for signal_name in ("POWER_ON", "FILAMENT_ENABLE"):
             try:
                 self._hardware.digital_set(signal_name, INACTIVE)

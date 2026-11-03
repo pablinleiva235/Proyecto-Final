@@ -223,10 +223,6 @@ def main():
         use_mock_hardware=USE_MOCK_HARDWARE,
     )
 
-    startup_sequence.set_throttle_controller(
-        main_window.throttle_controller,
-    )
-
     # =========================================================================
     # Controlador general de la aplicación
     # =========================================================================

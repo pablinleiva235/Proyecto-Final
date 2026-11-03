@@ -187,6 +187,8 @@ class RecipeSequenceTests(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_recipe_waits_for_base_pressure_and_eop_below_two_volts(self):
+        rf_finished = []
+        self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.assertEqual(self.sequence.state, RecipeState.PUMPING_TO_BASE)
@@ -199,6 +201,8 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.update_analog("EOP", 2.0)
         self.assertEqual(self.sequence.state, RecipeState.RUNNING_PLASMA)
         self.sequence.update_analog("EOP", 1.99)
+
+        self.assertEqual(rf_finished, [True])
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertFalse(self.sequence._rf_timer.isActive())
@@ -287,6 +291,8 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence._finish(True, "Prueba finalizada.")
 
     def test_rf_time_limit_runs_safe_shutdown(self):
+        rf_finished = []
+        self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 1.0)
@@ -296,6 +302,8 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertTrue(self.sequence._rf_timer.isActive())
         self.sequence._rf_time_limit_reached()
 
+        self.assertEqual(rf_finished, [True])
+
         self.assertFalse(self.process.plasma_active)
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertFalse(self.sequence._rf_timer.isActive())
@@ -303,6 +311,21 @@ class RecipeSequenceTests(unittest.TestCase):
         contents = self.log_path.read_text(encoding="utf-8")
         self.assertIn("tiempo_maximo_RF=90 s", contents)
         self.assertIn("Tiempo máximo de RF alcanzado (90 s)", contents)
+
+    def test_manual_stop_does_not_signal_rf_completion(self):
+        rf_finished = []
+        self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence.update_analog("BARATRON", 1.0)
+        self.sequence.pressure_reached(1.5)
+        self.sequence.temperature_reached(150)
+
+        self.sequence.stop()
+
+        self.assertEqual(rf_finished, [])
+        self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self._finish_with_door_open()
 
     def test_process_data_csv_records_pressure_and_temperature_during_recipe(self):
         self.sequence.start(self.recipe)

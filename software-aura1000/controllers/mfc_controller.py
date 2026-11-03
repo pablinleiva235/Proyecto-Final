@@ -21,7 +21,7 @@ class MFCController(QObject):
 
     _CONFIG = {
         "MFC1": {"max_flow": 6.5, "min_flow": 0.0, "rated_flow": 10.0,
-                 "offset": 0.16, "factor": 0.981, "tolerance": 0.25,
+                 "offset": 0.0, "factor": 0.981, "tolerance": 0.25,
                  "output": "MFC1_SETPOINT", "valve": "MFC1_OPEN", "input": "MFC1_FLOW"},
         "MFC2": {"max_flow": 0.65, "min_flow": 0.1, "rated_flow": 1.0,
                  "offset": 0.0, "factor": 1.0, "tolerance": 0.25,

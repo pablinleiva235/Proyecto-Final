@@ -45,6 +45,7 @@ class RecipeSequence(QObject):
     wafer_removal_confirmation_requested = pyqtSignal()
     error_raised = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
+    rf_finished = pyqtSignal()
 
     def __init__(
         self, door_sequence, soft_vacuum_sequence, main_vacuum_sequence,
@@ -283,6 +284,7 @@ class RecipeSequence(QObject):
             self._eop = value
             if self._state == RecipeState.RUNNING_PLASMA and value < 2.0:
                 self._rf_timer.stop()
+                self.rf_finished.emit()
                 self._begin_shutdown(
                     "RF apagada por EOP inferior a 2 V; continúa el cierre normal de la receta.",
                     failed=False,
@@ -387,6 +389,7 @@ class RecipeSequence(QObject):
     def _rf_time_limit_reached(self):
         if (self._state == RecipeState.RUNNING_PLASMA and not self._stopping
                 and self.process.plasma_active):
+            self.rf_finished.emit()
             self._begin_shutdown(
                 f"Tiempo máximo de RF alcanzado ({self._recipe.rf_max_on_time} s).",
                 failed=False,

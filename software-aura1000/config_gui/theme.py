@@ -279,6 +279,18 @@ QLabel#SimulationBadge {{
     font-weight: bold;
 }}
 
+QLabel#SimulationBadge[equipmentState="idle"] {{
+    border-color: {SIGNAL_INACTIVE_COLOR};
+}}
+
+QLabel#SimulationBadge[equipmentState="running"] {{
+    border-color: {SIGNAL_PROCESSING_COLOR};
+}}
+
+QLabel#SimulationBadge[equipmentState="finished"] {{
+    border-color: {SIGNAL_ACTIVE_COLOR};
+}}
+
 QLabel#SimulationDescription {{
     background-color: transparent;
     color: {TEXT_MUTED_COLOR};

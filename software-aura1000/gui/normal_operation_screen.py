@@ -91,8 +91,15 @@ class NormalOperationScreen(QWidget):
         "EOP": (text.OPERATION_EOP_LABEL, "V", 3),
     }
 
-    def __init__(self, parent=None):
+    EQUIPMENT_STATES = {
+        "idle": text.EQUIPMENT_IDLE,
+        "running": text.EQUIPMENT_RUNNING,
+        "finished": text.EQUIPMENT_FINISHED,
+    }
+
+    def __init__(self, parent=None, use_mock_hardware=True):
         super().__init__(parent)
+        self._use_mock_hardware = bool(use_mock_hardware)
         self._readouts = {}
         self._recipe_service = RecipeService()
         self._active_recipe = None
@@ -106,9 +113,16 @@ class NormalOperationScreen(QWidget):
         self.title_label = QLabel(text.NORMAL_OPERATION_TITLE)
         self.title_label.setObjectName("NormalOperationTitle")
 
-        self.simulation_badge = QLabel(text.SIMULATION_MODE_LABEL)
+        initial_badge_text = (
+            text.SIMULATION_MODE_LABEL
+            if self._use_mock_hardware
+            else self.EQUIPMENT_STATES["idle"]
+        )
+        self.simulation_badge = QLabel(initial_badge_text)
         self.simulation_badge.setObjectName("SimulationBadge")
         self.simulation_badge.setAlignment(Qt.AlignCenter)
+        if not self._use_mock_hardware:
+            self.set_equipment_status("idle")
 
         self.simulation_description = QLabel(text.SIMULATION_MODE_DESCRIPTION)
         self.simulation_description.setObjectName("SimulationDescription")
@@ -436,6 +450,17 @@ class NormalOperationScreen(QWidget):
 
     def set_recipe_status(self, status):
         set_localized_text(self.recipe_status_label, status)
+
+    def set_equipment_status(self, status):
+        """Actualiza el indicador del equipo cuando se usa hardware real."""
+        if self._use_mock_hardware:
+            return
+        if status not in self.EQUIPMENT_STATES:
+            raise ValueError(f"Estado de equipo desconocido: {status}")
+        set_localized_text(self.simulation_badge, self.EQUIPMENT_STATES[status])
+        self.simulation_badge.setProperty("equipmentState", status)
+        self.simulation_badge.style().unpolish(self.simulation_badge)
+        self.simulation_badge.style().polish(self.simulation_badge)
 
     def confirm_wafer_loaded(self):
         answer = QMessageBox.question(

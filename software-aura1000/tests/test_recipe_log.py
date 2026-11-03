@@ -69,6 +69,9 @@ class RecipeLogTests(unittest.TestCase):
 
     def test_completion_popup_includes_saved_log_path(self):
         class DummyScreen:
+            def set_equipment_status(self, _status):
+                pass
+
             def set_recipe_status(self, _status):
                 pass
 
@@ -86,6 +89,7 @@ class RecipeLogTests(unittest.TestCase):
             data_log_path = Path("logs/recipe_data.csv")
 
         class DummyWindow:
+            _emergency_shutdown_in_progress = False
             normal_operation_screen = DummyScreen()
             maintainer_screen = DummyMaintainer()
             recipe_sequence = DummySequence()
@@ -100,6 +104,9 @@ class RecipeLogTests(unittest.TestCase):
 
     def test_completion_popup_reports_attempted_path_when_log_failed(self):
         class DummyScreen:
+            def set_equipment_status(self, _status):
+                pass
+
             def set_recipe_status(self, _status):
                 pass
 
@@ -117,6 +124,7 @@ class RecipeLogTests(unittest.TestCase):
             data_log_path = Path("logs/recipe_data.csv")
 
         class DummyWindow:
+            _emergency_shutdown_in_progress = False
             normal_operation_screen = DummyScreen()
             maintainer_screen = DummyMaintainer()
             recipe_sequence = DummySequence()

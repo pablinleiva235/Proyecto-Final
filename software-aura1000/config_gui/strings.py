@@ -49,6 +49,9 @@ STATISTICS_BUTTON_TEXT = "Estadísticas"
 
 NORMAL_OPERATION_TITLE = "OPERACIÓN NORMAL"
 SIMULATION_MODE_LABEL = "MODO SIMULADO"
+EQUIPMENT_IDLE = "REPOSO"
+EQUIPMENT_RUNNING = "EN PROCESO"
+EQUIPMENT_FINISHED = "TERMINADO"
 SIMULATION_MODE_DESCRIPTION = "Las lecturas provienen del backend activo. El diagrama y la gestión de recetas están pendientes."
 EQUIPMENT_STATUS_TITLE = "Estado del equipo"
 EQUIPMENT_STATUS_READY = "Listo para operación (simulado)"
@@ -372,6 +375,9 @@ _SPANISH_TO_ENGLISH = {
     "Estadísticas": "Statistics",
     "OPERACIÓN NORMAL": "NORMAL OPERATION",
     "MODO SIMULADO": "SIMULATION MODE",
+    "REPOSO": "IDLE",
+    "EN PROCESO": "IN PROGRESS",
+    "TERMINADO": "FINISHED",
     "Las lecturas provienen del backend activo. El diagrama y la gestión de recetas están pendientes.": "Readings come from the active backend. The schematic and recipe management are pending.",
     "Estado del equipo": "Equipment status",
     "Listo para operación (simulado)": "Ready for operation (simulated)",

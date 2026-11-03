@@ -23,6 +23,7 @@ from controllers.pressure_controller import PressureController
 from controllers.process_controller import ProcessController
 from controllers.temperature_controller import TemperatureController
 from PyQt5.QtCore import QTimer
+from config_gui.app_config import USE_MOCK_HARDWARE
 from config.digital_signals import DIGITALSIGNALS
 from config.pressure_limits import THROTTLE_REST_PRESSURE_THRESHOLD_TORR
 from logic.door_sequence import DoorState
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
         main_vacuum_sequence,
         vent_sequence,
         settings_manager=None,
+        use_mock_hardware=USE_MOCK_HARDWARE,
     ):
         super().__init__()
 
@@ -67,6 +69,7 @@ class MainWindow(QMainWindow):
         self.main_vacuum_sequence = main_vacuum_sequence
         self.vent_sequence = vent_sequence
         self.settings_manager = settings_manager
+        self.use_mock_hardware = bool(use_mock_hardware)
 
 
         self.create_widgets()
@@ -90,7 +93,9 @@ class MainWindow(QMainWindow):
         self.welcome_screen = WelcomeScreen()
         self.maintainer_screen = MaintainerScreen()
         self.statistics_screen = StatisticsScreen()
-        self.normal_operation_screen = NormalOperationScreen()
+        self.normal_operation_screen = NormalOperationScreen(
+            use_mock_hardware=self.use_mock_hardware
+        )
 
         # Controlador de navegación
         self.navigation_controller = NavigationController(self.stack)
@@ -259,8 +264,9 @@ class MainWindow(QMainWindow):
             self._show_welcome_screen
         )
         self.normal_operation_screen.start_recipe_requested.connect(self._start_recipe)
-        self.normal_operation_screen.stop_recipe_requested.connect(self.recipe_sequence.stop)
+        self.normal_operation_screen.stop_recipe_requested.connect(self._stop_recipe)
         self.recipe_sequence.state_changed.connect(self._handle_recipe_state)
+        self.recipe_sequence.rf_finished.connect(self._handle_rf_finished)
         self.recipe_sequence.wafer_confirmation_requested.connect(self._confirm_recipe_wafer)
         self.recipe_sequence.wafer_removal_confirmation_requested.connect(
             self._confirm_recipe_wafer_removal
@@ -590,7 +596,16 @@ class MainWindow(QMainWindow):
         self.signal_controller.start_monitoring()
         self.analog_controller.start_monitoring()
         self.signal_controller.refresh_signals()
-        self.recipe_sequence.start(recipe)
+        self.normal_operation_screen.set_equipment_status("running")
+        if not self.recipe_sequence.start(recipe):
+            self.normal_operation_screen.set_equipment_status("idle")
+
+    def _stop_recipe(self):
+        self.normal_operation_screen.set_equipment_status("idle")
+        self.recipe_sequence.stop()
+
+    def _handle_rf_finished(self):
+        self.normal_operation_screen.set_equipment_status("finished")
 
     def _confirm_recipe_wafer(self):
         self.recipe_sequence.confirm_wafer_loaded(
@@ -616,12 +631,14 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_manual_controls_locked(running)
 
     def _handle_recipe_error(self, message):
+        self.normal_operation_screen.set_equipment_status("idle")
         self.normal_operation_screen.set_recipe_status(message)
         QMessageBox.warning(
             self, strings.tr(strings.RECIPE_INVALID_TITLE), strings.tr(message)
         )
 
     def _handle_recipe_finished(self, success, message):
+        self.normal_operation_screen.set_equipment_status("idle")
         self.normal_operation_screen.set_recipe_status(
             strings.RECIPE_STATE_LABELS["completed" if success else "error"]
         )

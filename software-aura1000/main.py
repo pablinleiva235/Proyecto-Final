@@ -220,6 +220,7 @@ def main():
         main_vacuum_sequence=main_vacuum_sequence,
         vent_sequence=vent_sequence,
         settings_manager=settings_manager,
+        use_mock_hardware=USE_MOCK_HARDWARE,
     )
 
     startup_sequence.set_throttle_controller(

@@ -27,6 +27,7 @@ class RecipeState(Enum):
     STARTING_MAIN_VACUUM = "starting_main_vacuum"
     PUMPING_TO_BASE = "pumping_to_base"
     POSITIONING_THROTTLE = "positioning_throttle"
+    POSITIONING_THROTTLE_AFTER_VENT = "positioning_throttle_after_vent"
     STARTING_GAS_FLOW = "starting_gas_flow"
     CONTROLLING_PRESSURE = "controlling_pressure"
     CONTROLLING_TEMPERATURE = "controlling_temperature"
@@ -54,6 +55,7 @@ class RecipeSequence(QObject):
         recipe_log_factory=None, parent=None, recipe_data_log_factory=None,
         digital_state_setter=None, digital_hardware_reader=None,
         throttle_controller=None,
+        can_return_throttle_after_vent=None,
     ):
         super().__init__(parent)
         self.door = door_sequence
@@ -65,6 +67,9 @@ class RecipeSequence(QObject):
         self.temperature = temperature_controller
         self.process = process_controller
         self.throttle = throttle_controller
+        self._can_return_throttle_after_vent = (
+            can_return_throttle_after_vent or (lambda: True)
+        )
         self._digital_state_getter = digital_state_getter or (lambda _name: None)
         self._digital_state_setter = digital_state_setter
         self._digital_hardware_reader = digital_hardware_reader
@@ -86,6 +91,8 @@ class RecipeSequence(QObject):
         self._stopping = False
         self._waiting_for_throttle_rest = False
         self._waiting_for_throttle_before_gas_flow = False
+        self._waiting_for_throttle_after_vent = False
+        self._suppress_throttle_return_notice = False
         self._shutdown_continuation_started = False
         self._eop = None
         self._vacuum_started = False
@@ -126,12 +133,19 @@ class RecipeSequence(QObject):
     def data_log_saved(self):
         return self._data_log_saved
 
+    def consume_throttle_return_notice_suppression(self):
+        suppress = self._suppress_throttle_return_notice
+        self._suppress_throttle_return_notice = False
+        return suppress
+
     def start(self, recipe):
         if self.is_active:
             self.error_raised.emit("Ya hay una receta en ejecución.")
             return False
         self._recipe = recipe
         self._stopping = False
+        self._waiting_for_throttle_after_vent = False
+        self._suppress_throttle_return_notice = False
         self._waiting_for_throttle_rest = False
         self._waiting_for_throttle_before_gas_flow = False
         self._shutdown_continuation_started = False
@@ -423,6 +437,7 @@ class RecipeSequence(QObject):
             if self._state in (
                 RecipeState.CLOSING_DOOR_AFTER_RECIPE,
                 RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
+                RecipeState.POSITIONING_THROTTLE_AFTER_VENT,
             ):
                 return
             if self._state == RecipeState.WAITING_FOR_WAFER:
@@ -480,6 +495,7 @@ class RecipeSequence(QObject):
             return
         self._rf_timer.stop()
         self._waiting_for_throttle_rest = False
+        self._waiting_for_throttle_after_vent = False
         self._shutdown_continuation_started = True
         self._stopping = True
         self._failed = True
@@ -490,6 +506,30 @@ class RecipeSequence(QObject):
     def vent_completed(self):
         if self._state != RecipeState.VENTING:
             return
+        if self.throttle is not None and not self.throttle.is_at_rest_position:
+            if not self._set_state(RecipeState.POSITIONING_THROTTLE_AFTER_VENT):
+                return
+            self._waiting_for_throttle_after_vent = True
+            try:
+                started = self.throttle.return_to_rest_for_safety(
+                    can_operate=self._can_return_throttle_after_vent
+                )
+            except Exception as error:
+                self._waiting_for_throttle_after_vent = False
+                self._log_throttle_return_after_vent(False, str(error))
+                self._open_door_after_vent()
+                return
+            if started or not self._waiting_for_throttle_after_vent:
+                return
+            self._waiting_for_throttle_after_vent = False
+            self._log_throttle_return_after_vent(
+                False, "No se pudo iniciar el retorno de la throttle."
+            )
+            self._open_door_after_vent()
+            return
+        self._open_door_after_vent()
+
+    def _open_door_after_vent(self):
         if not self._perform_action("Abrir puerta después del venteo", self.door.open, safety=True,
                                     outputs={"DOOR_CLOSE_CMD": False, "DOOR_OPEN_CMD": True}):
             return
@@ -662,6 +702,11 @@ class RecipeSequence(QObject):
         self._continue_shutdown_after_process()
 
     def _on_safety_return_finished(self, success, message):
+        if self._waiting_for_throttle_after_vent:
+            self._waiting_for_throttle_after_vent = False
+            self._log_throttle_return_after_vent(success, message, suppress_notice=True)
+            self._open_door_after_vent()
+            return
         if self._waiting_for_throttle_before_gas_flow and not self._stopping:
             self._waiting_for_throttle_before_gas_flow = False
             if self._recipe_log is not None and not self._logging_failed:
@@ -689,6 +734,15 @@ class RecipeSequence(QObject):
         if not success:
             self._shutdown_errors.append(message)
         self._continue_shutdown_after_process()
+
+    def _log_throttle_return_after_vent(self, success, message, suppress_notice=False):
+        if suppress_notice:
+            self._suppress_throttle_return_notice = True
+        if self._recipe_log is not None and not self._logging_failed:
+            self._log_event(
+                f"Retorno de throttle a reposo después del venteo: "
+                f"{'OK' if success else 'ERROR'} | {message}"
+            )
 
     def _continue_shutdown_after_process(self):
         if (
@@ -734,6 +788,7 @@ class RecipeSequence(QObject):
     def _finish(self, failed, message):
         self._rf_timer.stop()
         self._data_sample_timer.stop()
+        self._waiting_for_throttle_after_vent = False
         self._finalizing = True
         final_state = RecipeState.ERROR if failed else RecipeState.COMPLETED
         if self._recipe_log is not None and not self._logging_failed:

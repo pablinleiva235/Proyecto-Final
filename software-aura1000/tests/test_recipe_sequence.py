@@ -117,17 +117,28 @@ class Throttle(QObject):
         self.return_calls = 0
         self.open_calls = 0
         self.complete_return_automatically = False
+        self.return_start_error = None
+        self._returning_to_rest = False
 
     @property
     def is_at_rest_position(self):
         return self.position_steps == 400.0
 
-    def return_to_rest_for_safety(self):
+    @property
+    def is_returning_to_rest(self):
+        return self._returning_to_rest
+
+    def return_to_rest_for_safety(self, can_operate=None):
         self.return_calls += 1
+        if self.return_start_error is not None:
+            raise self.return_start_error
+        if can_operate is not None and not can_operate():
+            raise RuntimeError("interlocks de retorno no confirmados")
         if self.complete_return_automatically:
             self.position_steps = 400.0
             self.safety_return_finished.emit(True, "La throttle llegó a reposo.")
             return False
+        self._returning_to_rest = True
         return True
 
     def return_to_open_for_safety(self):
@@ -137,6 +148,7 @@ class Throttle(QObject):
         return False
 
     def complete_return(self, success=True):
+        self._returning_to_rest = False
         if success:
             self.position_steps = 400.0
         self.safety_return_finished.emit(
@@ -186,12 +198,84 @@ class RecipeSequenceTests(unittest.TestCase):
         self.digital_states[name] = active
 
     def _finish_with_door_open(self):
+        if hasattr(self.sequence.throttle, "_position_steps"):
+            self.sequence.throttle._position_steps = 400.0
+        else:
+            self.sequence.throttle.position_steps = 400.0
+        self.door.state = DoorState.CLOSED
         self.sequence.vent_completed()
         self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
         self.sequence.confirm_wafer_removed(False)
 
+    def _start_recipe_venting(self):
+        self.sequence.start(self.recipe)
+        self.door.state = DoorState.CLOSED
+        self.digital_states.update({"DOOR_OPEN": False, "DOOR_CLOSE": True})
+        self.sequence._set_state(RecipeState.VENTING)
+
     def tearDown(self):
         self.tempdir.cleanup()
+
+    def test_recipe_waits_for_throttle_rest_before_opening_door_after_vent(self):
+        self.throttle.position_steps = 250.0
+        self.throttle.complete_return_automatically = False
+        self._start_recipe_venting()
+
+        self.sequence.vent_completed()
+
+        self.assertEqual(self.throttle.return_calls, 1)
+        self.assertEqual(self.sequence.state, RecipeState.POSITIONING_THROTTLE_AFTER_VENT)
+        self.assertEqual(self.door.state, DoorState.CLOSED)
+        self.sequence.stop()
+        self.assertEqual(self.sequence.state, RecipeState.POSITIONING_THROTTLE_AFTER_VENT)
+
+        self.throttle.complete_return(success=True)
+
+        self.assertEqual(self.throttle.position_steps, 400.0)
+        self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.assertIn("Retorno de throttle a reposo después del venteo: OK", self.log_path.read_text(encoding="utf-8"))
+        self.assertTrue(self.sequence.consume_throttle_return_notice_suppression())
+        self.sequence.stop()
+
+    def test_recipe_logs_failed_throttle_return_and_continues_without_error(self):
+        self.throttle.position_steps = 250.0
+        self.throttle.complete_return_automatically = False
+        errors = []
+        self.sequence.error_raised.connect(errors.append)
+        self._start_recipe_venting()
+
+        self.sequence.vent_completed()
+        self.throttle.complete_return(success=False)
+
+        self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.assertEqual(errors, [])
+        self.assertIn("Retorno de throttle a reposo después del venteo: ERROR", self.log_path.read_text(encoding="utf-8"))
+        self.assertTrue(self.sequence.consume_throttle_return_notice_suppression())
+        self.sequence.stop()
+
+    def test_recipe_continues_if_throttle_return_cannot_start(self):
+        self.throttle.position_steps = 250.0
+        self.throttle.return_start_error = RuntimeError("driver sin confirmar")
+        self._start_recipe_venting()
+
+        self.sequence.vent_completed()
+
+        self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.assertIn("Retorno de throttle a reposo después del venteo: ERROR", self.log_path.read_text(encoding="utf-8"))
+        self.sequence.stop()
+
+    def test_recipe_skips_throttle_return_when_already_at_rest(self):
+        self._start_recipe_venting()
+
+        self.sequence.vent_completed()
+
+        self.assertEqual(self.throttle.return_calls, 0)
+        self.assertEqual(self.door.state, DoorState.OPEN)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
+        self.sequence.stop()
 
     def test_recipe_waits_for_base_pressure_and_eop_below_two_volts(self):
         rf_finished = []
@@ -216,6 +300,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertFalse(self.process.plasma_active)
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
+        self.throttle.position_steps = 400.0
         self.sequence.vent_completed()
         self.assertEqual(self.door.state, DoorState.OPEN)
         self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
@@ -646,6 +731,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.update_analog("BARATRON", 0.5)
         self.sequence.stop()
         vent_starts_before_completion = self.vent.start_calls
+        self.throttle.position_steps = 400.0
         self.sequence.vent_completed()
         self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_WAFER_REMOVAL)
 
@@ -660,6 +746,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.confirm_wafer_loaded(True)
         self.sequence.update_analog("BARATRON", 0.5)
         self.sequence.stop()
+        self.throttle.position_steps = 400.0
         self.sequence.vent_completed()
 
         self.sequence.confirm_wafer_removed(False)

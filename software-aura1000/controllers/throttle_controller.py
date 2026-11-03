@@ -31,6 +31,7 @@ class ThrottleController(QObject):
         self._homing_active = False
         self._open_only = False
         self._safety_return_active = False
+        self._safety_return_permission = None
         self._remaining_steps = None
         self._motion_half_step = False
         self._starting_motion = False
@@ -171,11 +172,16 @@ class ThrottleController(QObject):
     def is_reserved_for_pressure(self):
         return self._automatic_mode
 
+    def _motion_allowed(self):
+        if self._safety_return_active and self._safety_return_permission is not None:
+            return self._safety_return_permission() is True
+        return self._can_operate() is True
+
     def _start_motion(self, closing, pulse_interval_ms, half_step=False, remaining_steps=None):
         if self._timer.isActive():
             return
         try:
-            if not self._can_operate():
+            if not self._motion_allowed():
                 raise RuntimeError("El movimiento manual requiere el vacío principal activo.")
             self._closing = closing
             self._starting_motion = True
@@ -237,7 +243,7 @@ class ThrottleController(QObject):
             raise RuntimeError("La throttle ya está reservada para un movimiento automático.")
         if self._timer.isActive():
             raise RuntimeError("Detenga el movimiento manual de la throttle antes de iniciar el control de presión.")
-        if not self._can_operate():
+        if not self._motion_allowed():
             raise RuntimeError("El posicionamiento requiere vacío principal activo y puerta cerrada.")
         self._automatic_mode = True
         self._open_only = False
@@ -266,7 +272,7 @@ class ThrottleController(QObject):
             return
         self._move_to_rest_position()
 
-    def return_to_rest_for_safety(self):
+    def return_to_rest_for_safety(self, can_operate=None):
         """Stops current throttle motion and starts a bounded return to rest."""
         if self._safety_return_active:
             raise RuntimeError("Ya hay un retorno de seguridad de la throttle en curso.")
@@ -278,12 +284,14 @@ class ThrottleController(QObject):
             raise RuntimeError(
                 "No se pudo confirmar la detención previa de la throttle."
             )
-        if not self._can_operate():
+        return_permission = can_operate or self._can_operate
+        if not return_permission():
             raise RuntimeError(
                 "No se puede llevar la throttle a reposo sin interlocks de operación confirmados."
             )
 
         self._safety_return_active = True
+        self._safety_return_permission = return_permission
         # debugg de control de presion y throttle
         print("[THROTTLE] Inicio del retorno de seguridad a la posición de reposo.")
         self._safety_return_timer.start(self.HOMING_TIMEOUT_MS)
@@ -475,6 +483,7 @@ class ThrottleController(QObject):
         self._safety_return_active = False
         self._safety_return_timer.stop()
         stopped = self.stop_pressure_motion(release=True)
+        self._safety_return_permission = None
         if not success:
             # debugg de control de presion y throttle
             print(f"[THROTTLE] Falló el retorno de seguridad: {message}")
@@ -541,7 +550,7 @@ class ThrottleController(QObject):
             self._pulse_startup_homing()
             return
         try:
-            if not self._can_operate():
+            if not self._motion_allowed():
                 if self._automatic_mode:
                     self._fail_automatic_motion("Se perdió un interlock durante el movimiento de la throttle.")
                 else:

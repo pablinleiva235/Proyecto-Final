@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
             digital_state_setter=self.hardware.digital_set,
             digital_hardware_reader=self.hardware.digital_read,
             throttle_controller=self.throttle_controller,
+            can_return_throttle_after_vent=self._can_return_throttle_after_vent,
         )
         self.module_monitor_timer = QTimer(self)
         self.module_monitor_timer.setInterval(100)
@@ -645,6 +646,7 @@ class MainWindow(QMainWindow):
         can_stop = state not in (
             RecipeState.STOPPING_PROCESS,
             RecipeState.VENTING,
+            RecipeState.POSITIONING_THROTTLE_AFTER_VENT,
             RecipeState.CLOSING_DOOR_AFTER_RECIPE,
             RecipeState.VERIFYING_DOOR_CLOSED_AFTER_RECIPE,
         )
@@ -885,7 +887,29 @@ class MainWindow(QMainWindow):
             "[VentSequence] Venteo completado."
         )
         self.interlock_controller.vent_completed()
+        if self.recipe_sequence.state != RecipeState.VENTING:
+            try:
+                self.throttle_controller.return_to_rest_for_safety(
+                    can_operate=self._can_return_throttle_after_vent
+                )
+            except Exception as error:
+                self._handle_throttle_error(str(error))
         self._update_sequence_permissions()
+
+    def _can_return_throttle_after_vent(self):
+        if not self.interlock_controller.can_operate_sequences():
+            return False
+        door_is_closed = (
+            self.door_sequence.state == DoorState.CLOSED
+            and self.signal_controller.get_last_state("DOOR_CLOSE") is True
+            and self.signal_controller.get_last_state("DOOR_OPEN") is False
+        )
+        return (
+            door_is_closed
+            and self.soft_vacuum_sequence.state == SoftVacuumState.IDLE
+            and self.main_vacuum_sequence.state == MainVacuumState.IDLE
+            and self.vent_sequence.state == VentState.IDLE
+        )
 
     def _handle_vent_sequence_error(self,message):
         print(
@@ -1085,10 +1109,11 @@ class MainWindow(QMainWindow):
             self._handle_throttle_error(str(error))
 
     def _handle_throttle_safety_return_finished(self, success, message):
-        self.maintainer_screen.set_operation_message(
-            message if success else f"Retorno de throttle fallido: {message}",
-            is_error=not success,
-        )
+        if not self.recipe_sequence.consume_throttle_return_notice_suppression():
+            self.maintainer_screen.set_operation_message(
+                message if success else f"Retorno de throttle fallido: {message}",
+                is_error=not success,
+            )
 
     def _handle_mfc_flow_fault(self, message):
         self.maintainer_screen.set_operation_message(

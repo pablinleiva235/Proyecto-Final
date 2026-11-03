@@ -140,6 +140,7 @@ RECIPE_STATE_LABELS = {
     "starting_main_vacuum": "Iniciando Main Vacuum.",
     "pumping_to_base": "Esperando presión base.",
     "positioning_throttle": "Llevando throttle a 400 pasos antes de los MFC.",
+    "positioning_throttle_after_vent": "Llevando throttle a 400 pasos después del venteo.",
     "starting_gas_flow": "Configurando caudales de gases.",
     "controlling_pressure": "Regulando presión de proceso.",
     "controlling_temperature": "Regulando temperatura.",

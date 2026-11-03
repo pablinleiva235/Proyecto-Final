@@ -43,6 +43,20 @@ THEMES = {
 }
 
 _DEFAULT_COLORS = THEMES["dark"]
+
+
+def _lighten_color_toward_white(color):
+    """Aclara cada canal RGB un 25 % hacia blanco."""
+    channels = (
+        int(color[index:index + 2], 16)
+        for index in (1, 3, 5)
+    )
+    return "#" + "".join(
+        f"{round(channel + (255 - channel) / 4):02X}"
+        for channel in channels
+    )
+
+
 BACKGROUND_COLOR = _DEFAULT_COLORS["background"]
 SURFACE_COLOR = _DEFAULT_COLORS["surface"]
 SURFACE_SECONDARY_COLOR = _DEFAULT_COLORS["surface_secondary"]
@@ -492,7 +506,7 @@ QPushButton:checked, QPushButton:checked:hover {{
 }}
 
 QPushButton:disabled {{
-    background-color: {SURFACE_COLOR};
+    background-color: __DISABLED_BUTTON_COLOR__;
     border: {BORDER_W}px solid {BORDER_COLOR};
     color: {TEXT_MUTED_COLOR};
 }}
@@ -908,7 +922,7 @@ QPushButton#MFCControlButton:checked {{
 }}
 
 QPushButton#MFCControlButton:disabled {{
-    background-color: {SURFACE_COLOR};
+    background-color: __DISABLED_BUTTON_COLOR__;
     color: {TEXT_MUTED_COLOR};
     border-color: {BORDER_COLOR};
 }}
@@ -930,7 +944,7 @@ QPushButton#MaintainerSequenceButton:hover {{
 }}
 
 QPushButton#MaintainerSequenceButton:disabled {{
-    background-color: {SURFACE_COLOR};
+    background-color: __DISABLED_BUTTON_COLOR__;
     color: {TEXT_MUTED_COLOR};
     border-color: {BORDER_COLOR};
 }}
@@ -950,7 +964,7 @@ QPushButton#DemoActionButton:disabled, QPushButton#RecipeActionButton:disabled,
 QPushButton#SetpointStepButton:disabled, QPushButton#BackButton:disabled,
 QPushButton#LoginButton:disabled, QPushButton#MaintenanceActionButton:disabled,
 QPushButton#SettingsCloseButton:disabled {{
-    background-color: {SURFACE_COLOR};
+    background-color: __DISABLED_BUTTON_COLOR__;
     color: {TEXT_MUTED_COLOR};
     border-color: {BORDER_COLOR};
 }}
@@ -1028,4 +1042,7 @@ def build_app_style(theme="dark"):
     return stylesheet.replace(
         "__STATUS_ICON_FOREGROUND__",
         _STATUS_ICON_FOREGROUND[theme],
+    ).replace(
+        "__DISABLED_BUTTON_COLOR__",
+        _lighten_color_toward_white(palette["surface"]),
     )

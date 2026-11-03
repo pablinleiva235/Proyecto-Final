@@ -417,6 +417,11 @@ QPushButton#BackButton {{
     font-size: 16px;
 }}
 
+QPushButton#MaintenanceRecordButton {{
+    padding: 10px 22px;
+    font-size: 16px;
+}}
+
 /* -------------------------------------------------------------------------- */
 /* Botón de configuración                                                     */
 /* -------------------------------------------------------------------------- */

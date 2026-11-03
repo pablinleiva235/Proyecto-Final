@@ -35,6 +35,7 @@ from gui.statistics_screen import StatisticsScreen
 from gui.normal_operation_screen import NormalOperationScreen
 from gui.login_dialog import LoginDialog
 from gui.settings_dialog import SettingsDialog
+from services.maintenance_data_log import MaintenanceDataLog
 from gui.widgets.localization import translate_widget_tree
 import config_gui.strings as strings
 
@@ -78,6 +79,10 @@ class MainWindow(QMainWindow):
         self.update_texts()
 
         self._show_welcome_screen()
+
+    def closeEvent(self, event):
+        self._stop_maintenance_recording()
+        super().closeEvent(event)
 
 
     def create_widgets(self):
@@ -199,6 +204,15 @@ class MainWindow(QMainWindow):
         self._module_access = False
         self._emergency_shutdown_in_progress = False
         self._maintenance_low_pressure_seen = False
+        self._maintenance_data_values = {}
+        self._maintenance_data_log = None
+        self._maintenance_sample_timer = QTimer(self)
+        self._maintenance_sample_timer.setInterval(1000)
+        self._maintenance_sample_timer.timeout.connect(self._record_maintenance_sample)
+        self._maintenance_timeout_timer = QTimer(self)
+        self._maintenance_timeout_timer.setSingleShot(True)
+        self._maintenance_timeout_timer.setInterval(180000)
+        self._maintenance_timeout_timer.timeout.connect(self._stop_maintenance_recording)
 
         self.door_sequence.set_can_open(
             self.interlock_controller.can_open_door
@@ -256,6 +270,9 @@ class MainWindow(QMainWindow):
         # Navegación hacia la pantalla de bienvenida
         self.maintainer_screen.back_requested.connect(
             self._show_welcome_screen
+        )
+        self.maintainer_screen.maintenance_record_toggle_requested.connect(
+            self._toggle_maintenance_recording
         )
         self.statistics_screen.back_requested.connect(
             self._show_welcome_screen
@@ -554,6 +571,7 @@ class MainWindow(QMainWindow):
     def _show_welcome_screen(self):
         if self.recipe_sequence.is_active:
             return
+        self._stop_maintenance_recording()
     # Muestra la pantalla de bienvenida
         if not self.pressure_controller.is_active and not self.temperature_controller.is_active:
             self.signal_controller.stop_monitoring()
@@ -995,6 +1013,7 @@ class MainWindow(QMainWindow):
         self._handle_analog_value(signal_name, value)
 
     def _publish_analog_value(self, signal_name, value):
+        self._maintenance_data_values[signal_name] = value
         self.maintainer_screen.set_analog_value(signal_name, value)
         self.normal_operation_screen.set_analog_value(signal_name, value)
         self.recipe_sequence.cache_analog(signal_name, value)
@@ -1084,11 +1103,75 @@ class MainWindow(QMainWindow):
             )
 
     def _handle_analog_error(self, signal_name, message):
+        self._maintenance_data_values[signal_name] = None
         if signal_name == "BARATRON":
             self.pressure_controller.invalidate_pressure(message)
             self.maintainer_screen.set_pressure_reading_unavailable(message)
         elif signal_name == "CHAMBER_TEMP":
             self.temperature_controller.invalidate_temperature(message)
+
+    def _toggle_maintenance_recording(self):
+        if self._maintenance_data_log is not None:
+            self._stop_maintenance_recording()
+            return
+        try:
+            log = MaintenanceDataLog()
+        except Exception as error:
+            self.maintainer_screen.set_maintenance_recording(False)
+            QMessageBox.warning(
+                self, "Error de registro", f"No se pudo iniciar el registro:\n{error}"
+            )
+            return
+        if not log.available:
+            self.maintainer_screen.set_maintenance_recording(False)
+            QMessageBox.warning(
+                self, "Error de registro", f"No se pudo iniciar el registro:\n{log.error}"
+            )
+            return
+        self._maintenance_data_log = log
+        self.maintainer_screen.set_maintenance_recording(True)
+        self._record_maintenance_sample()
+        if self._maintenance_data_log is not None:
+            self._maintenance_sample_timer.start()
+            self._maintenance_timeout_timer.start()
+
+    def _record_maintenance_sample(self):
+        log = self._maintenance_data_log
+        if log is None:
+            return
+        values = dict(self._maintenance_data_values)
+        values["THROTTLE_POSITION"] = self.throttle_controller.position_steps
+        values["PLASMA"] = self.process_controller.plasma_active
+        if not log.record(values):
+            error = log.error or "Error de escritura desconocido."
+            self._finish_maintenance_recording(
+                f"No se pudo guardar el registro:\n{error}", error=True
+            )
+
+    def _stop_maintenance_recording(self):
+        if self._maintenance_data_log is None:
+            return
+        log = self._maintenance_data_log
+        self._maintenance_sample_timer.stop()
+        self._maintenance_timeout_timer.stop()
+        log.close()
+        if log.error is None:
+            self._finish_maintenance_recording(
+                f"Los datos se guardaron en:\n{log.path}"
+            )
+        else:
+            self._finish_maintenance_recording(
+                f"Error al guardar el registro:\n{log.error}", error=True
+            )
+
+    def _finish_maintenance_recording(self, message, error=False):
+        self._maintenance_data_log = None
+        self._maintenance_sample_timer.stop()
+        self._maintenance_timeout_timer.stop()
+        self.maintainer_screen.set_maintenance_recording(False)
+        self.maintainer_screen.set_operation_message("")
+        dialog = QMessageBox.warning if error else QMessageBox.information
+        dialog(self, "Registro de mantenimiento", message, QMessageBox.Ok)
 
     def _handle_pressure_error(self, message):
         self.maintainer_screen.set_pressure_control_error(message)

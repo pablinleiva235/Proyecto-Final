@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog,
+    QScrollArea,
 )
 
 from config_gui.strings import (
@@ -19,6 +20,7 @@ from config_gui.strings import (
 )
 import config_gui.strings as strings
 from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_DIRECTORY
+from services.maintenance_data_log import MAINTENANCE_COLUMNS, MAINTENANCE_DATA_DIRECTORY
 
 
 class ProcessPlot(QWidget):
@@ -114,6 +116,15 @@ class StatisticsScreen(QWidget):
         self.subtitle_label.setWordWrap(True)
         self.pressure_plot = ProcessPlot("Presión", "Torr", "#38BDF8")
         self.temperature_plot = ProcessPlot("Temperatura", "°C", "#FACC15")
+        self.mfc1_plot = ProcessPlot("MFC1", "SLPM", "#34D399")
+        self.mfc2_plot = ProcessPlot("MFC2", "SLPM", "#A78BFA")
+        self.throttle_plot = ProcessPlot("Posición throttle", "pasos", "#FB7185")
+        self.plasma_plot = ProcessPlot("Estado plasma", "0 apagado / 1 encendido", "#F97316")
+        self.signal_plots = {
+            "BARATRON": self.pressure_plot, "CHAMBER_TEMP": self.temperature_plot,
+            "MFC1_FLOW": self.mfc1_plot, "MFC2_FLOW": self.mfc2_plot,
+            "THROTTLE_POSITION": self.throttle_plot, "PLASMA": self.plasma_plot,
+        }
         self.refresh_button = QPushButton(STATISTICS_LOAD_DATA_TEXT)
         self.back_button = QPushButton(BACK_BUTTON_TEXT)
 
@@ -123,8 +134,15 @@ class StatisticsScreen(QWidget):
         layout.setSpacing(6)
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
-        layout.addWidget(self.pressure_plot, 1)
-        layout.addWidget(self.temperature_plot, 1)
+        plots_container = QWidget()
+        plots_layout = QVBoxLayout(plots_container)
+        plots_layout.setContentsMargins(0, 0, 0, 0)
+        for plot in self.signal_plots.values():
+            plots_layout.addWidget(plot)
+        self.plots_scroll = QScrollArea()
+        self.plots_scroll.setWidgetResizable(True)
+        self.plots_scroll.setWidget(plots_container)
+        layout.addWidget(self.plots_scroll, 1)
         buttons = QHBoxLayout()
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(self.back_button)
@@ -140,14 +158,32 @@ class StatisticsScreen(QWidget):
             self._load_data_file(self._explicit_data_path)
             return
 
-        latest_path = self._latest_recipe_data_path()
+        latest_path = self._latest_data_path()
         if latest_path is None:
             self.data_path = None
             self.subtitle_label.setText(strings.tr(STATISTICS_NO_DATA))
-            self.pressure_plot.set_points([])
-            self.temperature_plot.set_points([])
+            for plot in self.signal_plots.values():
+                plot.set_points([])
             return
         self._load_data_file(latest_path)
+
+    @staticmethod
+    def _available_data_files():
+        paths = set()
+        try:
+            paths.update(RECIPE_LOG_DIRECTORY.glob("recipe_data_*.csv"))
+            paths.update(RECIPE_DATA_PATH.parent.glob("recipe_data*.csv"))
+            paths.update(MAINTENANCE_DATA_DIRECTORY.glob("mantenimiento_*.csv"))
+        except OSError:
+            pass
+        return list(paths)
+
+    @classmethod
+    def _latest_data_path(cls):
+        try:
+            return max(cls._available_data_files(), key=lambda path: path.stat().st_mtime_ns, default=None)
+        except OSError:
+            return None
 
     @staticmethod
     def _latest_recipe_data_path():
@@ -159,7 +195,7 @@ class StatisticsScreen(QWidget):
 
     def choose_data_file(self):
         try:
-            available_files = list(RECIPE_LOG_DIRECTORY.glob("recipe_data_*.csv"))
+            available_files = self._available_data_files()
         except OSError:
             available_files = []
         if not available_files:
@@ -168,7 +204,7 @@ class StatisticsScreen(QWidget):
         path, _ = QFileDialog.getOpenFileName(
             self,
             strings.tr(STATISTICS_LOAD_DATA_TEXT),
-            str(RECIPE_LOG_DIRECTORY),
+            str(available_files[0].parent),
             "CSV (*.csv)",
         )
         if path:
@@ -176,6 +212,13 @@ class StatisticsScreen(QWidget):
 
     def _load_data_file(self, path):
         path = Path(path)
+        try:
+            with path.open("r", encoding="utf-8-sig", newline="") as file_handle:
+                headers = next(csv.reader(file_handle), [])
+            if any(column == "pressure_Torr" for column in headers):
+                return self._load_maintenance_data_file(path)
+        except (OSError, csv.Error, UnicodeError):
+            pass
         data = {"BARATRON": [], "CHAMBER_TEMP": []}
         try:
             with path.open("r", encoding="utf-8-sig", newline="") as data_file:
@@ -199,14 +242,69 @@ class StatisticsScreen(QWidget):
 
         all_times = [timestamp for readings in data.values() for timestamp, _ in readings]
         start = min(all_times) if all_times else None
-        for signal, plot in (("BARATRON", self.pressure_plot), ("CHAMBER_TEMP", self.temperature_plot)):
-            readings = sorted(data[signal], key=lambda item: item[0])
+        for signal, plot in self.signal_plots.items():
+            readings = sorted(data.get(signal, []), key=lambda item: item[0])
             plot.set_points([
                 (max(0.0, (timestamp - start).total_seconds()), value)
                 for timestamp, value in readings
             ] if start else [])
 
         count = sum(map(len, data.values()))
+        self.data_path = path
+        subtitle = (
+            f"{path.name} · {count} lecturas guardadas"
+            if count else f"{path.name} · sin lecturas guardadas"
+        )
+        self.subtitle_label.setText(strings.tr(subtitle))
+        return True
+
+    def _load_maintenance_data_file(self, path):
+        signals_by_column = {column: signal for column, signal, _ in MAINTENANCE_COLUMNS}
+        data = {signal: [] for signal in self.signal_plots}
+        try:
+            with path.open("r", encoding="utf-8-sig", newline="") as data_file:
+                for row in csv.DictReader(data_file):
+                    try:
+                        timestamp = datetime.fromisoformat(row.get("timestamp", ""))
+                    except (TypeError, ValueError, OverflowError):
+                        continue
+                    for column, signal in signals_by_column.items():
+                        raw = row.get(column, "")
+                        if raw in (None, ""):
+                            continue
+                        if signal == "PLASMA":
+                            state = str(raw).strip().upper()
+                            if state in ("ON", "TRUE", "1", "ACTIVO"):
+                                value = 1.0
+                            elif state in ("OFF", "FALSE", "0", "INACTIVO"):
+                                value = 0.0
+                            else:
+                                continue
+                        else:
+                            try:
+                                value = float(raw)
+                            except (TypeError, ValueError, OverflowError):
+                                continue
+                            if not math.isfinite(value):
+                                continue
+                        data[signal].append((timestamp, value))
+        except (OSError, csv.Error, UnicodeError):
+            self.subtitle_label.setText(strings.tr(
+                STATISTICS_LOAD_ERROR.format(filename=path.name)
+            ))
+            return False
+
+        all_times = [timestamp for readings in data.values() for timestamp, _ in readings]
+        start = min(all_times) if all_times else None
+        count = 0
+        for signal, plot in self.signal_plots.items():
+            readings = sorted(data[signal], key=lambda item: item[0])
+            count += len(readings)
+            plot.set_points([
+                (max(0.0, (timestamp - start).total_seconds()), value)
+                for timestamp, value in readings
+            ] if start else [])
+
         self.data_path = path
         subtitle = (
             f"{path.name} · {count} lecturas guardadas"

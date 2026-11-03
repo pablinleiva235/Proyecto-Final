@@ -82,6 +82,7 @@ class MaintainerScreen(QWidget):
     lamps13_requested = pyqtSignal(float)
     lamp2_requested = pyqtSignal(bool)
     plasma_requested = pyqtSignal(bool)
+    maintenance_record_toggle_requested = pyqtSignal()
 
     INPUT_DIRECTION = "IN"
     OUTPUT_DIRECTION = "OUT"
@@ -209,6 +210,11 @@ class MaintainerScreen(QWidget):
         self.back_button.setObjectName(
             "BackButton"
         )
+        self.maintenance_record_button = QPushButton(myStr.MAINTENANCE_RECORD_START)
+        self.maintenance_record_button.setObjectName("MaintenanceRecordButton")
+        self.maintenance_record_button.setCheckable(True)
+        self._navigation_buttons_initialized = False
+        self._sync_navigation_button_sizes()
         self.operation_status_label = QLabel("")
         self.operation_status_label.setWordWrap(True)
         self.operation_status_label.setObjectName("MaintainerOperationStatus")
@@ -235,6 +241,7 @@ class MaintainerScreen(QWidget):
         )
 
         navigation_layout.addStretch()
+        navigation_layout.addWidget(self.maintenance_record_button)
         navigation_layout.addWidget(
             self.back_button
         )
@@ -261,6 +268,9 @@ class MaintainerScreen(QWidget):
 
         self.back_button.clicked.connect(
             self.back_requested.emit
+        )
+        self.maintenance_record_button.clicked.connect(
+            self.maintenance_record_toggle_requested.emit
         )
 
         # Pruebas funcionales.
@@ -756,6 +766,39 @@ class MaintainerScreen(QWidget):
                 "on" if enabled else "off",
                 myStr.tr(status_text),
             )
+
+    def set_maintenance_recording(self, active, message=""):
+        self.maintenance_record_button.blockSignals(True)
+        self.maintenance_record_button.setChecked(bool(active))
+        self.maintenance_record_button.setText(
+            myStr.MAINTENANCE_RECORD_STOP if active else myStr.MAINTENANCE_RECORD_START
+        )
+        self.maintenance_record_button.blockSignals(False)
+        self._sync_navigation_button_sizes()
+        if message:
+            self.set_operation_message(message, is_error=not active)
+
+    def _sync_navigation_button_sizes(self):
+        record_text_width = max(
+            self.maintenance_record_button.fontMetrics().horizontalAdvance(text)
+            for text in (myStr.MAINTENANCE_RECORD_START, myStr.MAINTENANCE_RECORD_STOP)
+        )
+        width = record_text_width + 72
+        if not self._navigation_buttons_initialized:
+            shared_width = max(
+                self.back_button.fontMetrics().horizontalAdvance(myStr.BACK_BUTTON_TEXT),
+                record_text_width,
+            ) + 48
+            height = max(
+                self.back_button.sizeHint().height(),
+                self.maintenance_record_button.sizeHint().height(),
+            )
+            self.back_button.setFixedSize(shared_width, height)
+            self.maintenance_record_button.setFixedSize(shared_width, height)
+            self._navigation_buttons_initialized = True
+        self.maintenance_record_button.setFixedSize(
+            width, self.maintenance_record_button.height()
+        )
 
     def set_mfc_flow(self, name, flow):
         card = self.mfc1_card if name == "MFC1" else self.mfc2_card

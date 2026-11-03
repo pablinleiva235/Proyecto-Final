@@ -104,6 +104,47 @@ class StatisticsScreenTests(unittest.TestCase):
             self.assertIn("No se pudo cargar", screen.subtitle_label.text())
             self.assertIn(bad.name, screen.subtitle_label.text())
 
+    def test_loads_maintenance_csv_and_plots_all_recorded_signals(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            path = directory / "mantenimiento_1.csv"
+            path.write_text(
+                "timestamp,pressure_Torr,temperature_C,MFC1_flow_SLPM,MFC2_flow_SLPM,"
+                "throttle_position_steps,plasma_state\n"
+                "2026-11-03T12:00:00-03:00,0.2,30,1.1,0.3,20,OFF\n"
+                "2026-11-03T12:00:01-03:00,0.3,31,1.2,0.4,21,ON\n",
+                encoding="utf-8",
+            )
+            with patch.object(statistics_module, "MAINTENANCE_DATA_DIRECTORY", directory):
+                screen = StatisticsScreen(data_path=path)
+
+            self.assertEqual(screen.pressure_plot.points, [(0.0, 0.2), (1.0, 0.3)])
+            self.assertEqual(screen.temperature_plot.points, [(0.0, 30.0), (1.0, 31.0)])
+            self.assertEqual(screen.mfc1_plot.points, [(0.0, 1.1), (1.0, 1.2)])
+            self.assertEqual(screen.mfc2_plot.points, [(0.0, 0.3), (1.0, 0.4)])
+            self.assertEqual(screen.throttle_plot.points, [(0.0, 20.0), (1.0, 21.0)])
+            self.assertEqual(screen.plasma_plot.points, [(0.0, 0.0), (1.0, 1.0)])
+
+    def test_latest_data_includes_maintenance_logs(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            recipe = directory / "recipe_data_1.csv"
+            maintenance = directory / "mantenimiento_1.csv"
+            self._write_csv(recipe, 0.5)
+            maintenance.write_text(
+                "timestamp,pressure_Torr\n2026-11-03T12:00:00-03:00,0.8\n",
+                encoding="utf-8",
+            )
+            os.utime(recipe, (1000, 1000))
+            os.utime(maintenance, (2000, 2000))
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory), \
+                    patch.object(statistics_module, "RECIPE_DATA_PATH", directory / "recipe_data.csv"), \
+                    patch.object(statistics_module, "MAINTENANCE_DATA_DIRECTORY", directory):
+                screen = StatisticsScreen()
+
+            self.assertEqual(screen.data_path, maintenance)
+            self.assertEqual(screen.pressure_plot.points, [(0.0, 0.8)])
+
 
 if __name__ == "__main__":
     unittest.main()

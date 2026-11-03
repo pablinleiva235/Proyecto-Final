@@ -253,6 +253,8 @@ STATISTICS_PLACEHOLDER = "Pantalla temporal de estadísticas"
 STATISTICS_LOAD_DATA_TEXT = "Cargar datos"
 STATISTICS_NO_DATA = "No hay datos guardados de una receta ejecutada."
 STATISTICS_LOAD_ERROR = "No se pudo cargar el archivo: {filename}"
+MAINTENANCE_RECORD_START = "Guardar valores"
+MAINTENANCE_RECORD_STOP = "Detener y guardar"
 
 
 # =============================================================================

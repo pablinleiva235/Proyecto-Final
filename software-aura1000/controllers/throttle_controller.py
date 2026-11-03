@@ -29,6 +29,7 @@ class ThrottleController(QObject):
         self._position_steps = None
         self._automatic_mode = False
         self._homing_active = False
+        self._open_only = False
         self._safety_return_active = False
         self._remaining_steps = None
         self._motion_half_step = False
@@ -239,6 +240,7 @@ class ThrottleController(QObject):
         if not self._can_operate():
             raise RuntimeError("El posicionamiento requiere vacío principal activo y puerta cerrada.")
         self._automatic_mode = True
+        self._open_only = False
         self._remaining_steps = None
         # debugg de control de presion y throttle
         print(
@@ -292,8 +294,74 @@ class ThrottleController(QObject):
             return False
         return self._safety_return_active
 
+    def return_to_open_for_safety(self):
+        """Stops current motion and performs a bounded return to THROTTLE_OPEN."""
+        if self._safety_return_active:
+            raise RuntimeError("Ya hay un retorno de seguridad de la throttle en curso.")
+        if not self._automatic_mode and not self._timer.isActive():
+            self._sample_limit_states_debounced()
+            if self._limit_stable["THROTTLE_OPEN"]:
+                self._set_position_steps(0.0)
+                self.safety_return_finished.emit(
+                    True, "La throttle ya está en el límite totalmente abierto."
+                )
+                return False
+        if self._automatic_mode:
+            stopped = self.stop_pressure_motion(release=True)
+        else:
+            stopped = self._safe_stop()
+        if not stopped:
+            raise RuntimeError("No se pudo confirmar la detención previa de la throttle.")
+        if not self._can_operate():
+            raise RuntimeError(
+                "No se puede abrir completamente la throttle sin interlocks de operación confirmados."
+            )
+
+        self._safety_return_active = True
+        self._safety_return_timer.start(self.HOMING_TIMEOUT_MS)
+        try:
+            self._automatic_mode = True
+            self._open_only = True
+            self._homing_active = False
+            self._closing = False
+            self._sample_limit_states_debounced()
+            if self._limit_stable["THROTTLE_OPEN"]:
+                self._set_position_steps(0.0)
+                self._homing_active = False
+                self._complete_safety_return(True, "La throttle llegó al límite totalmente abierto.")
+            else:
+                self._homing_active = True
+                self._homing_timer.start(self.HOMING_TIMEOUT_MS)
+                self._start_motion(False, self.PULSE_INTERVAL_MS)
+                if not self._timer.isActive() and self._safety_return_active:
+                    self._fail_automatic_motion("No se pudo iniciar el homing hacia THROTTLE_OPEN.")
+        except Exception as error:
+            self._complete_safety_return(False, str(error))
+            return False
+        return self._safety_return_active
+
     def _move_to_rest_position(self):
         self.move_to_rest_position()
+
+    def move_to_open_position(self):
+        """Moves the reserved pressure controller to the confirmed open limit."""
+        if not self._automatic_mode:
+            raise RuntimeError("El control automático de presión no reservó la throttle.")
+        self._open_only = True
+        self._homing_active = False
+        self._sample_limit_states_debounced()
+        if self._limit_stable["THROTTLE_OPEN"]:
+            self._set_position_steps(0.0)
+            self._homing_active = False
+            self._homing_timer.stop()
+            self.initial_position_reached.emit()
+            return
+        self._homing_active = True
+        self._closing = False
+        self._homing_timer.start(self.HOMING_TIMEOUT_MS)
+        self._start_motion(False, self.PULSE_INTERVAL_MS)
+        if not self._timer.isActive() and self._automatic_mode and self._homing_active:
+            self._fail_automatic_motion("No se pudo iniciar el homing hacia THROTTLE_OPEN.")
 
     def move_to_rest_position(self):
         """Reposiciona a 400 pasos mientras la presión mantiene reservado el motor."""
@@ -372,6 +440,7 @@ class ThrottleController(QObject):
         self._closing = None
         self._remaining_steps = None
         self._homing_active = False
+        self._open_only = False
         if release:
             self._automatic_mode = False
         self.movement_changed.emit(False, "detenido")
@@ -394,6 +463,7 @@ class ThrottleController(QObject):
         self.stop_pressure_motion()
         self._set_position_steps(None)
         self._homing_active = False
+        self._open_only = False
         if safety_return:
             self.safety_return_finished.emit(False, message)
         else:
@@ -489,7 +559,16 @@ class ThrottleController(QObject):
                         self._homing_timer.stop()
                         self._set_position_steps(0.0)
                         self._homing_active = False
-                        self._move_to_rest_position()
+                        if self._open_only:
+                            self._open_only = False
+                            if self._safety_return_active:
+                                self._complete_safety_return(
+                                    True, "La throttle llegó al límite totalmente abierto."
+                                )
+                            else:
+                                self.initial_position_reached.emit()
+                        else:
+                            self._move_to_rest_position()
                 elif self._automatic_mode:
                     self._fail_automatic_motion("Se alcanzó un final de carrera antes de completar el movimiento.")
                 else:
@@ -616,6 +695,10 @@ class ThrottleController(QObject):
         for name in ("THROTTLE_OPEN", "THROTTLE_CLOSED"):
             self._record_limit_sample(name, self._hardware.digital_read(name))
 
+    def _sample_limit_states_debounced(self):
+        for _ in range(self.LIMIT_DEBOUNCE_READS):
+            self._sample_limit_states()
+
     def _record_limit_sample(self, name, active):
         active = bool(active)
         if active:
@@ -645,7 +728,16 @@ class ThrottleController(QObject):
                 ):
                     self._homing_timer.stop()
                     self._homing_active = False
-                    self._move_to_rest_position()
+                    if self._open_only:
+                        self._open_only = False
+                        if self._safety_return_active:
+                            self._complete_safety_return(
+                                True, "La throttle llegó al límite totalmente abierto."
+                            )
+                        else:
+                            self.initial_position_reached.emit()
+                    else:
+                        self._move_to_rest_position()
 
     def _set_position_steps(self, position):
         if position == self._position_steps:

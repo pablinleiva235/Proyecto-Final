@@ -640,28 +640,24 @@ class RecipeSequence(QObject):
             except Exception as error:
                 self._shutdown_errors.append(str(error))
 
-        if return_throttle_to_rest:
-            if self.throttle is None:
+        if self.throttle is None:
+            self._shutdown_errors.append(
+                "No hay un controlador de throttle para ordenar la apertura total."
+            )
+        else:
+            self._waiting_for_throttle_rest = True
+            try:
+                started = self.throttle.return_to_open_for_safety()
+            except Exception as error:
+                self._waiting_for_throttle_rest = False
                 self._shutdown_errors.append(
-                    "No hay un controlador de throttle para ordenar el retorno a reposo."
+                    f"No se pudo iniciar la apertura total de la throttle: {error}"
                 )
             else:
-                self._waiting_for_throttle_rest = True
-                try:
-                    started = self.throttle.return_to_rest_for_safety()
-                except Exception as error:
-                    self._waiting_for_throttle_rest = False
-                    self._shutdown_errors.append(
-                        f"No se pudo iniciar el retorno de throttle a reposo: {error}"
-                    )
-                else:
-                    # Completion can be synchronous if throttle is already at rest.
-                    if started or not self._waiting_for_throttle_rest:
-                        return
-                    self._waiting_for_throttle_rest = False
-                    self._shutdown_errors.append(
-                        "No se pudo iniciar el retorno de throttle a reposo."
-                    )
+                # Completion can be synchronous when the open limit is already active.
+                if started or not self._waiting_for_throttle_rest:
+                    return
+                self._waiting_for_throttle_rest = False
 
         self._continue_shutdown_after_process()
 
@@ -688,11 +684,11 @@ class RecipeSequence(QObject):
         self._waiting_for_throttle_rest = False
         if self._recipe_log is not None and not self._logging_failed:
             self._log_event(
-                f"Retorno de throttle a reposo: {'OK' if success else 'ERROR'} | {message}"
+                f"Apertura total de throttle: {'OK' if success else 'ERROR'} | {message}"
             )
         if not success:
             self._shutdown_errors.append(message)
-        QTimer.singleShot(0, self._continue_shutdown_after_process)
+        self._continue_shutdown_after_process()
 
     def _continue_shutdown_after_process(self):
         if (

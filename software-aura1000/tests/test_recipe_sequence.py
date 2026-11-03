@@ -115,6 +115,7 @@ class Throttle(QObject):
         super().__init__()
         self.position_steps = 400.0
         self.return_calls = 0
+        self.open_calls = 0
         self.complete_return_automatically = False
 
     @property
@@ -128,6 +129,12 @@ class Throttle(QObject):
             self.safety_return_finished.emit(True, "La throttle llegó a reposo.")
             return False
         return True
+
+    def return_to_open_for_safety(self):
+        self.open_calls += 1
+        self.position_steps = 0.0
+        self.safety_return_finished.emit(True, "La throttle llegó al límite totalmente abierto.")
+        return False
 
     def complete_return(self, success=True):
         if success:
@@ -463,20 +470,25 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.sequence.state, RecipeState.STOPPING_PROCESS)
         self.assertEqual(self.vent.start_calls, 0)
         self.assertTrue(throttle._timer.isActive())
+        self.assertEqual(self.main.state, MainVacuumState.RUNNING)
+        hardware.set_input_state("THROTTLE_OPEN", True)
         for _ in range(8):
             if not throttle._timer.isActive():
                 break
             throttle._pulse()
         self.app.processEvents()
 
-        self.assertEqual(throttle.position_steps, 400.0)
+        self.assertEqual(throttle.position_steps, 0.0)
+        self.assertTrue(throttle._limit_stable["THROTTLE_OPEN"])
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
+        self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.vent.start_calls, 1)
         self._finish_with_door_open()
 
     def test_process_alarm_continues_shutdown_when_throttle_interlock_is_lost(self):
         hardware = MockHardware()
         hardware.digital_set("DRIVER_ENABLE", True)
+        hardware.set_input_state("THROTTLE_OPEN", False)
         throttle = ThrottleController(hardware, can_operate=lambda: False)
         throttle._position_steps = 398.0
         self.sequence.throttle = throttle

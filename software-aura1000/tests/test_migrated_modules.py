@@ -415,9 +415,10 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertEqual(throttle._timer.interval(), 10)
         pressure.stop(return_to_rest=False)
 
-    def test_pressure_stop_returns_to_rest_but_abort_does_not(self):
+    def test_pressure_stop_returns_fully_open_but_abort_does_not(self):
         throttle = ThrottleController(self.hardware, can_operate=lambda: True)
         pressure = PressureController(throttle, can_operate=lambda: True)
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         self.hardware.set_input_state("THROTTLE_OPEN", False)
         self.hardware.set_input_state("THROTTLE_CLOSED", False)
         throttle._position_steps = 390.0
@@ -426,10 +427,13 @@ class MigratedModulesTests(unittest.TestCase):
         pressure._state = "regulando"
         pressure.stop()
         self.assertEqual(pressure.state, "reposicionando")
-        self.assertEqual(throttle._remaining_steps, 10)
+        self.assertTrue(throttle._homing_active)
+        self.assertFalse(self.hardware.digital_read("STEPPER_DIR"))
+        self.hardware.set_input_state("THROTTLE_OPEN", True)
         for _ in range(20):
             throttle._pulse()
-        self.assertEqual(throttle.position_steps, 400.0)
+        self.assertEqual(throttle.position_steps, 0.0)
+        self.assertTrue(throttle._limit_stable["THROTTLE_OPEN"])
         self.assertEqual(pressure.state, "detenido")
         self.assertFalse(throttle._automatic_mode)
         self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
@@ -442,6 +446,20 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertEqual(throttle.position_steps, 390.0)
         self.assertEqual(pressure.state, "detenido")
         self.assertFalse(throttle._timer.isActive())
+
+    def test_safety_open_return_skips_motor_when_open_limit_is_active(self):
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        self.hardware.set_input_state("THROTTLE_OPEN", True)
+        results = []
+        throttle.safety_return_finished.connect(lambda *result: results.append(result))
+
+        started = throttle.return_to_open_for_safety()
+
+        self.assertFalse(started)
+        self.assertEqual(throttle.position_steps, 0.0)
+        self.assertFalse(throttle.is_moving)
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0][0])
 
     def test_maintainer_exposes_step_controls(self):
         screen = MaintainerScreen()

@@ -121,10 +121,10 @@ class PressureController(QObject):
             self.operation_error.emit(str(error))
 
     def stop(self, return_to_rest=True):
-        """Detiene el lazo; en parada normal retorna a reposo si es seguro."""
+        """Detiene el lazo; en parada normal abre totalmente la throttle si es seguro."""
         # debugg de control de presion y throttle
         print(
-            f"[PRESIÓN] Solicitud de detención; retorno a reposo="
+            f"[PRESIÓN] Solicitud de detención; retorno a apertura total="
             f"{'sí' if return_to_rest else 'no'}."
         )
         if self._state == "reposicionando":
@@ -144,7 +144,7 @@ class PressureController(QObject):
                 self._set_state("reposicionando")
                 self._watchdog.start()
                 try:
-                    self._throttle.move_to_rest_position()
+                    self._throttle.move_to_open_position()
                 except Exception as error:
                     self._stop_with_error(str(error))
                     return

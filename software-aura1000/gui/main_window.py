@@ -456,8 +456,7 @@ class MainWindow(QMainWindow):
         self.mfc_controller.plasma_disable_requested.connect(
             lambda: self.process_controller.set_plasma(False)
         )
-        self.maintainer_screen.throttle_move_requested.connect(self.throttle_controller.start)
-        self.maintainer_screen.throttle_stop_requested.connect(self.throttle_controller.stop)
+        self.maintainer_screen.throttle_move_requested.connect(self._toggle_manual_throttle)
         self.maintainer_screen.throttle_steps_requested.connect(
             self.throttle_controller.move_steps
         )
@@ -1000,6 +999,12 @@ class MainWindow(QMainWindow):
                     "No se pudo completar la calibración de {name}. No se guardó un offset nuevo. Motivo: {error}"
                 ).format(name=name, error=error or "Error desconocido")
             QMessageBox.warning(self, title, message, QMessageBox.Ok)
+
+    def _toggle_manual_throttle(self, closing):
+        if self.throttle_controller.is_moving:
+            self.throttle_controller.stop()
+        else:
+            self.throttle_controller.start(closing)
 
     def _handle_throttle_error(self, message):
         self.maintainer_screen.set_throttle_moving(False, "detenido")

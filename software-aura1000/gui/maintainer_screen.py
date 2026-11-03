@@ -73,7 +73,6 @@ class MaintainerScreen(QWidget):
     mfc_valve_requested = pyqtSignal(str, bool)
     mfc_calibration_requested = pyqtSignal(str, float)
     throttle_move_requested = pyqtSignal(bool)
-    throttle_stop_requested = pyqtSignal()
     throttle_steps_requested = pyqtSignal(bool, int, bool)
     pressure_start_requested = pyqtSignal(float)
     pressure_stop_requested = pyqtSignal()
@@ -302,10 +301,8 @@ class MaintainerScreen(QWidget):
         self.mfc2_card.valve_requested.connect(self.mfc_valve_requested.emit)
         self.mfc1_card.calibration_requested.connect(self.mfc_calibration_requested.emit)
         self.mfc2_card.calibration_requested.connect(self.mfc_calibration_requested.emit)
-        self.throttle_open_button.pressed.connect(lambda: self.throttle_move_requested.emit(False))
-        self.throttle_close_button.pressed.connect(lambda: self.throttle_move_requested.emit(True))
-        self.throttle_open_button.released.connect(self.throttle_stop_requested.emit)
-        self.throttle_close_button.released.connect(self.throttle_stop_requested.emit)
+        self.throttle_open_button.clicked.connect(lambda: self.throttle_move_requested.emit(False))
+        self.throttle_close_button.clicked.connect(lambda: self.throttle_move_requested.emit(True))
         self.throttle_open_steps_button.clicked.connect(
             lambda: self.throttle_steps_requested.emit(
                 False, self.throttle_step_count.value(), self.throttle_step_mode.currentIndex() == 1

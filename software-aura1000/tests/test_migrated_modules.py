@@ -674,6 +674,61 @@ class MigratedModulesTests(unittest.TestCase):
         screen.mfc1_card.setpoint.setValue(2.0)
         self.assertAlmostEqual(screen.pressure_setpoint.minimum(), 1.51)
 
+    def test_maintainer_allows_plasma_during_temperature_control(self):
+        screen = MaintainerScreen()
+        screen.set_module_controls_enabled(True)
+
+        for state in ("precalentando", "manteniendo"):
+            screen.set_temperature_control_state(state)
+            self.assertTrue(screen.plasma_button.isEnabled())
+            self.assertFalse(screen.lamps13_button.isEnabled())
+            self.assertFalse(screen.lamp2_button.isEnabled())
+
+            # Una actualización de habilitación general conserva la regla.
+            screen.set_module_controls_enabled(True)
+            self.assertTrue(screen.plasma_button.isEnabled())
+
+        screen.set_module_controls_enabled(False)
+        self.assertFalse(screen.plasma_button.isEnabled())
+
+    def test_temperature_control_still_rejects_start_when_plasma_is_active(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(
+            self.hardware,
+            can_operate=lambda: True,
+            can_enable_plasma=lambda: True,
+        )
+        process.set_plasma(True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        errors = []
+        temperature.operation_error.connect(errors.append)
+
+        temperature.start(180.0)
+
+        self.assertFalse(temperature.is_active)
+        self.assertTrue(process.plasma_active)
+        self.assertTrue(any("Apague el plasma" in error for error in errors))
+
+    def test_temperature_stop_still_turns_lamps_off_if_plasma_off_fails(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        errors = []
+        temperature.operation_error.connect(errors.append)
+
+        with patch.object(process, "set_plasma", side_effect=RuntimeError("RF write failed")):
+            temperature.stop()
+
+        self.assertFalse(temperature.is_active)
+        self.assertTrue(all(
+            not self.hardware.digital_read(signal)
+            for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD")
+        ))
+        self.assertTrue(any("No se pudo apagar el plasma" in error for error in errors))
+
     def test_temperature_ramp_and_hysteresis_use_managed_lamp_outputs(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)
         process = ProcessController(self.hardware, can_operate=lambda: True)
@@ -718,7 +773,10 @@ class MigratedModulesTests(unittest.TestCase):
             temperature.set_temperature_reading(177.0)
         self.assertEqual(reached, [180.0])
 
+        process.set_plasma(True)
         temperature.stop()
+        self.assertFalse(process.plasma_active)
+        self.assertFalse(self.hardware.digital_read("RF_ON_CMD"))
         for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD"):
             self.assertFalse(self.hardware.digital_read(signal))
 
@@ -732,11 +790,14 @@ class MigratedModulesTests(unittest.TestCase):
         temperature.set_temperature_reading(100.0)
         temperature.start(180.0)
         self.assertTrue(temperature.is_active)
+        process.set_plasma(True)
 
         allowed[0] = False
         temperature._check_runtime_conditions()
 
         self.assertFalse(temperature.is_active)
+        self.assertFalse(process.plasma_active)
+        self.assertFalse(self.hardware.digital_read("RF_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))

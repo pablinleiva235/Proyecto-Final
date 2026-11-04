@@ -127,6 +127,7 @@ class ProcessController(QObject):
                 self._plasma_started_at = time.monotonic()
                 self._plasma_grace_debug_reported = False
                 self.state_changed.emit("plasma", True)
+                return True
             except Exception as error:
                 try:
                     self._write("RF_ON_CMD", False)
@@ -138,9 +139,9 @@ class ProcessController(QObject):
                 # debugg de contorl de lamparas y plasma
                 print(f"[PLASMA] Error al activar: {error}")
                 self.operation_error.emit("Plasma", str(error))
+                return False
         else:
-            self._set_output("RF_ON_CMD", "plasma", False)
-            self._plasma_started_at = 0.0
+            return self._set_output("RF_ON_CMD", "plasma", False)
 
     def check_faults(self):
         def read_fault_input(signal_name):

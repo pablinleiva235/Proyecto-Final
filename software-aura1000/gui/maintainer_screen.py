@@ -894,7 +894,7 @@ class MaintainerScreen(QWidget):
         self.temperature_setpoint.setEnabled(enabled and not temperature_active)
         self.lamps13_button.setEnabled(enabled and not temperature_active)
         self.lamp2_button.setEnabled(enabled and not temperature_active)
-        self.plasma_button.setEnabled(enabled and not temperature_active)
+        self.plasma_button.setEnabled(enabled)
 
     def set_pressure_reading_unavailable(self, message=None):
         self.baratron_readout_card.set_error(
@@ -956,7 +956,7 @@ class MaintainerScreen(QWidget):
         self.temperature_setpoint.setEnabled(controls_enabled and not active)
         self.lamps13_button.setEnabled(controls_enabled and not active)
         self.lamp2_button.setEnabled(controls_enabled and not active)
-        self.plasma_button.setEnabled(controls_enabled and not active)
+        self.plasma_button.setEnabled(controls_enabled)
 
     def set_temperature_control_error(self, message):
         set_localized_text(

@@ -133,7 +133,7 @@ class TemperatureController(QObject):
         self._ramp_active = False
         self._waiting_first_dip = False
         self._post_ramp_above_high = False
-        if not self._turn_lamps_off():
+        if not self._turn_process_outputs_off():
             # debugg de contorl de lamparas y plasma
             print("[TEMP] Error al apagar todas las lámparas durante la detención.")
             self.operation_error.emit("No se pudieron confirmar todas las lámparas apagadas.")
@@ -239,7 +239,7 @@ class TemperatureController(QObject):
         self._ramp_active = False
         self._waiting_first_dip = False
         self._post_ramp_above_high = False
-        if not self._turn_lamps_off():
+        if not self._turn_process_outputs_off():
             message += " No se pudieron confirmar todas las lámparas apagadas; verifique las salidas."
         self._set_state("detenido")
         self.operation_error.emit(message)
@@ -248,6 +248,16 @@ class TemperatureController(QObject):
         outer_lamps_off = self._process.set_lamps13(False)
         center_lamp_off = self._process.set_lamp2(False)
         return outer_lamps_off and center_lamp_off
+
+    def _turn_process_outputs_off(self):
+        try:
+            plasma_result = self._process.set_plasma(False)
+            plasma_off = plasma_result is not False
+        except Exception as error:
+            plasma_off = False
+            self.operation_error.emit(f"No se pudo apagar el plasma: {error}")
+        lamps_off = self._turn_lamps_off()
+        return plasma_off and lamps_off
 
     def _set_state(self, state):
         if self._state != state:

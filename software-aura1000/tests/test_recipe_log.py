@@ -21,7 +21,10 @@ class RecipeLogTests(unittest.TestCase):
             first.close()
             first_run = path.read_text(encoding="utf-8")
             self.assertRegex(first_run, r"^\d{4}-\d\d-\d\dT.*\| FIN DE PLASMA \|")
-            self.assertIn("EOP=1.95 V (lectura 2026-10-26T14:25:31.125-03:00)", first_run)
+            self.assertIn("EOP=1.95 V", first_run)
+            self.assertNotIn("(lectura ", first_run)
+            self.assertNotIn("2026-10-26T14:25:31.125-03:00", first_run)
+            self.assertNotIn("2026-10-26T14:25:30.875-03:00", first_run)
             self.assertIn("BARATRON=0.8 Torr", first_run)
             for name in ANALOG_UNITS:
                 if name not in readings:

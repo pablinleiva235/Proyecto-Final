@@ -6,6 +6,7 @@ description = Limpieza estándar de obleas de silicio
 o2_flow = 6
 n2_flow = 0.5
 base_pressure = 0.06
-process_pressure = 2
+process_pressure = 3
 process_temperature = 180
-rf_max_on_time = 90
+rf_max_on_time = 60
+

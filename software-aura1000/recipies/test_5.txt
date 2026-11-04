@@ -1,6 +1,6 @@
 [RECIPE]
 name = test_5
-description = Limpieza estándar de obleas de silicio
+description = Test 5 de Limpieza
 
 [PARAMETERS]
 o2_flow = 1.5

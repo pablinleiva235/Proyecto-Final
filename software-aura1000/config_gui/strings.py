@@ -184,8 +184,6 @@ RECIPE_ERROR_PROCESS_PRESSURE_MINIMUM = "La presión de proceso debe ser de al m
 RECIPE_ERROR_BASE_PRESSURE_RANGE = "La presión base debe estar entre 0 y 3 Torr."
 RECIPE_ERROR_PROCESS_TEMPERATURE_RANGE = "La temperatura de proceso debe estar entre 130 y 190 °C."
 RECIPE_ERROR_RF_TIME_RANGE = "El tiempo máximo de RF debe ser un número entero entre 1 y 120 segundos (2 minutos)."
-RECIPE_ERROR_PRESSURE_UNAVAILABLE = "No hay una lectura actual de presión de cámara para definir el mínimo de presión base."
-RECIPE_ERROR_BASE_PRESSURE_MINIMUM = "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta."
 RECIPE_VALUES_CLAMPED_MESSAGE = "Estos valores estaban fuera de rango y se ajustaron al límite permitido:\n{details}\nRevise los valores y pulse Guardar nuevamente para guardar la receta."
 RECIPE_VALUE_RANGE_DETAIL = "{label}: ingresado {value} {unit}; rango permitido {minimum}–{maximum} {unit}."
 RECIPE_ERROR_INVALID_LOCATION = "Las recetas deben estar dentro de la carpeta recipies."
@@ -502,8 +500,6 @@ _SPANISH_TO_ENGLISH = {
     "Los parámetros deben ser finitos y no negativos.": "Parameters must be finite and non-negative.",
     "El flujo de O₂ debe estar entre 0 y 10 SLPM.": "O₂ flow must be between 0 and 10 SLPM.",
     "El flujo de N₂ debe estar entre 0 y 1 SLPM.": "N₂ flow must be between 0 and 1 SLPM.",
-    "No hay una lectura actual de presión de cámara para definir el mínimo de presión base.": "A current chamber pressure reading is required to set the minimum base pressure.",
-    "La presión de cámara debe ser de 3 Torr o menos antes de guardar la receta.": "Chamber pressure must be 3 Torr or less before saving the recipe.",
     "Estos valores estaban fuera de rango y se ajustaron al límite permitido:\n{details}\nRevise los valores y pulse Guardar nuevamente para guardar la receta.": "These values were out of range and have been adjusted to the allowed limit:\n{details}\nReview them and click Save again to save the recipe.",
     "{label}: ingresado {value} {unit}; rango permitido {minimum}–{maximum} {unit}.": "{label}: entered {value} {unit}; allowed range {minimum}–{maximum} {unit}.",
     "Las recetas deben estar dentro de la carpeta recipies.": "Recipes must be inside the recipies folder.",

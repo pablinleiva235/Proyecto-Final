@@ -16,6 +16,7 @@ from controllers.throttle_controller import ThrottleController
 from controllers.temperature_controller import TemperatureController
 from config.pressure_limits import minimum_process_pressure
 from gui.maintainer_screen import MaintainerScreen
+from gui.recipe_dialogs import RecipeEditorDialog
 from gui.widgets.localization import translate_widget_tree
 import config_gui.strings as strings
 from services.recipe_service import Recipe, RecipeError, RecipeService
@@ -691,6 +692,32 @@ class MigratedModulesTests(unittest.TestCase):
             service.validate(recipe)
         recipe.process_pressure = 1.14
         service.validate(recipe)
+
+    def test_recipe_editor_saves_without_baratron_reading(self):
+        recipe = Recipe(
+            name="",
+            description="",
+            o2_flow=1.0,
+            n2_flow=0.1,
+            base_pressure=2.0,
+            process_pressure=2.0,
+            process_temperature=150.0,
+        )
+        with TemporaryDirectory() as folder:
+            service = RecipeService(folder)
+            editor = RecipeEditorDialog(
+                recipe,
+                save_callback=lambda candidate: service.save(candidate),
+            )
+            editor.name_edit.setText("dos_torr")
+            editor.description_edit.setText("sin lectura BARATRON")
+            with patch("gui.recipe_dialogs.QMessageBox.warning") as warning:
+                editor._accept_recipe()
+            warning.assert_not_called()
+            self.assertEqual(editor.result(), editor.Accepted)
+            self.assertEqual(editor.recipe.base_pressure, 2.0)
+            self.assertTrue(editor.recipe.source_path.is_file())
+            editor.close()
 
     def test_recipe_rf_time_defaults_for_legacy_files_and_round_trips(self):
         with TemporaryDirectory() as folder:

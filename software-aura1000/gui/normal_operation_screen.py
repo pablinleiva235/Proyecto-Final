@@ -103,7 +103,6 @@ class NormalOperationScreen(QWidget):
         self._readouts = {}
         self._recipe_service = RecipeService()
         self._active_recipe = None
-        self._chamber_pressure = None
         self._recipe_running = False
         self.create_widgets()
         self.setup_layout()
@@ -303,8 +302,6 @@ class NormalOperationScreen(QWidget):
         if readout is None:
             return
         value = float(value)
-        if signal_name == "BARATRON":
-            self._chamber_pressure = value
         readout["value"].setProperty("i18nSourceText_text", None)
         readout["value"].setText(f"{value:.{readout['decimals']}f}")
         readout["value"].setToolTip("")
@@ -313,8 +310,6 @@ class NormalOperationScreen(QWidget):
         readout = self._readouts.get(signal_name)
         if readout is None:
             return
-        if signal_name == "BARATRON":
-            self._chamber_pressure = None
         set_localized_text(readout["value"], text.OPERATION_READING_ERROR)
         readout["value"].setToolTip(str(message))
 
@@ -330,8 +325,7 @@ class NormalOperationScreen(QWidget):
             return
 
         dialog = RecipeEditorDialog(
-            recipe, self, pressure_min=self._chamber_pressure,
-            save_callback=self._save_recipe_to_disk,
+            recipe, self, save_callback=self._save_recipe_to_disk,
         )
         if dialog.exec_() == dialog.Accepted:
             self._set_active_recipe(dialog.recipe)
@@ -386,7 +380,6 @@ class NormalOperationScreen(QWidget):
                 recipe_to_edit,
                 self,
                 allow_name_edit=is_template,
-                pressure_min=self._chamber_pressure,
                 save_callback=self._save_recipe_to_disk,
             )
             if editor.exec_() == editor.Accepted:

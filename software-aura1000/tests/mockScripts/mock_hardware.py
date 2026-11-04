@@ -10,6 +10,12 @@ from config.digital_signals import DIGITALSIGNALS
 
 class MockHardware:
 
+    _BARATRON_PRESSURES = {
+        "ATM_SWITCH": 10.0,
+        "SOFT_START_CONTROL": 0.1,
+        "MAIN_VACUUM_CONTROL": 0.06,
+    }
+
     def __init__(self):
         self._digital_states = {
             name: (signal["initial_state"] == signal["active_state"])
@@ -48,7 +54,9 @@ class MockHardware:
         if signal["dir"] != "OUT":
             raise ValueError(f"La señal {signal_name} no está configurada como salida.")
 
-        self._digital_states[signal_name] = bool(active)
+        active = bool(active)
+        self._digital_states[signal_name] = active
+        self._update_simulated_pressure(signal_name, active)
 
     def initialize_DIO(self):
         """Inicializa el estado lógico de salidas como el hardware real."""
@@ -73,7 +81,18 @@ class MockHardware:
             raise KeyError(f"Señal digital no configurada: {signal_name}")
         if signal["dir"] != "IN":
             raise ValueError(f"La señal {signal_name} no está configurada como entrada.")
-        self._digital_states[signal_name] = bool(active)
+        active = bool(active)
+        self._digital_states[signal_name] = active
+        self._update_simulated_pressure(signal_name, active)
+
+    def _update_simulated_pressure(self, signal_name, active):
+        """Update BARATRON when ATM or a simulated vacuum pump is activated."""
+        if not active or signal_name not in self._BARATRON_PRESSURES:
+            return
+
+        self._analog_values["BARATRON"] = self._BARATRON_PRESSURES[signal_name]
+        if signal_name in ("SOFT_START_CONTROL", "MAIN_VACUUM_CONTROL"):
+            self._digital_states["ATM_SWITCH"] = False
 
     def initialize_AD(self):
         """Simula la inicialización de la placa analógica."""

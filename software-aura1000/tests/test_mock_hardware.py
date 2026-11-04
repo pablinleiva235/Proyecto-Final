@@ -28,6 +28,27 @@ class MockHardwareTests(unittest.TestCase):
         self.hardware.set_input_state("ATM_SWITCH", not initial_state)
         self.assertEqual(self.hardware.digital_read("ATM_SWITCH"), not initial_state)
 
+    def test_atm_switch_sets_baratron_pressure_and_pressure_is_retained(self):
+        self.hardware.set_input_state("ATM_SWITCH", True)
+
+        self.assertEqual(self.hardware.analog_read("BARATRON"), 10.0)
+        self.hardware.set_input_state("ATM_SWITCH", False)
+        self.assertEqual(self.hardware.analog_read("BARATRON"), 10.0)
+
+    def test_soft_vacuum_sets_pressure_and_deactivates_atm_switch(self):
+        self.hardware.set_input_state("ATM_SWITCH", True)
+        self.hardware.digital_set("SOFT_START_CONTROL", True)
+
+        self.assertEqual(self.hardware.analog_read("BARATRON"), 0.1)
+        self.assertFalse(self.hardware.digital_read("ATM_SWITCH"))
+
+    def test_main_vacuum_sets_pressure_and_deactivates_atm_switch(self):
+        self.hardware.set_input_state("ATM_SWITCH", True)
+        self.hardware.digital_set("MAIN_VACUUM_CONTROL", True)
+
+        self.assertEqual(self.hardware.analog_read("BARATRON"), 0.06)
+        self.assertFalse(self.hardware.digital_read("ATM_SWITCH"))
+
     def test_input_setter_rejects_outputs(self):
         with self.assertRaises(ValueError):
             self.hardware.set_input_state("DRIVER_ENABLE", True)

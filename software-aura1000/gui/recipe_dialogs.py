@@ -36,12 +36,10 @@ class RecipeEditorDialog(QDialog):
         recipe,
         parent=None,
         allow_name_edit=True,
-        pressure_min=None,
         save_callback=None,
     ):
         super().__init__(parent)
         self._recipe = recipe
-        self._pressure_min = pressure_min
         self._save_callback = save_callback
         self.setObjectName("RecipeEditorDialog")
         self.setWindowTitle(text.tr(text.RECIPE_EDITOR_TITLE))
@@ -122,17 +120,10 @@ class RecipeEditorDialog(QDialog):
             return
         values["rf_max_on_time"] = int(rf_time)
 
-        if self._pressure_min is None or not math.isfinite(float(self._pressure_min)):
-            self._show_invalid(text.RECIPE_ERROR_PRESSURE_UNAVAILABLE)
-            return
-        if self._pressure_min > 3:
-            self._show_invalid(text.RECIPE_ERROR_BASE_PRESSURE_MINIMUM)
-            return
-
         limits = {
             "o2_flow": (0.0, 6.5),
             "n2_flow": (0.1, 0.65),
-            "base_pressure": (float(self._pressure_min), 3.0),
+            "base_pressure": (0.0, 3.0),
             "process_pressure": (minimum_process_pressure(values["o2_flow"]), 3.0),
             "process_temperature": (130.0, 190.0),
         }

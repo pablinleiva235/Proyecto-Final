@@ -139,8 +139,8 @@ class RecipeLog:
             if reading is None:
                 parts.append(f"{name}=NO DISPONIBLE")
             else:
-                value, read_at = reading
-                parts.append(f"{name}={value:g} {unit} (lectura {read_at})")
+                value, _read_at = reading
+                parts.append(f"{name}={value:g} {unit}")
         event = str(event).replace("\r", " ").replace("\n", " ")
         output_text = self._format_outputs(outputs or {})
         line = f"{timestamp} | {event} | Salidas: {output_text} | " + "; ".join(parts) + "\n"

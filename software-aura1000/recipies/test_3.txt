@@ -1,11 +1,12 @@
 [RECIPE]
 name = test_3
-description = Test 3 de Limpieza 
+description = Test 3 de Limpieza
 
 [PARAMETERS]
-o2_flow = 2
-n2_flow = 0.2
+o2_flow = 3
+n2_flow = 0.3
 base_pressure = 0.09
-process_pressure = 2.0
-process_temperature = 140
+process_pressure = 2
+process_temperature = 150
 rf_max_on_time = 60
+

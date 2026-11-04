@@ -16,7 +16,7 @@
 El orden de `start()` es: emitir inicio/progreso cero, activar y comprobar `POWER_ON`, activar y comprobar `FILAMENT_ENABLE`, comprobar otra vez `POWER_ON`, inicializar el subsistema analógico si `initialize_analog=True` y comenzar el timer.
 
 ```python
-STARTUP_DURATION_MS = 3_000
+STARTUP_DURATION_MS = 30_000
 TIMER_INTERVAL_MS = 100
 ```
 

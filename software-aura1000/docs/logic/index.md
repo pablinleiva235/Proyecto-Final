@@ -1,19 +1,57 @@
-# Capa de Lógica Intermedia y Control Secuencial (`/logic`)
+# Controladores y secuencias
 
-Aloja la inteligencia operacional, las rutinas de tiempo y los procesos algorítmicos secuenciales del sistema. Esta capa actúa como un puente intermedio de control: recibe la referencia de la interfaz de usuario (`MainWindow`) y de la capa de servicios (`Hardware`) para interactuar con los periféricos en tiempo real, aislando las tareas pesadas de pooling e hilos de ejecución del hilo principal de la GUI.
+El flujo actual separa adquisición/permisos de las secuencias temporizadas. Los controladores están en `controllers/`; las secuencias de operación y receta están en `logic/`. Las páginas heredadas que documentaban un bucle único en `timers_io.py` se conservan como referencia de transición, no como descripción de la ejecución vigente.
 
----
+## Controladores (`controllers/`)
 
-## Módulos Disponibles
+| Módulo | Responsabilidad actual |
+|---|---|
+| `application_controller.py` | Ciclo de vida de startup, presentación de ventanas y coordinación de apagado/salida. |
+| `power_controller.py` | Sondeo de `POWER_ON_SWITCH` y `SYS_POWER`; emite solicitudes de encendido/apagado. |
+| `startup_controller.py` | Adapta progreso, estado y error de `StartupSequence` al ciclo de aplicación. |
+| `shutdown_controller.py` | Coordina `ShutdownSequence` y propaga resultado/error. |
+| `navigation_controller.py` | Registra widgets de pantalla y selecciona página del `QStackedWidget`. |
+| `signal_controller.py` | Sondeo de señales digitales, estado confirmado, solicitudes de toggle y errores. |
+| `analog_signal_controller.py` | Sondeo analógico y emisión de valores/errores. |
+| `interlock_controller.py` | Calcula permisos de puerta, vacío y venteo según estado de secuencias y procesos. |
+| `mfc_controller.py` | Control de flujo, válvulas y calibración de MFC; convierte flujo/voltaje. |
+| `throttle_controller.py` | Movimiento, límites, homing, pulsos y retornos de seguridad del actuador throttle. |
+| `pressure_controller.py` | Control de presión mediante throttle, con límites y estados/error. |
+| `temperature_controller.py` | Control y supervisión de temperatura con el controlador de proceso. |
+| `process_controller.py` | Lámparas, plasma, monitoreo de fallas e interacciones relacionadas. |
 
-* **[Administrador central de Timers y lazo de lectura de entradas (timers_io.py)](timers_io.md):** Funciona como el "corazón" síncrono del software. Centraliza la declaración de todos los temporizadores del sistema y ejecuta de manera continua el lazo periódico de 100 ms para la lectura de entradas digitales críticas. Filtra las acciones de hardware dependiendo del estado activo del equipo y notifica a la ventana las solicitudes de cambio de estado.
+## Secuencias (`logic/`)
 
-* **[Secuencia de Encendido (pre_encendido.py)](pre_encendido.md):** Implementa el algoritmo de control para el encendido del plasma asher. Gobierna de forma directa el enclavamiento eléctrico por software, inicializa la USB-2527, comuta el estado de las etiquetas en pantalla y manipula linealmente la barra de progreso de 10 segundos para garantizar la estabilización térmica y eléctrica del equipo antes de habilitar la operación.
+| Módulo | Responsabilidad |
+|---|---|
+| `startup_sequence.py` | Retención de alimentación, filamento, inicialización opcional del subsistema analógico y progreso de precalentamiento. |
+| `door_sequence.py` | Apertura/cierre de puerta y confirmaciones/interlocks. |
+| `soft_vacuum_sequence.py` | Secuencia de vacío inicial. |
+| `main_vacuum_sequence.py` | Secuencia de vacío principal y condiciones de inicio/parada. |
+| `vent_sequence.py` | Venteo, observación de ATM y finalización. |
+| `shutdown_sequence.py` | Apagado coordinado y captura de errores del estado seguro. |
+| `recipe_sequence.py` | Orquestación del proceso automatizado, muestras, acciones y confirmaciones. |
+| `maintenance_process.py` | Rutinas de mantenimiento heredadas; no es el manejador principal de controles de `MaintainerScreen` actual. |
+| `analog_update.py`, `throttle_test.py` | Utilidades/pruebas heredadas; no constituyen el sondeo principal de la GUI actual. |
 
-* **[Proceso en modo mantenimiento (maintenance_process.py)](maintenance_process.md):** Este modulo agrupa metodos para poder ir probando mediante la interfaz, de manera secuencial, los distintos modulos que utiliza el proceso. La idea es que quede en el modo mantenimiento para poder hacer un proceso de forma no automatica y probar que los modulos esten funcionando correctamente
+Las solicitudes visuales se conectan desde `MainWindow`. Los controladores y secuencias emiten señales Qt; la GUI las representa sin concentrar todo el sondeo en un timer central.
 
-* **[Actualizacion de lecturas analogicas (analog_update.py)](analog_update.md):** Este modulo tiene los metodos llamados en el timer general cada 100ms de lectura de señales analogicas (presion, temperatura, flujo de MFCs y señal del EOP) y actualizacion de los displays de la interfaz
+## Documentación por módulo de secuencia
 
-* **[Chequeo de fallas de lampara y plasma (process_faults.py)](process_faults.md):** Este modulo tiene el metodo llamado en el timer general cada 100ms para leer las señales de falla de lamparas, magnetron y plasma, dando aviso al usuario si ocurrio alguna, encendiendo el indicador de alarma y apagando estos modulos de potencia
+- [Arranque](startup_sequence.md)
+- [Puerta](door_sequence.md)
+- [Soft Vacuum](soft_vacuum_sequence.md)
+- [Main Vacuum](main_vacuum_sequence.md)
+- [Venteo](vent_sequence.md)
+- [Apagado seguro](shutdown_sequence.md)
+- [Recetas](recipe_sequence.md)
 
+## Sondeo y responsabilidades transversales
 
+- [Sondeo de controladores](sondeo_controladores.md)
+- [Monitoreo de fallas](fallas_proceso.md)
+
+## Módulos heredados que aún existen
+
+- [Mantenimiento anterior](maintenance_process.md)
+- [Actualización analógica anterior](analog_update.md)

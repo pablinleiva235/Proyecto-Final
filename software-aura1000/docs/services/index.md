@@ -1,11 +1,12 @@
-# Capa de control de hardware de alto nivel (`/services`)
+# Servicios (`services/`)
 
-Contiene la capa que hace de intermediaria entre la GUI y las funciones de bajo nivel del hardware, y un archivo para enumerar los estados de la maquina de estados:
+Los servicios aíslan operaciones compartidas que no pertenecen a un widget concreto.
 
+- [`hardware.py`](hardware.md): abstracción de lecturas/escrituras y estado seguro de las placas.
+- `system_state.py`: enum legado, actualmente no utilizado para navegar ni arrancar la GUI ([nota de estado](system_state.md)).
+- `recipe_service.py`: acceso y validación de recetas.
+- `recipe_log.py`: persistencia de datos de proceso de recetas.
+- `maintenance_data_log.py`: almacenamiento de muestras de mantenimiento.
+- `shutdown_log.py`: registro de resultados del apagado.
 
----
-
-## Módulos Disponibles
-
-* **[Class Hardware (hardware.py)](hardware.md):** Clase que inicializa las placas y contiene metodos de alto nivel que llaman a las funciones de bajo nivel de los drivers para que las pueda usar la GUI mediante un nivel de abstraccion
-* **[Enumeracion de estados (system_state.py)](system_state.md):** Definición de la enumeración de estados (Enum)
+Controladores y secuencias consumen estos servicios; las definiciones de hardware están en [configuración](../config/index.md) y [drivers](../drivers/index.md).

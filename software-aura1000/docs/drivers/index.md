@@ -9,6 +9,8 @@ Contiene la lógica encargada de realizar llamadas dinámicas a la API de C de l
 * **[Analógico (analog_driver.py)](analogico.md):** Encargado de la comunicación con la placa **USB-2527**. Gestiona lecturas de canales analógicos, escrituras analógicas usando el DAC y lectura de termocupla.
 * **[Digital (dio_driver.py)](digital.md):** Encargado de la comunicación con la placa **USBDIO96H**. Gestiona lecturas y escrituras de señales digitales.
 
+`Hardware` encapsula estos adaptadores. La GUI y los controladores no deberían usar las funciones del driver directamente.
+
 ---
 
 ## Interfaz con la DLL Nativa (`ctypes`)

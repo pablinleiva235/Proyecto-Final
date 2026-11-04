@@ -1,5 +1,7 @@
 # Mapa de Señales Digitales (`digital_signals.py`)
 
+La tabla física es distinta de la selección funcional de mantenimiento. `MainWindow` pasa `MAINTAINER_SIGNALS` y `MAINTAINER_OUTPUT_SIGNALS`, derivados de este diccionario; las salidas controladas por secuencia se excluyen de la interacción manual. La lectura visual no implica que exista una realimentación independiente del actuador.
+
 Este módulo centraliza la asignación física de pines de la placa de adquisición **USBDIO96H** asignada al control del equipo. Define los puertos, bits, direcciones de E/S y estados lógicos activo e inicial para cada señal
 
 ---

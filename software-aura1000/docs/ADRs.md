@@ -4,6 +4,24 @@
 
 **Estado del documento:** Activo
 
+> **Nota de vigencia (revisión del código actual):** este archivo conserva decisiones tomadas durante etapas anteriores y no todas describen la implementación vigente. La etiqueta “Aceptada” indica el estado registrado al redactar cada ADR, no una auditoría automática del código. Estado comparado con el repositorio:
+>
+> | ADR | Relación actual con la implementación |
+> |---|---|
+> | ADR-001 | Arquitectura por capas existe, pero no hay `MachineController` único; el comportamiento está dividido entre controladores, secuencias y servicios. |
+> | ADR-002 | Aplicable: una `MainWindow` usa `QStackedWidget` para pantallas internas. |
+> | ADR-003 | Parcialmente reemplazada: GUI/controladores actuales utilizan nombres lógicos con `Hardware`; no hay la capa `MachineController` indicada. |
+> | ADR-004 | Parcial: hay configuración tanto en `config/` como en `config_gui/`, no en un único paquete. |
+> | ADR-005 | Convención útil, no invariante: existen clases y módulos con más de una responsabilidad práctica. |
+> | ADR-006 | Aplicable: la comunicación usa señales/slots Qt. |
+> | ADR-007 | Reemplazada en el detalle: hay confirmación y secuencia de apagado, no solo cierre de proceso. |
+> | ADR-008 | Parcial: `TopBarWidget` muestra título, fecha/hora, ajustes y salida; no todos los indicadores enumerados en el ADR. |
+> | ADR-009 | Convención parcialmente aplicada; varias clases sí separan creación, layout y conexiones. |
+> | ADR-010 | Aplicable: `NavigationController` registra y muestra pantallas del stack. |
+> | ADR-011 | Aplicable para selección de señales de mantenimiento derivada de `DIGITALSIGNALS`. |
+>
+> Revisar y actualizar esta matriz cuando cambie la arquitectura. No se reescriben las decisiones originales para conservar su contexto histórico.
+
 Este documento registra las decisiones de arquitectura adoptadas durante el desarrollo del software. Cada ADR describe el contexto en el que se tomó una decisión, la decisión adoptada y sus consecuencias.
 
 ---

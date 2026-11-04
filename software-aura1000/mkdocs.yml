@@ -1,4 +1,4 @@
-site_name: "Reautomatizacion Aura 1000"
+site_name: "Reautomatización Aura 1000"
 use_directory_urls: false
 
 theme:
@@ -9,31 +9,44 @@ theme:
 
 nav:
   - Inicio: index.md
-  - Estructura de Carpetas: arquitectura/carpetas.md
-  - main: main.md
-  - /config (Señales):
-    - Indice: config/index.md
-    - Digitales (digital_signals.py): config/digital_signals.md
-    - Analogicas (analog_signals.py): config/analog_signals.md
-  - /drivers:
-    - Índice: drivers/index.md
-    - Analogico (analog_driver.py): drivers/analogico.md
-    - Digital (dio_driver.py): drivers/digital.md
-  - /gui:
-    - Índice: gui/index.md
-    - Interfaz diseñada en PyQt5 (pyqt_gui.py): gui/pyqt_gui.md
-    - Ventana de arranque y ejecucion de programa (main_window.py): gui/main_window.md
-  - /logic:
-    - Índice: logic/index.md
-    - Pre Encendido (pre_encendido.py): logic/pre_encendido.md
-    - Ejecucion de proceso en modo mantenimiento (maintenance_process.py): logic/maintenance_process.md
-    - Gestion de timers y entradas digitales (timers_io.py): logic/timers_io.md
-    - Actualizacion de lecturas analogicas (analog_update.py): logic/analog_update.md
-    - Chequeo de fallas de lampara y plasma (process_faults.py): logic/process_faults.md
-  - /services:
-    - Índice: services/index.md
-    - Clase con metodos de alto nivel para control de hardware (hardware.py): services/hardware.md
-    - Enumeracion de estados de maquina de estados (system_state.py): services/system_state.md
+  - Arquitectura:
+      - Estructura: arquitectura/carpetas.md
+      - Punto de entrada: main.md
+  - Configuración:
+      - Índice: config/index.md
+      - Señales digitales: config/digital_signals.md
+      - Señales analógicas: config/analog_signals.md
+  - Drivers:
+      - Índice: drivers/index.md
+      - Digital: drivers/digital.md
+      - Analógico: drivers/analogico.md
+  - GUI:
+      - Índice: gui/index.md
+      - MainWindow: gui/main_window.md
+      - Pantallas y widgets: gui/pantallas.md
+      - Integración y señales: gui/integracion.md
+      - UI heredada: gui/pyqt_gui.md
+  - Control y lógica:
+      - Índice: logic/index.md
+      - Secuencias:
+          - Arranque: logic/startup_sequence.md
+          - Puerta: logic/door_sequence.md
+          - Soft Vacuum: logic/soft_vacuum_sequence.md
+          - Main Vacuum: logic/main_vacuum_sequence.md
+          - Venteo: logic/vent_sequence.md
+          - Apagado seguro: logic/shutdown_sequence.md
+          - Recetas: logic/recipe_sequence.md
+      - Sondeo de controladores: logic/sondeo_controladores.md
+      - Monitoreo de fallas: logic/fallas_proceso.md
+      - Mantenimiento heredado: logic/maintenance_process.md
+      - Actualización analógica heredada: logic/analog_update.md
+  - Servicios:
+      - Índice: services/index.md
+      - Hardware: services/hardware.md
+      - Estado legado: services/system_state.md
+  - Mantenimiento documental:
+      - ADRs: ADRs.md
+      - Pendientes: GuiToDo.md
 
 plugins:
   - search
@@ -45,11 +58,11 @@ plugins:
             show_source: true
             show_root_heading: true
             show_root_toc_entry: true
-            filters: 
-              - "!^_" # Muestra todo lo que no empiece con guión bajo (es decir, variables públicas)
+            filters:
+              - "!^_"
 
 markdown_extensions:
   - admonition
   - pymdownx.highlight
   - pymdownx.superfences
-  - pymdownx.details      
+  - pymdownx.details

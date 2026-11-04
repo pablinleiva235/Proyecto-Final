@@ -1,83 +1,33 @@
-# Pendientes — Plasma Asher GUI
+# Pendientes de GUI y validación
 
-Este archivo registra tareas pendientes de la branch `gui-development`.
+Este listado se contrastó con el código del repositorio. “Implementado en código” no significa probado con hardware real. Las tareas de banco requieren verificación del operador y registro de resultados.
 
-La intención es mantener visibles los próximos pasos y evitar perder decisiones de diseño entre sesiones de trabajo.
+## Implementado en código (no implica validación física)
 
-## Idioma y configuración
+- [x] Diálogo de ajustes con selección de idioma y tema; propagación de cambios a componentes conectados.
+- [x] `TopBarWidget` con reloj, botón de ajustes y solicitud de salida.
+- [x] Pantallas de bienvenida, mantenimiento, estadísticas y operación normal.
+- [x] Acceso al modo mantenimiento con `LoginDialog`.
+- [x] Listado digital de mantenimiento derivado de `DIGITALSIGNALS`, con distinción entre controles manuales y salidas controladas por secuencia.
+- [x] Readouts analógicos de mantenimiento y operación normal.
+- [x] Presentación de errores de lectura y estados de proceso.
+- [x] Simulación seleccionable mediante `USE_MOCK_HARDWARE`.
 
-- [ ] Crear `LanguageManager` como fuente única del idioma activo.
-- [ ] Soportar inicialmente Español e Inglés.
-- [ ] Permitir cambiar el idioma sin reiniciar la aplicación.
-- [ ] Crear `SettingsDialog`.
-- [ ] Agregar al `SettingsDialog` el selector de idioma.
-- [ ] Conectar `TopBarWidget.settings_requested` con la apertura de `SettingsDialog`.
-- [ ] Refactorizar `strings.py` para soportar textos por idioma en lugar de constantes estáticas.
-- [ ] Agregar un método común de actualización de textos (`update_texts()` o equivalente) en las pantallas y widgets que contengan texto visible.
-- [ ] Actualizar dinámicamente los textos de `TopBarWidget`.
-- [ ] Actualizar dinámicamente los textos de `WelcomeScreen`.
-- [ ] Actualizar dinámicamente los textos de `LoginDialog`.
-- [ ] Actualizar dinámicamente los textos de `MaintainerScreen`.
-- [ ] Actualizar dinámicamente los textos de `SignalWidget`.
-- [ ] Actualizar dinámicamente los textos de `StartupScreen`.
-- [ ] Mover el tooltip actualmente hardcodeado del botón de configuración al sistema de traducciones.
-- [ ] Definir si el idioma seleccionado debe persistir entre ejecuciones de la aplicación.
+## Pendiente de validación con hardware
 
-## TopBarWidget
+- [ ] Ensayar encendido físico (`POWER_ON_SWITCH`, `POWER_ON`, `FILAMENT_ENABLE`) y confirmar el tiempo de precalentamiento requerido. El valor actual configurado es 3 s; los comentarios históricos mencionan otros tiempos.
+- [ ] Ensayar apagado físico (`SYS_POWER`), cierre normal y emergencia; revisar los resultados del estado seguro y el registro generado.
+- [ ] Confirmar lecturas digitales y analógicas contra instrumentos y cableado, incluyendo polaridades, unidades, escalas y realimentación de salidas.
+- [ ] Validar secuencias de puerta, vacío, venteo, throttle, MFC, lámparas, plasma, presión y temperatura en condiciones de operación aprobadas.
+- [ ] Validar login, navegación, idioma/tema, recetas, confirmaciones y gráficos a resolución de pantalla final.
+- [ ] Ejecutar las pruebas automatizadas en el entorno objetivo Python/PyQt/Universal Library.
 
-- [x] Verificar visualmente fecha y hora en resolución fullscreen del equipo.
-- [x] Verificar la actualización correcta del reloj.
-- [ ] Evaluar reemplazar el carácter `⚙` por un recurso gráfico/icono propio si presenta problemas de renderizado en Windows 10.
+## Mejoras de desarrollo por priorizar
 
-## Secuencia de inicio
+- [ ] Sustituir `print()` de diagnóstico por logging con niveles y rotación consistentes.
+- [ ] Evaluar la latencia de llamadas de hardware en el loop Qt; mover I/O a worker/thread solo si la medición muestra bloqueo relevante.
+- [ ] Aclarar en la UI cuándo una lectura de salida es lectura de pin/latch y cuándo hay feedback físico independiente.
+- [ ] Revisar el alcance de los controles de mantenimiento y agrupar señales por subsistema si la grilla completa dificulta su uso.
+- [ ] Decidir si los artefactos `pyqt_gui.py` y `pyqt_gui.ui` se conservarán como legado o se eliminarán en una limpieza futura.
 
-- [ ] Realizar una prueba completa y repetible de `StartupScreen → MainWindow` con hardware real.
-- [ ] Incorporar progresivamente las señales de fallo que deban supervisarse durante el pre-encendido.
-- [ ] Definir el comportamiento visual y lógico ante un fallo durante `WAITING_POWER`.
-- [ ] Definir el comportamiento visual y lógico ante un fallo durante `STARTING`.
-- [ ] Definir si el usuario podrá reintentar la secuencia desde `StartupScreen` después de un error.
-- [ ] Revisar qué acciones de hardware deben ejecutarse para dejar el equipo en estado seguro si `StartupSequence` falla.
-- [ ] Validar que `POWER_ON`, `FILAMENT_ENABLE` e inicialización analógica mantengan la misma secuencia física que la implementación original.
-
-## MaintainerScreen y señales
-
-- [ ] Escalar `MAINTAINER_SIGNALS` desde las cuatro señales de prueba al conjunto completo requerido.
-- [ ] Revisar la distribución visual de las señales cuando se incorporen aproximadamente 42 señales.
-- [ ] Definir agrupación por subsistemas si una única grilla resulta difícil de operar.
-- [ ] Incorporar señales analógicas a la pantalla de mantenimiento.
-- [ ] Diseñar un widget adecuado para señales analógicas y valores numéricos.
-- [ ] Definir cómo mostrar errores de lectura/escritura en la GUI en lugar de únicamente imprimirlos en consola.
-
-## SignalController y hardware
-
-- [ ] Evaluar el tiempo real de ejecución de `digital_read()` y `digital_set()`.
-- [ ] Si las llamadas bloquean perceptiblemente la GUI, mover el acceso al hardware a un `QThread`/worker.
-- [ ] Revisar si la lectura posterior de una salida representa el estado físico real o solamente el latch/comando escrito.
-- [ ] Diferenciar, cuando corresponda, entre estado comandado y feedback físico.
-- [ ] Sustituir los `print()` temporales de diagnóstico por `logging`.
-- [ ] Definir niveles y formato de logging para GUI, controladores y hardware.
-
-## Configuración y arquitectura de hardware
-
-- [ ] Revisar la dependencia entre `digital_signals.py` y `dio_driver.py`.
-- [ ] Evaluar separar las constantes pasivas del driver para que importar configuración no cargue innecesariamente la DLL.
-- [ ] Mantener `digital_signals.py` como única fuente de verdad de puerto, bit, dirección y estado activo.
-- [ ] Evitar duplicar información técnica de señales en archivos específicos de la GUI.
-
-## Limpieza y mantenimiento
-
-- [ ] Limpiar imports y código legado que ya no se utilicen después de validar completamente el nuevo flujo de startup.
-- [ ] Eliminar código temporal de `MockHardware` de los caminos de producción, manteniéndolo disponible únicamente para pruebas.
-- [ ] Revisar comentarios y documentación después de estabilizar el Hito 3 y la secuencia de startup.
-- [ ] Mantener ADR-009 y ADR-011 como referencia al agregar nuevos componentes gráficos y nuevas selecciones de señales.
-
-## Pruebas pendientes
-
-- [ ] Repetir prueba física de `POWER_ON_SWITCH`.
-- [ ] Repetir prueba física de `SYS_POWER`.
-- [ ] Probar individualmente las salidas reales desde `MaintainerScreen` en condiciones seguras.
-- [ ] Probar login de mantenimiento después de completar la secuencia de startup.
-- [ ] Probar navegación completa después del startup.
-- [ ] Probar salida de la aplicación desde distintas pantallas.
-- [ ] Probar errores controlados de hardware sin que la GUI se cierre inesperadamente.
-- [ ] Probar el flujo completo en Windows 10 con el entorno Python de 32 bits destinado al equipo.
+Las casillas verificables por código se marcaron completadas; los ensayos de hardware permanecen abiertos porque no pueden inferirse del código ni de las pruebas simuladas.

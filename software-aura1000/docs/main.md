@@ -1,64 +1,39 @@
-# `main.py`
+# Punto de entrada y ciclo de vida (`main.py`)
 
-El módulo `main.py` constituye el punto de entrada (*entry point*) principal de la aplicación. Se encarga de coordinar el arranque del entorno gráfico de PyQt5, instanciar la capa de control integrada del hardware y, fundamentalmente, inyectar un manejador de excepciones global (*global exception hook*). Este mecanismo garantiza que ante cualquier falla inesperada del software, el reactor Gasonics Aura 1000 conmute de manera mandatoria a un estado físico seguro antes de finalizar el proceso.
+`main.py` crea `QApplication`, configura el manejador global de excepciones, instancia el hardware real o simulado, construye controladores y secuencias, y entrega el ciclo de vida a `ApplicationController`.
 
----
+## Ensamblaje
 
-## <span style="color: #4CAF50;">Punto de Entrada e Inyección de Seguridad</span>
+1. Se crea `QApplication` y `SettingsManager`.
+2. Se instancia `Hardware` o `MockHardware`, según `config_gui/app_config.py`. En modo simulado también se instala `SimulationController` como filtro de eventos.
+3. `PowerController` supervisa las entradas de alimentación; `StartupSequence` y `StartupController` ejecutan y notifican el preencendido.
+4. Se crean las secuencias de puerta, vacío, venteo y apagado.
+5. Se construyen `StartupScreen` y `MainWindow`; este último recibe hardware, secuencias y configuración de idioma/tema.
+6. `ApplicationController.start()` presenta la pantalla inicial y comienza el sondeo de encendido. Finalmente se inicia el loop de Qt.
 
-??? note "Manejador Global de Emergencia: `global_exception_handler(exctype, value, traceback)`"
-    Actúa como una rutina de interrupción de última línea de defensa acoplada a `sys.excepthook`. Si un hilo secundario, callback de temporizador o evento de la GUI genera un error no capturado, esta rutina intercepta el flujo, localiza la instancia global del objeto de hardware de forma reflexiva y ejecuta imperativamente el método `shutdown_state()` para desactivar actuadores y bobinas de vacío. Finalmente, despliega un cuadro de diálogo crítico para el operario en el laboratorio antes de matar el proceso.
+```python
+application_controller = ApplicationController(
+    startup_controller=startup_controller,
+    power_controller=power_controller,
+    shutdown_controller=shutdown_controller,
+    startup_screen=startup_screen,
+    main_window=main_window,
+)
+application_controller.start()
+```
 
-    ```python
-    def global_exception_handler(exctype, value, traceback):
-        """
-        Captura cualquier excepción no manejada en el software para forzar
-        el estado seguro del reactor AURA 1000 antes de cerrar la aplicación.
-        """
-        print(f"\n[CRITICAL] Error no manejado detectado: {exctype.__name__}: {value}")
-        
-        try:
-            # Buscamos la instancia de hardware a través de la ventana principal
-            if 'window' in globals() and hasattr(window, 'hw') and window.hw is not None:
-                print("Ejecutando shutdown_state() de emergencia en hardware.py...")
-                window.hw.shutdown_state()
-            else:
-                print("Alerta: No se encontró la instancia de hardware activa para el apagado seguro.")
-        except Exception as hw_err:
-            print(f"Error crítico al intentar forzar el estado seguro: {hw_err}")
+Fragmento de `main.py`: el arranque y la visibilidad de las ventanas los coordina `ApplicationController`, no una máquina de estados alojada en `MainWindow`.
 
-        # Mostrar cartel de alerta al operario en el laboratorio
-        try:
-            error_msg = (
-                f"Ocurrió un error inesperado en el sistema.\n\n"
-                f"El hardware se ha llevado a ESTADO SEGURO automáticamente.\n\n"
-                f"Detalle del error:\n{value}"
-            )
-            QtWidgets.QMessageBox.critical(None, "Falla Crítica de Sistema", error_msg)
-        except Exception as gui_err:
-            print(f"No se pudo mostrar el cuadro de diálogo de Qt: {gui_err}")
+## Flujo de alimentación
 
-        # Llamamos al comportamiento por defecto de Python (imprime el traceback en consola)
-        sys.__excepthook__(exctype, value, traceback)
-        
-        # Forzamos la salida inmediata del script para evitar bucles zombis en la GUI
-        sys.exit(1)
-    ```
+`PowerController` sondea `POWER_ON_SWITCH` cada 100 ms hasta detectar el pedido de encendido. El evento inicia `StartupSequence`, que activa y verifica `POWER_ON` y `FILAMENT_ENABLE`, puede inicializar la placa analógica y emite progreso. Al completar, `ApplicationController` oculta `StartupScreen`, muestra `MainWindow` y activa el monitoreo de `SYS_POWER`.
 
-??? note "Bloque Principal de Arranque: `__main__`"
-    Maneja la inicialización síncrona del sistema. En primera instancia, desvía el control de excepciones nativo hacia el manejador de emergencia. Luego, crea el lazo de eventos de la aplicación (`QApplication`) e instancia la abstracción del hardware, inicializando exclusivamente los registros digitales necesarios para la lectura inicial del pulsador físico de marcha (*ON*) antes de transferir el control a la ventana principal.
+La duración configurada en `logic/startup_sequence.py` es actualmente `STARTUP_DURATION_MS = 3_000` (3 segundos). Este dato describe el valor del código, no certifica que sea el tiempo validado para el equipo físico.
 
-    ```python
-    if __name__ == "__main__":
-        # Vinculamos el hook de excepciones global antes de arrancar la app
-        sys.excepthook = global_exception_handler
+## Apagado y excepciones
 
-        app = QtWidgets.QApplication(sys.argv)
-        hw = Hardware()
-        
-        # Inicializo solo placa digital al inicio ya que debo leer el boton de ON para encender
-        window = MainWindow(hw)
-        window.show()
-        
-        sys.exit(app.exec_())
-    ```
+La salida desde la barra superior solicita confirmación mediante `ApplicationController`; al aceptar, detiene el sondeo de alimentación e inicia `ShutdownSequence`. El botón físico (`SYS_POWER`) también inicia esa secuencia. El cierre de la ventana se produce después de la señal de apagado completado.
+
+El hook de excepciones no manejadas intenta `hardware.shutdown_state()` y presenta un mensaje crítico. La rutina informa errores si no puede completar el estado seguro; no debe interpretarse como garantía física de que todas las salidas llegaron al estado esperado.
+
+Para el detalle de pantallas, controladores y señales, consultar [GUI](gui/index.md), [lógica](logic/index.md) y [Hardware](services/hardware.md).

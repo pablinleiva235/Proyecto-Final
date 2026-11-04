@@ -336,6 +336,47 @@ class RecipeSequenceTests(unittest.TestCase):
             "throttle_position_steps,plasma_state"
         ))
 
+    def test_every_recipe_event_logs_current_throttle_position(self):
+        self.sequence.start(self.recipe)
+
+        lines = self.log_path.read_text(encoding="utf-8").splitlines()
+        self.assertTrue(lines)
+        self.assertTrue(
+            all("Posición throttle=400 pasos" in line for line in lines)
+        )
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_recipe_event_logs_unavailable_position_without_throttle(self):
+        self.sequence.throttle = None
+
+        self.sequence.start(self.recipe)
+
+        lines = self.log_path.read_text(encoding="utf-8").splitlines()
+        self.assertTrue(lines)
+        self.assertTrue(
+            all("Posición throttle=NO DISPONIBLE" in line for line in lines)
+        )
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_throttle_signal_and_frequency_events_are_logged_only_during_recipe(self):
+        self.sequence.throttle_output_signal_changed("STEPPER_DIR", True)
+        self.sequence.throttle_pulse_frequency_changed(125.0)
+        self.assertFalse(self.log_path.exists())
+
+        self.sequence.start(self.recipe)
+        self.sequence.throttle_output_signal_changed("STEPPER_DIR", True)
+        self.sequence.throttle_output_signal_changed("STEPPER_STEP", True)
+        self.sequence.throttle_pulse_frequency_changed(125.0)
+        self.sequence.throttle_pulse_frequency_changed(0.0)
+        lines = self.log_path.read_text(encoding="utf-8").splitlines()
+
+        self.assertTrue(any("Cambio de señal throttle: STEPPER_DIR=ACTIVO" in line for line in lines))
+        self.assertFalse(any("Cambio de señal throttle: STEPPER_STEP=" in line for line in lines))
+        self.assertTrue(any("Frecuencia de pulsos STEPPER_STEP=125 Hz" in line for line in lines))
+        self.assertTrue(any("Frecuencia de pulsos STEPPER_STEP=0 Hz" in line for line in lines))
+        self.assertTrue(all("Posición throttle=400 pasos" in line for line in lines))
+        self.sequence._finish(False, "Prueba finalizada.")
+
     def test_recipe_positions_throttle_before_mfc_at_base_pressure_above_threshold(self):
         self.recipe.base_pressure = 0.09
         self.throttle.position_steps = 100.0
@@ -659,7 +700,10 @@ class RecipeSequenceTests(unittest.TestCase):
                 inner_self.available = True
                 inner_self.closed = False
 
-            def record(inner_self, event, _readings, outputs=None):
+            def record(
+                inner_self, event, _readings, outputs=None,
+                throttle_position_steps=None,
+            ):
                 if event.startswith("ACCION: Activar Main Vacuum"):
                     inner_self.error = "disco lleno"
                     inner_self.available = False

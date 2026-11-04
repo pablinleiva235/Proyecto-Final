@@ -206,6 +206,44 @@ class MigratedModulesTests(unittest.TestCase):
         controller.stop()
         self.assertFalse(self.hardware.digital_read("STEPPER_OUTPUT_ENABLE"))
 
+    def test_throttle_emits_only_changed_non_step_output_signals(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        changes = []
+        throttle.output_signal_changed.connect(
+            lambda name, active: changes.append((name, active))
+        )
+
+        throttle._write("STEPPER_DIR", True)
+        throttle._write("STEPPER_DIR", True)
+        throttle._write("STEPPER_HALF_STEP", True)
+        throttle._write("STEPPER_OUTPUT_ENABLE", True)
+        throttle._write("STEPPER_STEP", True)
+        throttle._write("STEPPER_STEP", False)
+
+        self.assertEqual(
+            changes,
+            [
+                ("STEPPER_DIR", True),
+                ("STEPPER_HALF_STEP", True),
+                ("STEPPER_OUTPUT_ENABLE", True),
+            ],
+        )
+
+    def test_throttle_reports_nominal_step_frequency_changes_and_stop(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(self.hardware, can_operate=lambda: True)
+        throttle._automatic_mode = True
+        frequencies = []
+        throttle.pulse_frequency_changed.connect(frequencies.append)
+
+        throttle.start_pressure_motion(closing=True, pulse_interval_ms=10, half_step=True)
+        throttle.start_pressure_motion(closing=True, pulse_interval_ms=2, half_step=False)
+        throttle.stop_pressure_motion()
+
+        self.assertEqual(frequencies, [50.0, 250.0, 0.0])
+
     def test_throttle_moves_fixed_full_and_half_step_bursts(self):
         controller = ThrottleController(self.hardware, can_operate=lambda: True)
         self.hardware.set_input_state("THROTTLE_OPEN", False)
@@ -227,6 +265,46 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertFalse(controller._timer.isActive())
         self.assertEqual(controller.position_steps, 11.0)
         self.assertEqual(positions, [11.0, 12.0, 13.0, 12.5, 12.0, 11.5, 11.0])
+
+    def test_manual_throttle_motion_does_not_require_process_vacuum(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(
+            self.hardware,
+            can_operate=lambda: True,
+            can_operate_process=lambda: False,
+        )
+        throttle._position_steps = 0.0
+
+        throttle.start(closing=True)
+
+        self.assertTrue(throttle.is_moving)
+        throttle._pulse()
+        self.assertEqual(throttle.position_steps, 1.0)
+        throttle.stop()
+
+    def test_safety_repositioning_does_not_require_process_vacuum(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        self.hardware.set_input_state("THROTTLE_OPEN", False)
+        self.hardware.set_input_state("THROTTLE_CLOSED", False)
+        throttle = ThrottleController(
+            self.hardware,
+            can_operate=lambda: True,
+            can_operate_process=lambda: False,
+        )
+        throttle._position_steps = 398.0
+        results = []
+        throttle.safety_return_finished.connect(
+            lambda success, message: results.append((success, message))
+        )
+
+        self.assertTrue(throttle.return_to_rest_for_safety())
+        while throttle.is_moving:
+            throttle._pulse()
+
+        self.assertTrue(throttle.is_at_rest_position)
+        self.assertTrue(results[0][0])
 
     def test_throttle_position_never_goes_negative_when_opening(self):
         controller = ThrottleController(self.hardware, can_operate=lambda: True)
@@ -503,8 +581,38 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertEqual(pressure.state, "detenido")
         self.assertFalse(throttle._timer.isActive())
 
+    def test_pressure_control_rejects_start_without_main_vacuum_permission(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        throttle = ThrottleController(
+            self.hardware,
+            can_operate=lambda: True,
+            can_operate_process=lambda: False,
+        )
+        pressure = PressureController(throttle, can_operate=lambda: False)
+        errors = []
+        pressure.operation_error.connect(errors.append)
+        pressure.set_pressure_reading(0.5)
+
+        pressure.start(1.0)
+
+        self.assertEqual(pressure.state, "detenido")
+        self.assertTrue(errors)
+        self.assertFalse(throttle.is_moving)
+
+    def test_maintainer_can_enable_throttle_without_process_modules(self):
+        screen = MaintainerScreen()
+
+        screen.set_module_controls_enabled(False, throttle_enabled=True)
+
+        self.assertTrue(screen.throttle_open_button.isEnabled())
+        self.assertTrue(screen.throttle_close_button.isEnabled())
+        self.assertTrue(screen.throttle_open_steps_button.isEnabled())
+        self.assertFalse(screen.pressure_start_button.isEnabled())
+        self.assertFalse(screen.plasma_button.isEnabled())
+
     def test_pressure_control_stops_when_an_interlock_is_lost(self):
         allowed = [True]
+        self.hardware.digital_set("DRIVER_ENABLE", True)
         throttle = ThrottleController(self.hardware, can_operate=lambda: allowed[0])
         pressure = PressureController(throttle, can_operate=lambda: allowed[0])
         self.hardware.set_input_state("THROTTLE_OPEN", False)

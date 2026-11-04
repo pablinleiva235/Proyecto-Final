@@ -480,6 +480,19 @@ class RecipeSequence(QObject):
         if self.is_active:
             self._log_event(f"Acción confirmada: {name}={value}")
 
+    def throttle_output_signal_changed(self, name, active):
+        if self.is_active and name in (
+            "STEPPER_DIR", "STEPPER_HALF_STEP", "STEPPER_OUTPUT_ENABLE"
+        ):
+            state = "ACTIVO" if active else "INACTIVO"
+            self._log_event(f"Cambio de señal throttle: {name}={state}")
+
+    def throttle_pulse_frequency_changed(self, frequency_hz):
+        if self.is_active:
+            self._log_event(
+                f"Frecuencia de pulsos STEPPER_STEP={float(frequency_hz):g} Hz"
+            )
+
     def interlock_lost(self, message):
         if self.is_active and not self._stopping:
             self._fail(message)
@@ -838,7 +851,16 @@ class RecipeSequence(QObject):
     def _log_event(self, event, outputs=None):
         if self._recipe_log is None or self._logging_failed:
             return False
-        if self._recipe_log.record(event, self._analog_readings, outputs=outputs):
+        throttle_position_steps = (
+            getattr(self.throttle, "position_steps", None)
+            if self.throttle is not None else None
+        )
+        if self._recipe_log.record(
+            event,
+            self._analog_readings,
+            outputs=outputs,
+            throttle_position_steps=throttle_position_steps,
+        ):
             return True
         self._logging_failed = True
         if self._stopping or self._finalizing:

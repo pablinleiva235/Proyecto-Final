@@ -17,7 +17,11 @@ class RecipeLogTests(unittest.TestCase):
                 "EOP": (1.95, "2026-10-26T14:25:31.125-03:00"),
                 "BARATRON": (0.8, "2026-10-26T14:25:30.875-03:00"),
             }
-            self.assertTrue(first.record("FIN DE PLASMA", readings))
+            self.assertTrue(
+                first.record(
+                    "FIN DE PLASMA", readings, throttle_position_steps=12.5
+                )
+            )
             first.close()
             first_run = path.read_text(encoding="utf-8")
             self.assertRegex(first_run, r"^\d{4}-\d\d-\d\dT.*\| FIN DE PLASMA \|")
@@ -26,6 +30,7 @@ class RecipeLogTests(unittest.TestCase):
             self.assertNotIn("2026-10-26T14:25:31.125-03:00", first_run)
             self.assertNotIn("2026-10-26T14:25:30.875-03:00", first_run)
             self.assertIn("BARATRON=0.8 Torr", first_run)
+            self.assertIn("Posición throttle=12.5 pasos", first_run)
             for name in ANALOG_UNITS:
                 if name not in readings:
                     self.assertIn(f"{name}=NO DISPONIBLE", first_run)
@@ -36,6 +41,7 @@ class RecipeLogTests(unittest.TestCase):
             latest_run = path.read_text(encoding="utf-8")
             self.assertIn("SEGUNDA EJECUCION", latest_run)
             self.assertNotIn("FIN DE PLASMA", latest_run)
+            self.assertIn("Posición throttle=NO DISPONIBLE", latest_run)
 
     def test_records_logical_outputs_and_setpoints(self):
         with TemporaryDirectory() as folder:

@@ -5,6 +5,8 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 class ThrottleController(QObject):
     movement_changed = pyqtSignal(bool, str)
+    output_signal_changed = pyqtSignal(str, bool)
+    pulse_frequency_changed = pyqtSignal(float)
     position_changed = pyqtSignal(object)
     operation_error = pyqtSignal(str)
     initial_position_reached = pyqtSignal()
@@ -20,10 +22,13 @@ class ThrottleController(QObject):
     MAX_BURST_STEPS = 1400
     LIMIT_DEBOUNCE_READS = 5
 
-    def __init__(self, hardware, can_operate=None, parent=None):
+    def __init__(
+        self, hardware, can_operate=None, parent=None, can_operate_process=None
+    ):
         super().__init__(parent)
         self._hardware = hardware
         self._can_operate = can_operate or (lambda: True)
+        self._can_operate_process = can_operate_process or self._can_operate
         self._closing = None
         self._step_state = False
         self._position_steps = None
@@ -34,6 +39,7 @@ class ThrottleController(QObject):
         self._safety_return_permission = None
         self._remaining_steps = None
         self._motion_half_step = False
+        self._pulse_frequency_hz = 0.0
         self._starting_motion = False
         self._startup_homing_active = False
         self._startup_homing_motion_started = False
@@ -175,6 +181,8 @@ class ThrottleController(QObject):
     def _motion_allowed(self):
         if self._safety_return_active and self._safety_return_permission is not None:
             return self._safety_return_permission() is True
+        if self._automatic_mode:
+            return self._can_operate_process() is True
         return self._can_operate() is True
 
     def _start_motion(self, closing, pulse_interval_ms, half_step=False, remaining_steps=None):
@@ -182,7 +190,7 @@ class ThrottleController(QObject):
             return
         try:
             if not self._motion_allowed():
-                raise RuntimeError("El movimiento manual requiere el vacío principal activo.")
+                raise RuntimeError("Los interlocks no permiten mover la throttle.")
             self._closing = closing
             self._starting_motion = True
             try:
@@ -210,6 +218,7 @@ class ThrottleController(QObject):
             self._motion_half_step = bool(half_step)
             self._remaining_steps = remaining_steps
             self._timer.start(pulse_interval_ms)
+            self._set_pulse_frequency(pulse_interval_ms)
             direction = "cerrando" if self._closing else "abriendo"
             if remaining_steps is not None and not self._automatic_mode:
                 direction += " pasos"
@@ -243,7 +252,12 @@ class ThrottleController(QObject):
             raise RuntimeError("La throttle ya está reservada para un movimiento automático.")
         if self._timer.isActive():
             raise RuntimeError("Detenga el movimiento manual de la throttle antes de iniciar el control de presión.")
-        if not self._motion_allowed():
+        can_position = (
+            self._motion_allowed()
+            if self._safety_return_active
+            else self._can_operate_process() is True
+        )
+        if not can_position:
             raise RuntimeError("El posicionamiento requiere vacío principal activo y puerta cerrada.")
         self._automatic_mode = True
         self._open_only = False
@@ -326,6 +340,7 @@ class ThrottleController(QObject):
             )
 
         self._safety_return_active = True
+        self._safety_return_permission = self._can_operate
         self._safety_return_timer.start(self.HOMING_TIMEOUT_MS)
         try:
             self._automatic_mode = True
@@ -415,6 +430,7 @@ class ThrottleController(QObject):
             raise RuntimeError("El control automático de presión no reservó la throttle.")
         if self._timer.isActive() and self._closing == bool(closing):
             self._timer.setInterval(pulse_interval_ms)
+            self._set_pulse_frequency(pulse_interval_ms)
             if self._motion_half_step != bool(half_step):
                 self._write("STEPPER_STEP", False)
                 self._write("STEPPER_HALF_STEP", bool(half_step))
@@ -423,6 +439,7 @@ class ThrottleController(QObject):
             return
         if self._timer.isActive():
             self._timer.stop()
+            self._set_pulse_frequency(0)
             self._step_state = False
             self._write("STEPPER_STEP", False)
         self._start_motion(bool(closing), pulse_interval_ms, half_step=half_step)
@@ -433,6 +450,7 @@ class ThrottleController(QObject):
             self._safety_return_active = False
             self._safety_return_timer.stop()
         self._timer.stop()
+        self._set_pulse_frequency(0)
         self._homing_timer.stop()
         self._step_state = False
         error = None
@@ -560,6 +578,7 @@ class ThrottleController(QObject):
             if self._limit_reached():
                 if self._automatic_mode and self._homing_active and not self._closing:
                     self._timer.stop()
+                    self._set_pulse_frequency(0)
                     self._step_state = False
                     self._write("STEPPER_STEP", False)
                     self._remaining_steps = None
@@ -601,6 +620,7 @@ class ThrottleController(QObject):
                     self._remaining_steps -= 1
                     if self._remaining_steps <= 0:
                         self._timer.stop()
+                        self._set_pulse_frequency(0)
                         self._step_state = False
                         self._write("STEPPER_STEP", False)
                         self._closing = None
@@ -757,16 +777,33 @@ class ThrottleController(QObject):
     def _write(self, signal_name, active):
         if self._hardware.digital_read("DRIVER_ENABLE") is not True:
             raise RuntimeError("DRIVER_ENABLE debe estar activo para accionar la throttle.")
+        tracked_signal = signal_name in (
+            "STEPPER_DIR", "STEPPER_HALF_STEP", "STEPPER_OUTPUT_ENABLE"
+        )
+        previous_state = (
+            self._hardware.digital_read(signal_name) if tracked_signal else None
+        )
         self._hardware.digital_set(signal_name, active)
-        if signal_name in ("STEPPER_DIR", "STEPPER_HALF_STEP", "STEPPER_OUTPUT_ENABLE"):
+        if tracked_signal:
+            confirmed_state = self._hardware.digital_read(signal_name)
+            if previous_state is not confirmed_state:
+                self.output_signal_changed.emit(signal_name, confirmed_state)
             # debugg de control de presion y throttle
             print(
                 f"[THROTTLE] Señal {signal_name} cambiada a "
-                f"{'ACTIVO' if active else 'INACTIVO'}."
+                f"{'ACTIVO' if confirmed_state else 'INACTIVO'}."
             )
+
+    def _set_pulse_frequency(self, interval_ms):
+        frequency_hz = 0.0 if not interval_ms else 1000.0 / (2.0 * interval_ms)
+        if frequency_hz == self._pulse_frequency_hz:
+            return
+        self._pulse_frequency_hz = frequency_hz
+        self.pulse_frequency_changed.emit(frequency_hz)
 
     def _safe_stop(self):
         self._timer.stop()
+        self._set_pulse_frequency(0)
         self._step_state = False
         self._closing = None
         errors = []

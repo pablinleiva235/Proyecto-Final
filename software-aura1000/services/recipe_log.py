@@ -129,7 +129,7 @@ class RecipeLog:
     def available(self):
         return self._file is not None and self.error is None
 
-    def record(self, event, readings, outputs=None):
+    def record(self, event, readings, outputs=None, throttle_position_steps=None):
         if not self.available:
             return False
         timestamp = datetime.now().astimezone().isoformat(timespec="milliseconds")
@@ -143,7 +143,17 @@ class RecipeLog:
                 parts.append(f"{name}={value:g} {unit}")
         event = str(event).replace("\r", " ").replace("\n", " ")
         output_text = self._format_outputs(outputs or {})
-        line = f"{timestamp} | {event} | Salidas: {output_text} | " + "; ".join(parts) + "\n"
+        if throttle_position_steps is None:
+            position_text = "NO DISPONIBLE"
+        else:
+            try:
+                position_text = f"{float(throttle_position_steps):g} pasos"
+            except (TypeError, ValueError, OverflowError):
+                position_text = "NO DISPONIBLE"
+        line = (
+            f"{timestamp} | {event} | Posición throttle={position_text} | "
+            f"Salidas: {output_text} | " + "; ".join(parts) + "\n"
+        )
         try:
             self._file.write(line)
             self._file.flush()

@@ -167,7 +167,8 @@ class MainWindow(QMainWindow):
         )
         self.throttle_controller = ThrottleController(
             hardware=self.hardware,
-            can_operate=self._can_control_process_modules,
+            can_operate=self._can_move_throttle,
+            can_operate_process=self._can_control_process_modules,
             parent=self,
         )
         self.pressure_controller = PressureController(
@@ -466,6 +467,12 @@ class MainWindow(QMainWindow):
             self.throttle_controller.move_steps
         )
         self.throttle_controller.movement_changed.connect(self.maintainer_screen.set_throttle_moving)
+        self.throttle_controller.output_signal_changed.connect(
+            self.recipe_sequence.throttle_output_signal_changed
+        )
+        self.throttle_controller.pulse_frequency_changed.connect(
+            self.recipe_sequence.throttle_pulse_frequency_changed
+        )
         self.throttle_controller.position_changed.connect(
             self.maintainer_screen.set_throttle_position
         )
@@ -946,9 +953,25 @@ class MainWindow(QMainWindow):
             and self.vent_sequence.state == VentState.IDLE
         )
 
+    def _can_move_throttle(self):
+        """Permite mover la throttle sin vacío, con puerta y driver seguros."""
+        if not self.interlock_controller.can_operate_sequences():
+            return False
+        try:
+            door_is_closed = (
+                self.door_sequence.state == DoorState.CLOSED
+                and self.signal_controller.get_last_state("DOOR_CLOSE") is True
+                and self.signal_controller.get_last_state("DOOR_OPEN") is False
+            )
+            return door_is_closed and self.vent_sequence.state == VentState.IDLE
+        except Exception:
+            return False
+
     def _sync_module_permissions(self):
         allowed = self._can_control_process_modules()
-        self.maintainer_screen.set_module_controls_enabled(allowed)
+        self.maintainer_screen.set_module_controls_enabled(
+            allowed, throttle_enabled=self._can_move_throttle()
+        )
         if allowed == self._module_access:
             return
         self._module_access = allowed

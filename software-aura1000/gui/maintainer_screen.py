@@ -832,7 +832,7 @@ class MaintainerScreen(QWidget):
             self.throttle_close_button,
             myStr.MAINTAINER_THROTTLE_CLOSE + (f" ({direction})" if moving and closing else ""),
         )
-        controls_enabled = getattr(self, "_module_controls_enabled", False)
+        controls_enabled = getattr(self, "_throttle_controls_enabled", False)
         manual_available = controls_enabled and not getattr(self, "_pressure_control_active", False)
         for widget in (
             self.throttle_step_count, self.throttle_step_mode,
@@ -854,14 +854,14 @@ class MaintainerScreen(QWidget):
         else:
             self.throttle_position_card.set_value(position, precision=1)
 
-    def set_module_controls_enabled(self, enabled):
+    def set_module_controls_enabled(self, enabled, throttle_enabled=None):
         enabled = bool(enabled) and not self._manual_controls_locked
+        if throttle_enabled is None:
+            throttle_enabled = enabled
+        throttle_enabled = bool(throttle_enabled) and not self._manual_controls_locked
         self.mfc1_card.set_controls_enabled(enabled)
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
-            self.throttle_open_button, self.throttle_close_button,
-            self.throttle_step_count, self.throttle_step_mode,
-            self.throttle_open_steps_button, self.throttle_close_steps_button,
             self.pressure_setpoint,
             self.temperature_setpoint,
             self.lamps13_duration, self.lamps13_button, self.lamp2_button,
@@ -870,13 +870,23 @@ class MaintainerScreen(QWidget):
         for widget in widgets:
             widget.setEnabled(enabled)
         self._module_controls_enabled = enabled
+        self._throttle_controls_enabled = throttle_enabled
+        throttle_widgets = (
+            self.throttle_open_button, self.throttle_close_button,
+            self.throttle_step_count, self.throttle_step_mode,
+            self.throttle_open_steps_button, self.throttle_close_steps_button,
+        )
+        for widget in throttle_widgets:
+            widget.setEnabled(throttle_enabled)
         pressure_active = getattr(self, "_pressure_control_active", False)
         self.pressure_start_button.setEnabled(
             enabled and not pressure_active
         )
         self.pressure_stop_button.setEnabled(enabled and pressure_active)
-        self.throttle_open_button.setEnabled(enabled and not pressure_active)
-        self.throttle_close_button.setEnabled(enabled and not pressure_active)
+        self.throttle_open_button.setEnabled(throttle_enabled and not pressure_active)
+        self.throttle_close_button.setEnabled(throttle_enabled and not pressure_active)
+        for widget in throttle_widgets[2:]:
+            widget.setEnabled(throttle_enabled and not pressure_active)
         self.pressure_setpoint.setEnabled(enabled and not pressure_active)
         temperature_active = self.temperature_stop_button.isEnabled()
         self.temperature_start_button.setEnabled(enabled and not temperature_active)
@@ -903,15 +913,16 @@ class MaintainerScreen(QWidget):
         self._pressure_control_active = active
         self.pressure_stop_button.setEnabled(active)
         controls_enabled = getattr(self, "_module_controls_enabled", False)
+        throttle_enabled = getattr(self, "_throttle_controls_enabled", False)
         self.pressure_start_button.setEnabled(controls_enabled and not active)
         self.pressure_setpoint.setEnabled(controls_enabled and not active)
-        self.throttle_open_button.setEnabled(controls_enabled and not active)
-        self.throttle_close_button.setEnabled(controls_enabled and not active)
+        self.throttle_open_button.setEnabled(throttle_enabled and not active)
+        self.throttle_close_button.setEnabled(throttle_enabled and not active)
         for widget in (
             self.throttle_step_count, self.throttle_step_mode,
             self.throttle_open_steps_button, self.throttle_close_steps_button,
         ):
-            widget.setEnabled(controls_enabled and not active)
+            widget.setEnabled(throttle_enabled and not active)
 
     def set_pressure_control_error(self, message):
         set_localized_text(

@@ -1,9 +1,12 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from PyQt5.QtWidgets import QApplication
 
 from gui.main_window import MainWindow
+from logic.door_sequence import DoorState
+from logic.vent_sequence import VentState
 
 
 class _Interlocks:
@@ -278,6 +281,29 @@ class MainWindowPermissionRefreshTests(unittest.TestCase):
 
         self.assertEqual(self.window.sync_count, 1)
         self.assertEqual(self.window.maintainer_screen.sequence_permissions, {})
+
+    def test_throttle_motion_without_vacuum_still_requires_safe_door_driver_and_vent(self):
+        states = {"DOOR_CLOSE": True, "DOOR_OPEN": False}
+        window = SimpleNamespace(
+            interlock_controller=SimpleNamespace(
+                can_operate_sequences=lambda: True
+            ),
+            door_sequence=SimpleNamespace(state=DoorState.CLOSED),
+            signal_controller=SimpleNamespace(
+                get_last_state=lambda name: states[name]
+            ),
+            vent_sequence=SimpleNamespace(state=VentState.IDLE),
+        )
+
+        self.assertTrue(MainWindow._can_move_throttle(window))
+        states["DOOR_CLOSE"] = False
+        self.assertFalse(MainWindow._can_move_throttle(window))
+        states["DOOR_CLOSE"] = True
+        window.vent_sequence.state = VentState.RUNNING
+        self.assertFalse(MainWindow._can_move_throttle(window))
+        window.vent_sequence.state = VentState.IDLE
+        window.interlock_controller.can_operate_sequences = lambda: False
+        self.assertFalse(MainWindow._can_move_throttle(window))
 
     def test_process_alarm_stops_pressure_and_returns_throttle_without_recipe(self):
         window = _SafetyWindowHarness(recipe_active=False)

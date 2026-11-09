@@ -1,10 +1,14 @@
 import csv
 import math
+import re
 from datetime import datetime
 from pathlib import Path
 
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal
-from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
+from PyQt5.QtGui import (
+    QColor, QFont, QPainter, QPainterPath, QPen, QTextBlockFormat, QTextCharFormat,
+    QTextCursor,
+)
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog,
     QScrollArea, QTabWidget, QTextEdit,
@@ -28,6 +32,13 @@ import config_gui.strings as strings
 from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_DIRECTORY
 from services.maintenance_data_log import MAINTENANCE_COLUMNS, MAINTENANCE_DATA_DIRECTORY
 from services.shutdown_log import SHUTDOWN_LOG_DIRECTORY
+from config_gui.theme import THEMES
+
+
+_LOG_TIMESTAMP_PATTERN = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+    r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?) \| "
+)
 
 
 class ProcessPlot(QWidget):
@@ -108,6 +119,8 @@ class StatisticsScreen(QWidget):
         super().__init__()
         self._explicit_data_path = Path(data_path) if data_path is not None else None
         self.data_path = self._explicit_data_path or RECIPE_DATA_PATH
+        self._theme = "dark"
+        self._log_content = None
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -140,6 +153,10 @@ class StatisticsScreen(QWidget):
         self.log_path = None
         self.logs_title_label = QLabel(STATISTICS_NO_LOGS)
         self.logs_title_label.setObjectName("SubtitleLabel")
+        self.logs_title_label.setAlignment(Qt.AlignCenter)
+        title_font = self.logs_title_label.font()
+        title_font.setBold(True)
+        self.logs_title_label.setFont(title_font)
         self.logs_view = QTextEdit()
         self.logs_view.setReadOnly(True)
         self.logs_view.setLineWrapMode(QTextEdit.NoWrap)
@@ -183,6 +200,44 @@ class StatisticsScreen(QWidget):
     def connect_signals(self):
         self.load_file_button.clicked.connect(self.choose_active_file)
         self.back_button.clicked.connect(self.back_requested.emit)
+
+    def set_theme(self, theme):
+        if theme not in THEMES:
+            raise ValueError("El tema debe ser 'light' o 'dark'.")
+        self._theme = theme
+        if self._log_content is not None:
+            self._render_log_content(self._log_content)
+
+    def _render_log_content(self, content):
+        palette = THEMES[self._theme]
+        background = QColor(palette["background"])
+        surface = QColor(palette["surface"])
+        primary = QColor(palette["primary"])
+        self.logs_view.setPlainText(content)
+
+        document = self.logs_view.document()
+        block = document.begin()
+        line_index = 0
+        while block.isValid():
+            block_format = QTextBlockFormat(block.blockFormat())
+            block_format.setBackground(background if line_index % 2 == 0 else surface)
+            cursor = QTextCursor(block)
+            cursor.setBlockFormat(block_format)
+
+            match = _LOG_TIMESTAMP_PATTERN.match(block.text())
+            if match:
+                timestamp_format = QTextCharFormat()
+                timestamp_format.setForeground(primary)
+                timestamp_format.setFontWeight(QFont.Bold)
+                cursor.setPosition(block.position())
+                cursor.setPosition(
+                    block.position() + len(match.group(1)),
+                    QTextCursor.KeepAnchor,
+                )
+                cursor.mergeCharFormat(timestamp_format)
+
+            line_index += 1
+            block = block.next()
 
     def choose_active_file(self):
         if self.tabs.currentIndex() == 1:
@@ -286,8 +341,9 @@ class StatisticsScreen(QWidget):
             ))
             return False
         self.log_path = path
+        self._log_content = content
         self.logs_title_label.setText(path.name)
-        self.logs_view.setPlainText(content)
+        self._render_log_content(content)
         return True
 
     def choose_data_file(self):

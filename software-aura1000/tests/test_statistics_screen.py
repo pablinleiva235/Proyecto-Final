@@ -4,10 +4,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QTextCursor, QFont
 
 from gui import statistics_screen as statistics_module
 from gui.statistics_screen import StatisticsScreen
+from config_gui.theme import THEMES
 
 
 class StatisticsScreenTests(unittest.TestCase):
@@ -259,6 +262,66 @@ class StatisticsScreenTests(unittest.TestCase):
         screen.back_requested.connect(lambda: emitted.append(True))
         screen.back_button.click()
         self.assertEqual(emitted, [True])
+
+    def test_log_view_formats_timestamp_title_and_alternating_theme_colors(self):
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "recipe_1.log"
+            content = (
+                "2026-11-04T14:20:39.164-03:00 | evento receta\n"
+                "\n"
+                "línea sin fecha"
+            )
+            path.write_text(content, encoding="utf-8")
+            screen = StatisticsScreen(data_path=Path("missing.csv"))
+            self.assertTrue(screen._load_log_file(path))
+
+            self.assertEqual(screen.logs_title_label.alignment(), Qt.AlignCenter)
+            self.assertTrue(screen.logs_title_label.font().bold())
+            self.assertEqual(screen.logs_view.toPlainText(), content)
+
+            cursor = QTextCursor(screen.logs_view.document())
+            cursor.setPosition(0)
+            cursor.setPosition(len("2026-11-04T14:20:39.164-03:00"), QTextCursor.KeepAnchor)
+            self.assertEqual(cursor.selectedText(), "2026-11-04T14:20:39.164-03:00")
+            self.assertEqual(
+                cursor.charFormat().foreground().color().name(),
+                THEMES["dark"]["primary"].lower(),
+            )
+            self.assertEqual(cursor.charFormat().fontWeight(), QFont.Bold)
+
+            def block_backgrounds():
+                block = screen.logs_view.document().begin()
+                result = []
+                while block.isValid():
+                    result.append(block.blockFormat().background().color().name())
+                    block = block.next()
+                return result
+
+            self.assertEqual(
+                block_backgrounds(),
+                [color.lower() for color in (
+                    THEMES["dark"]["background"],
+                    THEMES["dark"]["surface"],
+                    THEMES["dark"]["background"],
+                )],
+            )
+
+            screen.set_theme("light")
+            self.assertEqual(
+                block_backgrounds(),
+                [color.lower() for color in (
+                    THEMES["light"]["background"],
+                    THEMES["light"]["surface"],
+                    THEMES["light"]["background"],
+                )],
+            )
+            cursor = QTextCursor(screen.logs_view.document())
+            cursor.setPosition(0)
+            cursor.setPosition(len("2026-11-04T14:20:39.164-03:00"), QTextCursor.KeepAnchor)
+            self.assertEqual(
+                cursor.charFormat().foreground().color().name(),
+                THEMES["light"]["primary"].lower(),
+            )
 
 
 if __name__ == "__main__":

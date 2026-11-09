@@ -307,7 +307,11 @@ class MainWindow(QMainWindow):
             self.settings_manager.theme_changed.connect(
                 self.normal_operation_screen.set_theme
             )
+            self.settings_manager.theme_changed.connect(
+                self.statistics_screen.set_theme
+            )
             self.normal_operation_screen.set_theme(self.settings_manager.theme)
+            self.statistics_screen.set_theme(self.settings_manager.theme)
 
 
         # ===================================================================================

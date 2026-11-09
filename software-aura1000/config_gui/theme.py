@@ -177,6 +177,16 @@ QLabel#TopBarTitle {{
     font-weight: bold;
 }}
 
+QLabel#TopBarSimulationBadge {{
+    background-color: transparent;
+    color: {SIGNAL_WARNING_COLOR};
+    border: 1px solid {SIGNAL_WARNING_COLOR};
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: bold;
+}}
+
 QLabel#TopBarDate {{
     background-color: transparent;
     color: {TEXT_MUTED_COLOR};

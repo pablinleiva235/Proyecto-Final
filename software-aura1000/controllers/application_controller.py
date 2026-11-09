@@ -38,6 +38,7 @@ class ApplicationController(QObject):
         startup_screen,
         main_window,
         parent: Optional[QObject] = None,
+        simulated=False,
     ) -> None:
         super().__init__(parent)
 
@@ -46,6 +47,7 @@ class ApplicationController(QObject):
         self._shutdown_controller = shutdown_controller
         self._startup_screen = startup_screen
         self._main_window = main_window
+        self._simulated = bool(simulated)
 
         self.connect_signals()
 
@@ -100,8 +102,12 @@ class ApplicationController(QObject):
         self._startup_screen.show_waiting_for_power()
         self._startup_screen.showFullScreen()
 
-        # Comienza a supervisar POWER_ON_SWITCH.
-        self._power_controller.start_startup_monitoring()
+        if self._simulated:
+            # Inicia automáticamente la secuencia porque no hay señal física.
+            self._startup_controller.start()
+        else:
+            # En modo real se conserva la espera del encendido físico.
+            self._power_controller.start_startup_monitoring()
 
     # =========================================================================
     # Gestión del arranque

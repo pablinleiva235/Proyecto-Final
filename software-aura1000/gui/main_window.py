@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
 
         # Componentes principales de la aplicación
         self.central_widget = QWidget()
-        self.top_bar = TopBarWidget()
+        self.top_bar = TopBarWidget(simulation_mode=self.use_mock_hardware)
         self.stack = QStackedWidget()
 
         # Pantallas

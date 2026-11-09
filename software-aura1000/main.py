@@ -16,30 +16,8 @@ import sys
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
-from config_gui.app_config import USE_MOCK_HARDWARE
 from config_gui.settings_manager import SettingsManager
-
-if USE_MOCK_HARDWARE:
-    from tests.mockScripts.mock_hardware import MockHardware
-    from tests.mockScripts.controllers.simulation_controller import SimulationController
-else:
-    from services.hardware import Hardware
-
-
-from logic.startup_sequence import StartupSequence
-from logic.door_sequence import DoorSequence
-from logic.soft_vacuum_sequence import SoftVacuumSequence
-from logic.main_vacuum_sequence import MainVacuumSequence
-from logic.vent_sequence import VentSequence
-from logic.shutdown_sequence import ShutdownSequence
-
-from controllers.power_controller import PowerController
-from controllers.startup_controller import StartupController
-from controllers.shutdown_controller import ShutdownController
-from controllers.application_controller import ApplicationController
-
-from gui.startup_screen import StartupScreen
-from gui.main_window import MainWindow
+from gui.startup_mode_dialog import StartupModeDialog
 
 
 def _make_global_exception_handler(hardware_getter):
@@ -109,6 +87,85 @@ def _make_global_exception_handler(hardware_getter):
     return global_exception_handler
 
 
+def _build_runtime(app, settings_manager, simulated):
+    """Build the selected backend after the operator confirms the mode."""
+    if simulated:
+        from tests.mockScripts.mock_hardware import MockHardware
+        from tests.mockScripts.controllers.simulation_controller import SimulationController
+
+        hardware = MockHardware()
+        simulation_controller = SimulationController(hardware=hardware)
+        app.installEventFilter(simulation_controller)
+    else:
+        from services.hardware import Hardware
+
+        hardware = Hardware()
+        simulation_controller = None
+
+    from logic.startup_sequence import StartupSequence
+    from logic.door_sequence import DoorSequence
+    from logic.soft_vacuum_sequence import SoftVacuumSequence
+    from logic.main_vacuum_sequence import MainVacuumSequence
+    from logic.vent_sequence import VentSequence
+    from logic.shutdown_sequence import ShutdownSequence
+
+    from controllers.power_controller import PowerController
+    from controllers.startup_controller import StartupController
+    from controllers.shutdown_controller import ShutdownController
+    from gui.startup_screen import StartupScreen
+    from gui.main_window import MainWindow
+
+    startup_screen = StartupScreen()
+    startup_screen.update_texts()
+    settings_manager.language_changed.connect(startup_screen.update_texts)
+
+    power_controller = PowerController(hardware=hardware)
+    startup_sequence = StartupSequence(
+        hardware=hardware,
+        initialize_analog=not simulated,
+        duration_ms=(
+            StartupSequence.SIMULATED_STARTUP_DURATION_MS
+            if simulated
+            else StartupSequence.STARTUP_DURATION_MS
+        ),
+    )
+    startup_controller = StartupController(startup_sequence=startup_sequence)
+    door_sequence = DoorSequence(hardware=hardware)
+    soft_vacuum_sequence = SoftVacuumSequence(hardware=hardware)
+    main_vacuum_sequence = MainVacuumSequence(hardware=hardware)
+    vent_sequence = VentSequence(hardware=hardware)
+    shutdown_sequence = ShutdownSequence(
+        hardware=hardware,
+        soft_vacuum_sequence=soft_vacuum_sequence,
+        main_vacuum_sequence=main_vacuum_sequence,
+        vent_sequence=vent_sequence,
+    )
+    shutdown_controller = ShutdownController(shutdown_sequence=shutdown_sequence)
+    main_window = MainWindow(
+        hardware=hardware,
+        door_sequence=door_sequence,
+        soft_vacuum_sequence=soft_vacuum_sequence,
+        main_vacuum_sequence=main_vacuum_sequence,
+        vent_sequence=vent_sequence,
+        settings_manager=settings_manager,
+        use_mock_hardware=simulated,
+    )
+
+    from controllers.application_controller import ApplicationController
+
+    application_controller = ApplicationController(
+        startup_controller=startup_controller,
+        power_controller=power_controller,
+        shutdown_controller=shutdown_controller,
+        startup_screen=startup_screen,
+        main_window=main_window,
+        simulated=simulated,
+    )
+    # Keep the event-filter wrapper alive for the lifetime of the application.
+    application_controller._simulation_controller = simulation_controller
+    return hardware, application_controller
+
+
 def main():
     """Inicializa y ejecuta la aplicación."""
 
@@ -118,131 +175,36 @@ def main():
 
     app = QApplication(sys.argv)
 
-    hardware = None
-    sys.excepthook = _make_global_exception_handler(lambda: hardware)
-
     settings_manager = SettingsManager(app)
+    mode_dialog = StartupModeDialog()
+    if mode_dialog.exec_() != StartupModeDialog.Accepted:
+        return 0
 
-    # =========================================================================
-    # Hardware
-    # =========================================================================
-    # Se crea una única instancia de Hardware para toda la aplicación.
-    # Esta misma instancia será utilizada por:
-    # - PowerController para monitorear las señales físicas de alimentación.
-    # - StartupSequence para ejecutar el pre-encendido.
-    # - MainWindow y sus controladores/secuencias durante la operación.
-    if USE_MOCK_HARDWARE:
-        hardware = MockHardware()
-    else:
-        hardware = Hardware()
+    hardware_holder = {"value": None}
+    sys.excepthook = _make_global_exception_handler(
+        lambda: hardware_holder["value"]
+    )
 
-    if USE_MOCK_HARDWARE:
-        simulation_controller = SimulationController(
-            hardware=hardware,
+    simulated = mode_dialog.simulation_selected
+    try:
+        hardware, application_controller = _build_runtime(
+            app,
+            settings_manager,
+            simulated=simulated,
         )
-
-        app.installEventFilter(
-            simulation_controller
+    except Exception as error:
+        print(f"[CRITICAL] No se pudo inicializar el modo seleccionado: {error}")
+        QMessageBox.critical(
+            None,
+            "Error de inicio",
+            f"No se pudo inicializar el hardware del modo elegido.\n\n{error}",
         )
+        return 1
 
-    # =========================================================================
-    # Control de alimentación
-    # =========================================================================
-
-    power_controller = PowerController(
-        hardware=hardware,
-    )
-
-    # =========================================================================
-    # Secuencia de pre-encendido
-    # =========================================================================
-
-    startup_sequence = StartupSequence(
-        hardware=hardware,
-        initialize_analog=not USE_MOCK_HARDWARE,
-    )
-
-    # =========================================================================
-    # Controlador de arranque
-    # =========================================================================
-
-    startup_controller = StartupController(
-        startup_sequence=startup_sequence,
-    )
-
-    # =========================================================================
-    # Secuencias funcionales
-    # =========================================================================
-
-    door_sequence = DoorSequence(
-        hardware=hardware,
-    )
-
-    soft_vacuum_sequence = SoftVacuumSequence(
-        hardware=hardware,
-    )
-
-    main_vacuum_sequence = MainVacuumSequence(
-        hardware=hardware,
-    )
-
-    vent_sequence = VentSequence(
-        hardware=hardware,
-    )
-
-    # =========================================================================
-    # Secuencia de apagado seguro
-    # =========================================================================
-
-    shutdown_sequence = ShutdownSequence(
-        hardware=hardware,
-        soft_vacuum_sequence=soft_vacuum_sequence,
-        main_vacuum_sequence=main_vacuum_sequence,
-        vent_sequence=vent_sequence,
-    )
-
-    shutdown_controller = ShutdownController(
-        shutdown_sequence=shutdown_sequence,
-    )
-
-    # =========================================================================
-    # Interfaces gráficas
-    # =========================================================================
-
-    startup_screen = StartupScreen()
-    startup_screen.update_texts()
-    settings_manager.language_changed.connect(startup_screen.update_texts)
-
-    main_window = MainWindow(
-        hardware=hardware,
-        door_sequence=door_sequence,
-        soft_vacuum_sequence=soft_vacuum_sequence,
-        main_vacuum_sequence=main_vacuum_sequence,
-        vent_sequence=vent_sequence,
-        settings_manager=settings_manager,
-        use_mock_hardware=USE_MOCK_HARDWARE,
-    )
-
-    # =========================================================================
-    # Controlador general de la aplicación
-    # =========================================================================
-
-    application_controller = ApplicationController(
-        startup_controller=startup_controller,
-        power_controller=power_controller,
-        shutdown_controller=shutdown_controller,
-        startup_screen=startup_screen,
-        main_window=main_window,
-    )
-
-    # =========================================================================
-    # Inicio de la aplicación
-    # =========================================================================
-
+    hardware_holder["value"] = hardware
     application_controller.start()
-
-    sys.exit(app.exec_())
+    return app.exec_()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

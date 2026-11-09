@@ -40,7 +40,8 @@ class StartupSequence(QObject):
     startup_error = pyqtSignal(str)
 
     # Tiempo requerido para completar el precalentamiento.
-    STARTUP_DURATION_MS =  30_000     #30_000
+    STARTUP_DURATION_MS = 30_000
+    SIMULATED_STARTUP_DURATION_MS = 3_000
 
     # Intervalo utilizado para actualizar el progreso.
     TIMER_INTERVAL_MS = 100
@@ -50,11 +51,17 @@ class StartupSequence(QObject):
         hardware,
         parent=None,
         initialize_analog=False,
+        duration_ms=None,
     ):
         super().__init__(parent)
 
         self._hardware = hardware
         self._initialize_analog = bool(initialize_analog)
+        self._duration_ms = (
+            self.STARTUP_DURATION_MS if duration_ms is None else int(duration_ms)
+        )
+        if self._duration_ms <= 0:
+            raise ValueError("'duration_ms' debe ser mayor que cero.")
 
         self._elapsed_ms = 0
         self._running = False
@@ -143,7 +150,7 @@ class StartupSequence(QObject):
                 100,
                 (
                     self._elapsed_ms
-                    / self.STARTUP_DURATION_MS
+                    / self._duration_ms
                 )
                 * 100,
             )
@@ -153,7 +160,7 @@ class StartupSequence(QObject):
             progress
         )
 
-        if self._elapsed_ms >= self.STARTUP_DURATION_MS:
+        if self._elapsed_ms >= self._duration_ms:
             self._timer.stop()
             self._complete_startup()
 

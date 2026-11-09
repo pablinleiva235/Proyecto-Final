@@ -28,6 +28,7 @@ from config_gui.strings import (
     APP_TITLE,
     EXIT_BUTTON_TEXT,
     SETTINGS_BUTTON_TOOLTIP,
+    SIMULATION_MODE_LABEL,
 )
 from gui.widgets.localization import translate_widget_tree
 
@@ -42,8 +43,9 @@ class TopBarWidget(QWidget):
     TIME_FORMAT = "HH:mm"
     CLOCK_UPDATE_INTERVAL_MS = 1000
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, simulation_mode=False):
         super().__init__(parent)
+        self.simulation_mode = bool(simulation_mode)
 
         self.create_widgets()
         self.setup_layout()
@@ -61,6 +63,12 @@ class TopBarWidget(QWidget):
         self.title_label.setAlignment(
             Qt.AlignVCenter | Qt.AlignLeft
         )
+
+        self.simulation_badge = QLabel(SIMULATION_MODE_LABEL)
+        self.simulation_badge.setParent(self)
+        self.simulation_badge.setObjectName("TopBarSimulationBadge")
+        self.simulation_badge.setAlignment(Qt.AlignCenter)
+        self.simulation_badge.setVisible(self.simulation_mode)
 
         self.date_label = QLabel()
         self.date_label.setObjectName("TopBarDate")
@@ -105,22 +113,30 @@ class TopBarWidget(QWidget):
         layout.setSpacing(8)
 
         layout.addWidget(self.title_label)
-
         layout.addStretch()
-
         layout.addWidget(self.date_label)
         layout.addWidget(self.time_label)
-
         layout.addSpacing(10)
-
-        layout.addWidget(
-            self.settings_button
-        )
-        layout.addWidget(
-            self.exit_button
-        )
+        layout.addWidget(self.settings_button)
+        layout.addWidget(self.exit_button)
 
         self.setLayout(layout)
+        self._position_simulation_badge()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_simulation_badge()
+
+    def _position_simulation_badge(self):
+        """Mantiene el indicador en el centro horizontal de toda la barra."""
+
+        badge_size = self.simulation_badge.sizeHint()
+        self.simulation_badge.setGeometry(
+            (self.width() - badge_size.width()) // 2,
+            (self.height() - badge_size.height()) // 2,
+            badge_size.width(),
+            badge_size.height(),
+        )
 
     def connect_signals(self):
         """Conecta los eventos internos de la barra superior."""

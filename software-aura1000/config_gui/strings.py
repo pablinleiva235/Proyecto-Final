@@ -19,6 +19,11 @@ APP_SUBTITLE = "Software de control"
 # =============================================================================
 
 STARTUP_TITLE = "PLASMA ASHER AURA 1000"
+STARTUP_MODE_TITLE = "Seleccione el modo de inicio"
+STARTUP_REAL_MODE = "Modo real"
+STARTUP_SIMULATION_MODE = "Modo simulación"
+STARTUP_CONTINUE = "Continuar"
+STARTUP_CANCEL = "Cancelar"
 
 STARTUP_WAITING_MESSAGE = (
     "Presione el botón de encendido para iniciar el equipo."
@@ -371,6 +376,10 @@ TUTOR_NAMES = ("Ing. Andres L. Di Donato", "Nombre del tutor 2")
 _ACTIVE_LANGUAGE = "es"
 _SPANISH_TO_ENGLISH = {
     "Software de control": "Control software",
+    "Seleccione el modo de inicio": "Select startup mode",
+    "Modo real": "Real mode",
+    "Modo simulación": "Simulation mode",
+    "Continuar": "Continue",
     "Operación normal": "Normal operation",
     "Mantenimiento": "Maintenance",
     "Estadísticas": "Statistics",

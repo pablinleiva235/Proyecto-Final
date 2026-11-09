@@ -1,15 +1,14 @@
 # Punto de entrada y ciclo de vida (`main.py`)
 
-`main.py` crea `QApplication`, configura el manejador global de excepciones, instancia el hardware real o simulado, construye controladores y secuencias, y entrega el ciclo de vida a `ApplicationController`.
+`main.py` crea `QApplication` y `SettingsManager`, presenta `StartupModeDialog` y solo después crea el backend seleccionado y sus controladores. El modo real está seleccionado por defecto; cancelar el diálogo cierra la aplicación sin inicializar hardware.
 
 ## Ensamblaje
 
-1. Se crea `QApplication` y `SettingsManager`.
-2. Se instancia `Hardware` o `MockHardware`, según `config_gui/app_config.py`. En modo simulado también se instala `SimulationController` como filtro de eventos.
-3. `PowerController` supervisa las entradas de alimentación; `StartupSequence` y `StartupController` ejecutan y notifican el preencendido.
-4. Se crean las secuencias de puerta, vacío, venteo y apagado.
-5. Se construyen `StartupScreen` y `MainWindow`; este último recibe hardware, secuencias y configuración de idioma/tema.
-6. `ApplicationController.start()` presenta la pantalla inicial y comienza el sondeo de encendido. Finalmente se inicia el loop de Qt.
+1. Se crea `QApplication` y `SettingsManager`; el popup modal ofrece modo real o simulado.
+2. Al continuar en modo real, se crea `Hardware`; en modo simulado, `MockHardware` y `SimulationController`.
+3. Se construyen `StartupScreen`, `MainWindow`, secuencias y controladores para ese backend.
+4. En modo real, `ApplicationController.start()` muestra `StartupScreen` y comienza el sondeo físico. En modo simulado, ejecuta automáticamente la secuencia de arranque.
+5. Si falla la inicialización del backend seleccionado, se muestra un error y la aplicación termina.
 
 ```python
 application_controller = ApplicationController(
@@ -28,7 +27,7 @@ Fragmento de `main.py`: el arranque y la visibilidad de las ventanas los coordin
 
 `PowerController` sondea `POWER_ON_SWITCH` cada 100 ms hasta detectar el pedido de encendido. El evento inicia `StartupSequence`, que activa y verifica `POWER_ON` y `FILAMENT_ENABLE`, puede inicializar la placa analógica y emite progreso. Al completar, `ApplicationController` oculta `StartupScreen`, muestra `MainWindow` y activa el monitoreo de `SYS_POWER`.
 
-La duración configurada en `logic/startup_sequence.py` es actualmente `STARTUP_DURATION_MS = 3_000` (3 segundos). Este dato describe el valor del código, no certifica que sea el tiempo validado para el equipo físico.
+La duración predeterminada de `StartupSequence` es de 30 segundos; en modo simulado la aplicación configura 3 segundos. Estos valores describen el código y no certifican el tiempo validado para el equipo físico.
 
 ## Apagado y excepciones
 

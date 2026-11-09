@@ -17,10 +17,11 @@ El orden de `start()` es: emitir inicio/progreso cero, activar y comprobar `POWE
 
 ```python
 STARTUP_DURATION_MS = 30_000
+SIMULATED_STARTUP_DURATION_MS = 3_000
 TIMER_INTERVAL_MS = 100
 ```
 
-`QTimer` incrementa el progreso según esos valores. Al completarse el intervalo, la secuencia desactiva `POWER_ON`, emite progreso 100 y `startup_completed`. El tiempo configurado no equivale a validación física del precalentamiento.
+`duration_ms` permite configurar la duración de cada instancia y por defecto usa `STARTUP_DURATION_MS`. La aplicación pasa 3 segundos en modo simulado y conserva 30 segundos en modo real. `QTimer` incrementa el progreso según la duración elegida; al completarse, la secuencia desactiva `POWER_ON`, emite progreso 100 y `startup_completed`. El tiempo configurado no equivale a validación física del precalentamiento.
 
 ## Señales y errores
 

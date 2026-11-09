@@ -10,24 +10,21 @@ class NormalOperationEquipmentStatusTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_mock_mode_keeps_simulation_badge(self):
-        screen = NormalOperationScreen(use_mock_hardware=True)
+    def test_both_modes_display_the_same_equipment_states(self):
+        for use_mock_hardware in (True, False):
+            with self.subTest(use_mock_hardware=use_mock_hardware):
+                screen = NormalOperationScreen(
+                    use_mock_hardware=use_mock_hardware
+                )
+                self.assertEqual(screen.simulation_badge.text(), "REPOSO")
 
-        screen.set_equipment_status("running")
-
-        self.assertEqual(screen.simulation_badge.text(), "MODO SIMULADO")
-
-    def test_real_hardware_displays_equipment_states(self):
-        screen = NormalOperationScreen(use_mock_hardware=False)
-        self.assertEqual(screen.simulation_badge.text(), "REPOSO")
-
-        for state, expected in (
-            ("running", "EN PROCESO"),
-            ("finished", "TERMINADO"),
-            ("idle", "REPOSO"),
-        ):
-            screen.set_equipment_status(state)
-            self.assertEqual(screen.simulation_badge.text(), expected)
+                for state, expected in (
+                    ("running", "EN PROCESO"),
+                    ("finished", "TERMINADO"),
+                    ("idle", "REPOSO"),
+                ):
+                    screen.set_equipment_status(state)
+                    self.assertEqual(screen.simulation_badge.text(), expected)
 
 
 if __name__ == "__main__":

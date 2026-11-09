@@ -99,7 +99,6 @@ class NormalOperationScreen(QWidget):
 
     def __init__(self, parent=None, use_mock_hardware=True):
         super().__init__(parent)
-        self._use_mock_hardware = bool(use_mock_hardware)
         self._readouts = {}
         self._recipe_service = RecipeService()
         self._active_recipe = None
@@ -112,16 +111,10 @@ class NormalOperationScreen(QWidget):
         self.title_label = QLabel(text.NORMAL_OPERATION_TITLE)
         self.title_label.setObjectName("NormalOperationTitle")
 
-        initial_badge_text = (
-            text.SIMULATION_MODE_LABEL
-            if self._use_mock_hardware
-            else self.EQUIPMENT_STATES["idle"]
-        )
-        self.simulation_badge = QLabel(initial_badge_text)
+        self.simulation_badge = QLabel(self.EQUIPMENT_STATES["idle"])
         self.simulation_badge.setObjectName("SimulationBadge")
         self.simulation_badge.setAlignment(Qt.AlignCenter)
-        if not self._use_mock_hardware:
-            self.set_equipment_status("idle")
+        self.set_equipment_status("idle")
 
         self.simulation_description = QLabel(text.SIMULATION_MODE_DESCRIPTION)
         self.simulation_description.setObjectName("SimulationDescription")
@@ -445,9 +438,7 @@ class NormalOperationScreen(QWidget):
         set_localized_text(self.recipe_status_label, status)
 
     def set_equipment_status(self, status):
-        """Actualiza el indicador del equipo cuando se usa hardware real."""
-        if self._use_mock_hardware:
-            return
+        """Actualiza el indicador del equipo en cualquier modo de operación."""
         if status not in self.EQUIPMENT_STATES:
             raise ValueError(f"Estado de equipo desconocido: {status}")
         set_localized_text(self.simulation_badge, self.EQUIPMENT_STATES[status])

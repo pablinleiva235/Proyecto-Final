@@ -381,6 +381,12 @@ TUTOR_NAMES = ("Ing. Andres L. Di Donato", "Nombre del tutor 2")
 
 _ACTIVE_LANGUAGE = "es"
 _SPANISH_TO_ENGLISH = {
+    "Presión y Temperatura": "Pressure and Temperature",
+    "Caudales MFC": "MFC flows",
+    "Presión": "Pressure",
+    "Temperatura": "Temperature",
+    "MFC1": "MFC1",
+    "MFC2": "MFC2",
     "Software de control": "Control software",
     "Seleccione el modo de inicio": "Select startup mode",
     "Modo real": "Real mode",

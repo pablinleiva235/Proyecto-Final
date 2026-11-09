@@ -80,7 +80,7 @@ class ProcessPlot(QWidget):
         bottom = self.height() - metrics.height() - 12
 
         painter.setPen(self.palette().text().color())
-        painter.drawText(left, metrics.ascent() + 4, f"{strings.tr(self.title)} ({self.unit})")
+        painter.drawText(left, metrics.ascent() + 4, f"{strings.tr(self.title)} [{self.unit}]")
         if right <= left or bottom <= top:
             return
         if not values:
@@ -112,6 +112,135 @@ class ProcessPlot(QWidget):
         painter.drawPath(path)
 
 
+class CombinedProcessPlot(QWidget):
+    """Grafica dos señales sobre el mismo eje temporal, con escalas opcionales."""
+
+    def __init__(self, title, series, dual_axis=False, parent=None):
+        super().__init__(parent)
+        self.title = title
+        self.series = {
+            name: {"label": label, "unit": unit, "color": QColor(color), "points": []}
+            for name, label, unit, color in series
+        }
+        self.dual_axis = dual_axis
+        self.setMinimumHeight(210)
+
+    def set_points(self, signal, points):
+        self.series[signal]["points"] = points
+        self.update()
+
+    def points_for(self, signal):
+        return self.series[signal]["points"]
+
+    @staticmethod
+    def _bounds(values):
+        if not values:
+            return 0.0, 1.0
+        low, high = min(values), max(values)
+        if low == high:
+            margin = max(abs(low) * 0.05, 1.0)
+            return low - margin, high + margin
+        return low, high
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        metrics = painter.fontMetrics()
+        title = strings.tr(self.title)
+        painter.setPen(self.palette().text().color())
+        painter.drawText(12, metrics.ascent() + 4, title)
+
+        populated = [
+            (name, item) for name, item in self.series.items() if item["points"]
+        ]
+        if not populated:
+            painter.setPen(self.palette().mid().color())
+            painter.drawText(12, self.height() // 2, strings.tr(STATISTICS_PLACEHOLDER))
+            return
+
+        left_values = [value for _, item in populated for _, value in item["points"]]
+        left_low, left_high = self._bounds(left_values)
+        if self.dual_axis and len(self.series) > 1:
+            first_name = next(iter(self.series))
+            left_values = [value for _, value in self.series[first_name]["points"]]
+            left_low, left_high = self._bounds(left_values)
+            second_name = list(self.series)[1]
+            right_values = [value for _, value in self.series[second_name]["points"]]
+            right_low, right_high = self._bounds(right_values)
+        else:
+            right_low = right_high = None
+
+        all_times = [seconds for _, item in populated for seconds, _ in item["points"]]
+        t_end = max(max(all_times), 1.0)
+        left_width = max(metrics.horizontalAdvance(f"{left_low + f * (left_high-left_low):.3g}") for f in (0, .25, .5, .75, 1))
+        right_width = 0
+        if right_low is not None:
+            right_width = max(metrics.horizontalAdvance(f"{right_low + f * (right_high-right_low):.3g}") for f in (0, .25, .5, .75, 1))
+        left = left_width + 22
+        right = self.width() - right_width - 22
+        top = metrics.height() + 28
+        bottom = self.height() - metrics.height() - 18
+        if self.dual_axis:
+            bottom -= metrics.height() + 2
+        if right <= left or bottom <= top:
+            return
+
+        painter.setPen(QPen(self.palette().mid().color(), 1))
+        for fraction in (0, .25, .5, .75, 1):
+            y = bottom - fraction * (bottom - top)
+            painter.drawLine(left, int(y), right, int(y))
+            left_label = f"{left_low + fraction * (left_high-left_low):.3g}"
+            painter.drawText(left - metrics.horizontalAdvance(left_label) - 6, int(y + metrics.ascent()/2), left_label)
+            if right_low is not None:
+                right_label = f"{right_low + fraction * (right_high-right_low):.3g}"
+                painter.drawText(right + 6, int(y + metrics.ascent()/2), right_label)
+
+        names = list(self.series)
+        legend_x = 12
+        for index, (name, item) in enumerate(self.series.items()):
+            legend = f"{strings.tr(item['label'])} [{item['unit']}]"
+            color = item["color"]
+            painter.setPen(QPen(color, 3))
+            painter.drawLine(legend_x, metrics.height() + 16, legend_x + 14, metrics.height() + 16)
+            painter.setPen(self.palette().text().color())
+            painter.drawText(legend_x + 19, metrics.height() + 20, legend)
+            legend_x += metrics.horizontalAdvance(legend) + 40
+
+        painter.setPen(self.palette().text().color())
+        painter.drawText(left, self.height() - metrics.descent() - 2, "0 s")
+        end_label = f"{t_end:.0f} s"
+        painter.drawText(right - metrics.horizontalAdvance(end_label), self.height() - metrics.descent() - 2, end_label)
+        if self.dual_axis:
+            left_unit = f"[{self.series[names[0]]['unit']}]"
+            unit_y = bottom + metrics.height() + 6
+            painter.drawText(
+                int((left - metrics.horizontalAdvance(left_unit)) / 2), unit_y, left_unit
+            )
+            if right_low is not None:
+                right_unit = f"[{self.series[names[1]]['unit']}]"
+                painter.drawText(
+                    int(right + (self.width() - right - metrics.horizontalAdvance(right_unit)) / 2),
+                    unit_y,
+                    right_unit,
+                )
+
+        for index, (name, item) in enumerate(self.series.items()):
+            points = item["points"]
+            if not points:
+                continue
+            low, high = (left_low, left_high)
+            if self.dual_axis and index == 1 and right_low is not None:
+                low, high = right_low, right_high
+            path = QPainterPath()
+            for point_index, (seconds, value) in enumerate(points):
+                x = left + seconds / t_end * (right - left)
+                y = bottom - (value - low) / (high - low) * (bottom - top)
+                point = QPointF(x, y)
+                path.moveTo(point) if point_index == 0 else path.lineTo(point)
+            painter.setPen(QPen(item["color"], 2))
+            painter.drawPath(path)
+
+
 class StatisticsScreen(QWidget):
     back_requested = pyqtSignal()
 
@@ -135,17 +264,26 @@ class StatisticsScreen(QWidget):
         self.subtitle_label.setObjectName("SubtitleLabel")
         self.subtitle_label.setAlignment(Qt.AlignCenter)
         self.subtitle_label.setWordWrap(True)
-        self.pressure_plot = ProcessPlot("Presión", "Torr", "#38BDF8")
-        self.temperature_plot = ProcessPlot("Temperatura", "°C", "#FACC15")
-        self.mfc1_plot = ProcessPlot("MFC1", "SLPM", "#34D399")
-        self.mfc2_plot = ProcessPlot("MFC2", "SLPM", "#A78BFA")
+        self.pressure_temperature_plot = CombinedProcessPlot(
+            "Presión y temperatura",
+            (("BARATRON", "Presión", "Torr", "#38BDF8"), ("CHAMBER_TEMP", "Temperatura", "°C", "#FACC15")),
+            dual_axis=True,
+        )
+        self.mfc_plot = CombinedProcessPlot(
+            "Caudales MFC",
+            (("MFC1_FLOW", "MFC1 · O₂", "SLPM", "#34D399"),
+             ("MFC2_FLOW", "MFC2 · N₂", "SLPM", "#A78BFA")),
+        )
         self.throttle_plot = ProcessPlot("Posición throttle", "pasos", "#FB7185")
         self.plasma_plot = ProcessPlot("Estado plasma", "0 apagado / 1 encendido", "#F97316")
         self.signal_plots = {
-            "BARATRON": self.pressure_plot, "CHAMBER_TEMP": self.temperature_plot,
-            "MFC1_FLOW": self.mfc1_plot, "MFC2_FLOW": self.mfc2_plot,
+            "BARATRON": self.pressure_temperature_plot,
+            "CHAMBER_TEMP": self.pressure_temperature_plot,
+            "MFC1_FLOW": self.mfc_plot, "MFC2_FLOW": self.mfc_plot,
             "THROTTLE_POSITION": self.throttle_plot, "PLASMA": self.plasma_plot,
         }
+        self.data_plots = [self.pressure_temperature_plot, self.mfc_plot,
+                           self.throttle_plot, self.plasma_plot]
         self.load_file_button = QPushButton(STATISTICS_LOAD_FILE_TEXT)
         self.load_file_button.setObjectName("StatisticsLoadFileButton")
         # Backwards-compatible attribute for callers that refresh CSV data.
@@ -177,7 +315,7 @@ class StatisticsScreen(QWidget):
         plots_container = QWidget()
         plots_layout = QVBoxLayout(plots_container)
         plots_layout.setContentsMargins(0, 0, 0, 0)
-        for plot in self.signal_plots.values():
+        for plot in self.data_plots:
             plots_layout.addWidget(plot)
         self.plots_scroll = QScrollArea()
         self.plots_scroll.setWidgetResizable(True)
@@ -254,8 +392,7 @@ class StatisticsScreen(QWidget):
         if latest_path is None:
             self.data_path = None
             self.subtitle_label.setText(strings.tr(STATISTICS_NO_DATA))
-            for plot in self.signal_plots.values():
-                plot.set_points([])
+            self._clear_data_plots()
             return
         self._load_data_file(latest_path)
 
@@ -372,19 +509,19 @@ class StatisticsScreen(QWidget):
                 return self._load_maintenance_data_file(path)
         except (OSError, csv.Error, UnicodeError):
             pass
-        data = {"BARATRON": [], "CHAMBER_TEMP": []}
+        data = {signal: [] for signal in self.signal_plots}
         try:
             with path.open("r", encoding="utf-8-sig", newline="") as data_file:
                 for row in csv.DictReader(data_file):
                     signal = row.get("señal") or row.get("seÃ±al") or row.get("signal")
-                    if signal not in data:
-                        continue
                     try:
                         timestamp = datetime.fromisoformat(row["timestamp"])
                         value = float(row["valor"] if "valor" in row else row["value"])
                         if not math.isfinite(value):
                             continue
                     except (KeyError, TypeError, ValueError, OverflowError):
+                        continue
+                    if signal not in data:
                         continue
                     data[signal].append((timestamp, value))
         except (OSError, csv.Error, UnicodeError):
@@ -395,12 +532,13 @@ class StatisticsScreen(QWidget):
 
         all_times = [timestamp for readings in data.values() for timestamp, _ in readings]
         start = min(all_times) if all_times else None
-        for signal, plot in self.signal_plots.items():
+        for signal in self.signal_plots:
             readings = sorted(data.get(signal, []), key=lambda item: item[0])
-            plot.set_points([
+            points = [
                 (max(0.0, (timestamp - start).total_seconds()), value)
                 for timestamp, value in readings
-            ] if start else [])
+            ] if start else []
+            self._set_signal_points(signal, points)
 
         count = sum(map(len, data.values()))
         self.data_path = path
@@ -450,13 +588,14 @@ class StatisticsScreen(QWidget):
         all_times = [timestamp for readings in data.values() for timestamp, _ in readings]
         start = min(all_times) if all_times else None
         count = 0
-        for signal, plot in self.signal_plots.items():
+        for signal in self.signal_plots:
             readings = sorted(data[signal], key=lambda item: item[0])
             count += len(readings)
-            plot.set_points([
+            points = [
                 (max(0.0, (timestamp - start).total_seconds()), value)
                 for timestamp, value in readings
-            ] if start else [])
+            ] if start else []
+            self._set_signal_points(signal, points)
 
         self.data_path = path
         subtitle = (
@@ -465,3 +604,18 @@ class StatisticsScreen(QWidget):
         )
         self.subtitle_label.setText(strings.tr(subtitle))
         return True
+
+    def _set_signal_points(self, signal, points):
+        plot = self.signal_plots[signal]
+        if isinstance(plot, CombinedProcessPlot):
+            plot.set_points(signal, points)
+        else:
+            plot.set_points(points)
+
+    def _clear_data_plots(self):
+        for plot in self.data_plots:
+            if isinstance(plot, CombinedProcessPlot):
+                for signal in plot.series:
+                    plot.set_points(signal, [])
+            else:
+                plot.set_points([])

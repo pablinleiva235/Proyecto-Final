@@ -6,10 +6,10 @@ from unittest.mock import patch
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QTextCursor, QFont
+from PyQt5.QtGui import QFont, QPixmap, QTextCursor
 
 from gui import statistics_screen as statistics_module
-from gui.statistics_screen import StatisticsScreen
+from gui.statistics_screen import CombinedProcessPlot, StatisticsScreen
 from config_gui.theme import THEMES
 
 
@@ -39,7 +39,7 @@ class StatisticsScreenTests(unittest.TestCase):
                 screen = StatisticsScreen()
 
             self.assertEqual(screen.data_path, newest)
-            self.assertEqual(screen.pressure_plot.points, [(0.0, 0.8)])
+            self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.8)])
             self.assertIn(newest.name, screen.subtitle_label.text())
             self.assertIn("1 lecturas", screen.subtitle_label.text())
             self.assertEqual(screen.refresh_button.text(), "Cargar archivo")
@@ -63,16 +63,16 @@ class StatisticsScreenTests(unittest.TestCase):
                     self.assertEqual(dialog.call_args.args[2], str(directory))
                     self.assertEqual(dialog.call_args.args[3], "CSV (*.csv)")
                 self.assertEqual(screen.data_path, second)
-                self.assertEqual(screen.pressure_plot.points, [(0.0, 0.9)])
+                self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.9)])
 
-                previous_points = list(screen.pressure_plot.points)
+                previous_points = list(screen.pressure_temperature_plot.points_for("BARATRON"))
                 with patch.object(
                     statistics_module.QFileDialog,
                     "getOpenFileName",
                     return_value=("", ""),
                 ):
                     screen.choose_data_file()
-                self.assertEqual(screen.pressure_plot.points, previous_points)
+                self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), previous_points)
                 self.assertEqual(screen.data_path, second)
 
     def test_empty_directory_does_not_open_dialog_or_load_data(self):
@@ -84,7 +84,7 @@ class StatisticsScreenTests(unittest.TestCase):
             ):
                 screen = StatisticsScreen()
                 self.assertIsNone(screen.data_path)
-                self.assertEqual(screen.pressure_plot.points, [])
+                self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [])
                 with patch.object(statistics_module.QFileDialog, "getOpenFileName") as dialog:
                     screen.choose_data_file()
                 dialog.assert_not_called()
@@ -98,7 +98,7 @@ class StatisticsScreenTests(unittest.TestCase):
             bad.write_bytes(b"\xff\xfe\xfa")
             with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory):
                 screen = StatisticsScreen(data_path=good)
-                previous_points = list(screen.pressure_plot.points)
+                previous_points = list(screen.pressure_temperature_plot.points_for("BARATRON"))
                 with patch.object(
                     statistics_module.QFileDialog,
                     "getOpenFileName",
@@ -106,7 +106,7 @@ class StatisticsScreenTests(unittest.TestCase):
                 ):
                     screen.choose_data_file()
 
-            self.assertEqual(screen.pressure_plot.points, previous_points)
+            self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), previous_points)
             self.assertEqual(screen.data_path, good)
             self.assertIn("No se pudo cargar", screen.subtitle_label.text())
             self.assertIn(bad.name, screen.subtitle_label.text())
@@ -125,12 +125,57 @@ class StatisticsScreenTests(unittest.TestCase):
             with patch.object(statistics_module, "MAINTENANCE_DATA_DIRECTORY", directory):
                 screen = StatisticsScreen(data_path=path)
 
-            self.assertEqual(screen.pressure_plot.points, [(0.0, 0.2), (1.0, 0.3)])
-            self.assertEqual(screen.temperature_plot.points, [(0.0, 30.0), (1.0, 31.0)])
-            self.assertEqual(screen.mfc1_plot.points, [(0.0, 1.1), (1.0, 1.2)])
-            self.assertEqual(screen.mfc2_plot.points, [(0.0, 0.3), (1.0, 0.4)])
+            self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.2), (1.0, 0.3)])
+            self.assertEqual(screen.pressure_temperature_plot.points_for("CHAMBER_TEMP"), [(0.0, 30.0), (1.0, 31.0)])
+            self.assertEqual(screen.mfc_plot.points_for("MFC1_FLOW"), [(0.0, 1.1), (1.0, 1.2)])
+            self.assertEqual(screen.mfc_plot.points_for("MFC2_FLOW"), [(0.0, 0.3), (1.0, 0.4)])
             self.assertEqual(screen.throttle_plot.points, [(0.0, 20.0), (1.0, 21.0)])
             self.assertEqual(screen.plasma_plot.points, [(0.0, 0.0), (1.0, 1.0)])
+
+            self.assertTrue(screen.pressure_temperature_plot.dual_axis)
+            self.assertEqual(screen.pressure_temperature_plot.series["BARATRON"]["unit"], "Torr")
+            self.assertEqual(screen.pressure_temperature_plot.series["CHAMBER_TEMP"]["unit"], "°C")
+            self.assertFalse(screen.mfc_plot.dual_axis)
+            self.assertEqual(screen.mfc_plot.series["MFC1_FLOW"]["unit"], "SLPM")
+            self.assertEqual(screen.mfc_plot.series["MFC1_FLOW"]["label"], "MFC1 · O₂")
+            self.assertEqual(screen.mfc_plot.series["MFC2_FLOW"]["label"], "MFC2 · N₂")
+
+    def test_combined_plots_ignore_invalid_values_and_missing_signals(self):
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "mantenimiento_1.csv"
+            path.write_text(
+                "timestamp,pressure_Torr,temperature_C,MFC1_flow_SLPM,MFC2_flow_SLPM\n"
+                "2026-11-03T12:00:00-03:00,0.2,bad,1.1,\n"
+                "2026-11-03T12:00:01-03:00,,31,NaN,0.4\n",
+                encoding="utf-8",
+            )
+            screen = StatisticsScreen(data_path=path)
+
+        self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.2)])
+        self.assertEqual(screen.pressure_temperature_plot.points_for("CHAMBER_TEMP"), [(1.0, 31.0)])
+        self.assertEqual(screen.mfc_plot.points_for("MFC1_FLOW"), [(0.0, 1.1)])
+        self.assertEqual(screen.mfc_plot.points_for("MFC2_FLOW"), [(1.0, 0.4)])
+
+    def test_combined_plots_render_without_qpainter_errors(self):
+        plots = (
+            CombinedProcessPlot(
+                "Presión y temperatura",
+                (("BARATRON", "Presión", "Torr", "#38BDF8"),
+                 ("CHAMBER_TEMP", "Temperatura", "°C", "#FACC15")),
+                dual_axis=True,
+            ),
+            CombinedProcessPlot(
+                "Caudales MFC",
+                (("MFC1_FLOW", "MFC1", "SLPM", "#34D399"),
+                 ("MFC2_FLOW", "MFC2", "SLPM", "#A78BFA")),
+            ),
+        )
+        for plot in plots:
+            plot.resize(800, 220)
+            for signal in plot.series:
+                plot.set_points(signal, [(0.0, 1.0), (10.0, 2.0)])
+            pixmap = QPixmap(plot.size())
+            plot.render(pixmap)
 
     def test_latest_data_includes_maintenance_logs(self):
         with TemporaryDirectory() as temp_dir:
@@ -150,7 +195,7 @@ class StatisticsScreenTests(unittest.TestCase):
                 screen = StatisticsScreen()
 
             self.assertEqual(screen.data_path, maintenance)
-            self.assertEqual(screen.pressure_plot.points, [(0.0, 0.8)])
+            self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.8)])
 
     def test_loads_wide_recipe_csv_with_all_maintenance_signals(self):
         with TemporaryDirectory() as temp_dir:
@@ -163,10 +208,10 @@ class StatisticsScreenTests(unittest.TestCase):
             )
             screen = StatisticsScreen(data_path=path)
 
-        self.assertEqual(screen.pressure_plot.points, [(0.0, 0.4)])
-        self.assertEqual(screen.temperature_plot.points, [(0.0, 80.0)])
-        self.assertEqual(screen.mfc1_plot.points, [(0.0, 1.5)])
-        self.assertEqual(screen.mfc2_plot.points, [(0.0, 0.2)])
+        self.assertEqual(screen.pressure_temperature_plot.points_for("BARATRON"), [(0.0, 0.4)])
+        self.assertEqual(screen.pressure_temperature_plot.points_for("CHAMBER_TEMP"), [(0.0, 80.0)])
+        self.assertEqual(screen.mfc_plot.points_for("MFC1_FLOW"), [(0.0, 1.5)])
+        self.assertEqual(screen.mfc_plot.points_for("MFC2_FLOW"), [(0.0, 0.2)])
         self.assertEqual(screen.throttle_plot.points, [(0.0, 120.0)])
         self.assertEqual(screen.plasma_plot.points, [(0.0, 1.0)])
 

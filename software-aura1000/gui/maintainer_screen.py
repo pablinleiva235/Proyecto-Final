@@ -53,6 +53,9 @@ from gui.widgets.analog_readout_card import AnalogReadoutCard
 from gui.widgets.mfc_control_card import MFCControlCard
 from config.pressure_limits import minimum_process_pressure
 from gui.widgets.localization import set_localized_text
+
+
+THROTTLE_FULL_TRAVEL_STEPS = 1400.0
 from gui.widgets.status_indicator import StatusIndicatorWidget
 
 
@@ -503,7 +506,7 @@ class MaintainerScreen(QWidget):
         throttle_buttons.addLayout(step_action_row)
         self.throttle_position_card = AnalogReadoutCard(
             myStr.MAINTAINER_THROTTLE_POSITION_LABEL,
-            "pasos",
+            "%",
             "↕",
             reading_label=myStr.MAINTAINER_THROTTLE_POSITION_READING,
             available_status=myStr.MAINTAINER_THROTTLE_POSITION_STATUS,
@@ -852,7 +855,11 @@ class MaintainerScreen(QWidget):
                 myStr.MAINTAINER_THROTTLE_POSITION_UNAVAILABLE_MESSAGE,
             )
         else:
-            self.throttle_position_card.set_value(position, precision=1)
+            opening_percent = 100.0 * (
+                1.0 - float(position) / THROTTLE_FULL_TRAVEL_STEPS
+            )
+            opening_percent = max(0.0, min(100.0, opening_percent))
+            self.throttle_position_card.set_value(opening_percent, precision=1)
 
     def set_module_controls_enabled(self, enabled, throttle_enabled=None):
         enabled = bool(enabled) and not self._manual_controls_locked

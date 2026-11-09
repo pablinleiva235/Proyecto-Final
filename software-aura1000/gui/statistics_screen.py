@@ -39,17 +39,19 @@ _LOG_TIMESTAMP_PATTERN = re.compile(
     r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
     r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?) \| "
 )
+THROTTLE_FULL_TRAVEL_STEPS = 1400.0
 
 
 class ProcessPlot(QWidget):
     """Gráfico liviano pintado con Qt para no agregar dependencias externas."""
 
-    def __init__(self, title, unit, color, parent=None):
+    def __init__(self, title, unit, color, parent=None, fixed_range=None):
         super().__init__(parent)
         self.title = title
         self.unit = unit
         self.color = QColor(color)
         self.points = []
+        self.fixed_range = fixed_range
         self.setMinimumHeight(190)
 
     def set_points(self, points):
@@ -61,18 +63,22 @@ class ProcessPlot(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         metrics = painter.fontMetrics()
         values = [value for _, value in self.points]
-        if values:
+        if self.fixed_range is not None:
+            low, high = self.fixed_range
+        elif values:
             low, high = min(values), max(values)
             if low == high:
                 margin = max(abs(low) * 0.05, 1.0)
                 low, high = low - margin, high + margin
+        else:
+            low = high = None
+        if low is None:
+            tick_width = metrics.horizontalAdvance("0")
+        else:
             tick_width = max(
                 metrics.horizontalAdvance(f"{low + fraction * (high - low):.3g}")
                 for fraction in (0, .25, .5, .75, 1)
             )
-        else:
-            low = high = None
-            tick_width = metrics.horizontalAdvance("0")
 
         left = tick_width + 18
         top = metrics.height() + 18
@@ -274,7 +280,9 @@ class StatisticsScreen(QWidget):
             (("MFC1_FLOW", "MFC1 · O₂", "SLPM", "#34D399"),
              ("MFC2_FLOW", "MFC2 · N₂", "SLPM", "#A78BFA")),
         )
-        self.throttle_plot = ProcessPlot("Posición throttle", "pasos", "#FB7185")
+        self.throttle_plot = ProcessPlot(
+            "Apertura throttle", "%", "#FB7185", fixed_range=(0.0, 100.0)
+        )
         self.plasma_plot = ProcessPlot("Estado plasma", "0 apagado / 1 encendido", "#F97316")
         self.signal_plots = {
             "BARATRON": self.pressure_temperature_plot,
@@ -606,6 +614,20 @@ class StatisticsScreen(QWidget):
         return True
 
     def _set_signal_points(self, signal, points):
+        if signal == "THROTTLE_POSITION":
+            points = [
+                (
+                    seconds,
+                    max(
+                        0.0,
+                        min(
+                            100.0,
+                            100.0 * (1.0 - steps / THROTTLE_FULL_TRAVEL_STEPS),
+                        ),
+                    ),
+                )
+                for seconds, steps in points
+            ]
         plot = self.signal_plots[signal]
         if isinstance(plot, CombinedProcessPlot):
             plot.set_points(signal, points)

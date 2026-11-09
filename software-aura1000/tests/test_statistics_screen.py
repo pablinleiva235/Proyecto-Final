@@ -129,7 +129,10 @@ class StatisticsScreenTests(unittest.TestCase):
             self.assertEqual(screen.pressure_temperature_plot.points_for("CHAMBER_TEMP"), [(0.0, 30.0), (1.0, 31.0)])
             self.assertEqual(screen.mfc_plot.points_for("MFC1_FLOW"), [(0.0, 1.1), (1.0, 1.2)])
             self.assertEqual(screen.mfc_plot.points_for("MFC2_FLOW"), [(0.0, 0.3), (1.0, 0.4)])
-            self.assertEqual(screen.throttle_plot.points, [(0.0, 20.0), (1.0, 21.0)])
+            self.assertAlmostEqual(screen.throttle_plot.points[0][1], 100.0 * (1.0 - 20.0 / 1400.0))
+            self.assertAlmostEqual(screen.throttle_plot.points[1][1], 100.0 * (1.0 - 21.0 / 1400.0))
+            self.assertEqual(screen.throttle_plot.unit, "%")
+            self.assertEqual(screen.throttle_plot.fixed_range, (0.0, 100.0))
             self.assertEqual(screen.plasma_plot.points, [(0.0, 0.0), (1.0, 1.0)])
 
             self.assertTrue(screen.pressure_temperature_plot.dual_axis)
@@ -212,8 +215,38 @@ class StatisticsScreenTests(unittest.TestCase):
         self.assertEqual(screen.pressure_temperature_plot.points_for("CHAMBER_TEMP"), [(0.0, 80.0)])
         self.assertEqual(screen.mfc_plot.points_for("MFC1_FLOW"), [(0.0, 1.5)])
         self.assertEqual(screen.mfc_plot.points_for("MFC2_FLOW"), [(0.0, 0.2)])
-        self.assertEqual(screen.throttle_plot.points, [(0.0, 120.0)])
+        self.assertAlmostEqual(screen.throttle_plot.points[0][1], 100.0 * (1.0 - 120.0 / 1400.0))
         self.assertEqual(screen.plasma_plot.points, [(0.0, 1.0)])
+
+    def test_throttle_percentage_endpoints_and_clamping_for_both_csv_formats(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            recipe_path = directory / "recipe_data_throttle.csv"
+            recipe_path.write_text(
+                "timestamp,signal,value,unit\n"
+                "2026-11-03T12:00:00-03:00,THROTTLE_POSITION,0,steps\n"
+                "2026-11-03T12:00:01-03:00,THROTTLE_POSITION,700,steps\n"
+                "2026-11-03T12:00:02-03:00,THROTTLE_POSITION,1400,steps\n"
+                "2026-11-03T12:00:03-03:00,THROTTLE_POSITION,1500,steps\n",
+                encoding="utf-8",
+            )
+            maintenance_path = directory / "mantenimiento_throttle.csv"
+            maintenance_path.write_text(
+                "timestamp,pressure_Torr,throttle_position_steps\n"
+                "2026-11-03T12:00:00-03:00,0.2,0\n"
+                "2026-11-03T12:00:01-03:00,0.2,700\n"
+                "2026-11-03T12:00:02-03:00,0.2,1400\n"
+                "2026-11-03T12:00:03-03:00,0.2,1500\n",
+                encoding="utf-8",
+            )
+
+            for path in (recipe_path, maintenance_path):
+                with self.subTest(csv=path.name):
+                    screen = StatisticsScreen(data_path=path)
+                    self.assertEqual(
+                        [value for _, value in screen.throttle_plot.points],
+                        [100.0, 50.0, 0.0, 0.0],
+                    )
 
     def test_loads_most_recent_recipe_or_shutdown_log(self):
         with TemporaryDirectory() as temp_dir:

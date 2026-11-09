@@ -255,8 +255,14 @@ DIGITAL_OUTPUTS_TITLE = "Salidas digitales"
 STATISTICS_TITLE = "ESTADÍSTICAS"
 STATISTICS_PLACEHOLDER = "Pantalla temporal de estadísticas"
 STATISTICS_LOAD_DATA_TEXT = "Cargar datos"
+STATISTICS_LOAD_FILE_TEXT = "Cargar archivo"
 STATISTICS_NO_DATA = "No hay datos guardados de una receta ejecutada."
 STATISTICS_LOAD_ERROR = "No se pudo cargar el archivo: {filename}"
+STATISTICS_DATA_TAB = "Datos"
+STATISTICS_LOGS_TAB = "Logs"
+STATISTICS_LOAD_LOG_TEXT = "Cargar log"
+STATISTICS_NO_LOGS = "No hay registros disponibles."
+STATISTICS_LOG_LOAD_ERROR = "No se pudo cargar el log: {filename}"
 MAINTENANCE_RECORD_START = "Guardar valores"
 MAINTENANCE_RECORD_STOP = "Detener y guardar"
 
@@ -538,6 +544,12 @@ _SPANISH_TO_ENGLISH = {
     "Salidas digitales": "Digital outputs",
     "ESTADÍSTICAS": "STATISTICS",
     "Pantalla temporal de estadísticas": "Temporary statistics screen",
+    "Datos": "Data",
+    "Logs": "Logs",
+    "Cargar log": "Load log",
+    "Cargar archivo": "Load file",
+    "No hay registros disponibles.": "No logs are available.",
+    "No se pudo cargar el log": "Could not load log",
     "Volver": "Back",
     "Modulos": "Modules",
     "DIO - Digital Input Output": "DIO - Digital input/output",

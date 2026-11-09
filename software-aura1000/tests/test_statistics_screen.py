@@ -31,14 +31,15 @@ class StatisticsScreenTests(unittest.TestCase):
             self._write_csv(newest, 0.8)
             os.utime(older, (1000, 1000))
             os.utime(newest, (2000, 2000))
-            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory):
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory), \
+                    patch.object(statistics_module, "MAINTENANCE_DATA_DIRECTORY", directory):
                 screen = StatisticsScreen()
 
             self.assertEqual(screen.data_path, newest)
             self.assertEqual(screen.pressure_plot.points, [(0.0, 0.8)])
             self.assertIn(newest.name, screen.subtitle_label.text())
             self.assertIn("1 lecturas", screen.subtitle_label.text())
-            self.assertEqual(screen.refresh_button.text(), "Cargar datos")
+            self.assertEqual(screen.refresh_button.text(), "Cargar archivo")
 
     def test_selecting_csv_loads_its_data_and_cancel_keeps_current_data(self):
         with TemporaryDirectory() as temp_dir:
@@ -47,7 +48,8 @@ class StatisticsScreenTests(unittest.TestCase):
             second = directory / "recipe_data_2.csv"
             self._write_csv(first, 0.5)
             self._write_csv(second, 0.9)
-            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory):
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory), \
+                    patch.object(statistics_module, "MAINTENANCE_DATA_DIRECTORY", directory):
                 screen = StatisticsScreen(data_path=first)
                 with patch.object(
                     statistics_module.QFileDialog,
@@ -74,6 +76,8 @@ class StatisticsScreenTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             with patch.object(
                 statistics_module, "RECIPE_LOG_DIRECTORY", Path(temp_dir)
+            ), patch.object(
+                statistics_module, "MAINTENANCE_DATA_DIRECTORY", Path(temp_dir)
             ):
                 screen = StatisticsScreen()
                 self.assertIsNone(screen.data_path)
@@ -162,6 +166,99 @@ class StatisticsScreenTests(unittest.TestCase):
         self.assertEqual(screen.mfc2_plot.points, [(0.0, 0.2)])
         self.assertEqual(screen.throttle_plot.points, [(0.0, 120.0)])
         self.assertEqual(screen.plasma_plot.points, [(0.0, 1.0)])
+
+    def test_loads_most_recent_recipe_or_shutdown_log(self):
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            recipes = root / "recetas"
+            shutdowns = root / "shutdown"
+            recipes.mkdir()
+            shutdowns.mkdir()
+            recipe = recipes / "recipe_1.log"
+            shutdown = shutdowns / "shutdown_1.log"
+            recipe.write_text("evento receta\n", encoding="utf-8")
+            shutdown.write_text("evento apagado\n", encoding="utf-8")
+            os.utime(recipe, (1000, 1000))
+            os.utime(shutdown, (2000, 2000))
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", recipes), \
+                    patch.object(statistics_module, "SHUTDOWN_LOG_DIRECTORY", shutdowns):
+                screen = StatisticsScreen()
+
+            self.assertEqual(screen.log_path, shutdown)
+            self.assertEqual(screen.logs_view.toPlainText(), "evento apagado\n")
+            self.assertEqual(screen.logs_title_label.text(), shutdown.name)
+            self.assertEqual(screen.tabs.tabText(0), "Datos")
+            self.assertEqual(screen.tabs.tabText(1), "Logs")
+
+    def test_selecting_log_and_canceling_preserves_current_view(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            first = directory / "recipe_1.log"
+            second = directory / "shutdown_1.log"
+            first.write_text("primero", encoding="utf-8")
+            second.write_text("segundo", encoding="utf-8")
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory), \
+                    patch.object(statistics_module, "SHUTDOWN_LOG_DIRECTORY", directory):
+                screen = StatisticsScreen()
+                with patch.object(
+                    statistics_module.QFileDialog,
+                    "getOpenFileName",
+                    return_value=(str(second), "Logs (*.log)"),
+                ) as dialog:
+                    screen.choose_log_file()
+                self.assertEqual(dialog.call_args.args[3], "Logs (*.log)")
+                self.assertEqual(screen.log_path, second)
+                self.assertEqual(screen.logs_view.toPlainText(), "segundo")
+                with patch.object(
+                    statistics_module.QFileDialog,
+                    "getOpenFileName",
+                    return_value=("", ""),
+                ):
+                    screen.choose_log_file()
+                self.assertEqual(screen.log_path, second)
+                self.assertEqual(screen.logs_view.toPlainText(), "segundo")
+
+    def test_empty_and_unreadable_logs_are_reported(self):
+        with TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            with patch.object(statistics_module, "RECIPE_LOG_DIRECTORY", directory), \
+                    patch.object(statistics_module, "SHUTDOWN_LOG_DIRECTORY", directory):
+                screen = StatisticsScreen()
+                self.assertIsNone(screen.log_path)
+                self.assertIn("No hay registros", screen.logs_title_label.text())
+                bad = directory / "recipe_1.log"
+                bad.write_bytes(b"\xff\xfe\xfa")
+                self.assertFalse(screen._load_log_file(bad))
+                self.assertIn("No se pudo cargar", screen.logs_title_label.text())
+                self.assertIn(bad.name, screen.logs_title_label.text())
+
+    def test_shared_load_button_uses_active_tab_and_footer_has_two_columns(self):
+        screen = StatisticsScreen(data_path=Path("missing.csv"))
+        screen.data_path = None
+        with patch.object(screen, "choose_data_file") as choose_data, \
+                patch.object(screen, "choose_log_file") as choose_log:
+            screen.tabs.setCurrentIndex(0)
+            screen.load_file_button.click()
+            choose_data.assert_called_once_with()
+            choose_log.assert_not_called()
+
+            choose_data.reset_mock()
+            screen.tabs.setCurrentIndex(1)
+            screen.load_file_button.click()
+            choose_log.assert_called_once_with()
+            choose_data.assert_not_called()
+
+        self.assertEqual(screen.footer_buttons.count(), 2)
+        self.assertIs(screen.footer_buttons.itemAt(0).widget(), screen.load_file_button)
+        self.assertIs(screen.footer_buttons.itemAt(1).widget(), screen.back_button)
+        self.assertEqual(screen.tabs.objectName(), "StatisticsTabs")
+
+    def test_back_button_still_emits_navigation_signal(self):
+        screen = StatisticsScreen(data_path=Path("missing.csv"))
+        emitted = []
+        screen.back_requested.connect(lambda: emitted.append(True))
+        screen.back_button.click()
+        self.assertEqual(emitted, [True])
 
 
 if __name__ == "__main__":

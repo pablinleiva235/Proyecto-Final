@@ -545,6 +545,12 @@ QPushButton#ExitButton:hover {{
     border-color: {DANGER_COLOR};
 }}
 
+QPushButton#StatisticsLoadFileButton,
+QPushButton#StatisticsBackButton {{
+    padding: 18px;
+    font-size: {BUTTON_FONT_SIZE}px;
+}}
+
 /* -------------------------------------------------------------------------- */
 /* Login Dialog                                                               */
 /* -------------------------------------------------------------------------- */
@@ -638,6 +644,44 @@ QTabWidget#MaintainerTabs QTabBar::tab:!selected {{
 }}
 
 QTabWidget#MaintainerTabs QTabBar::tab:hover {{
+    background-color: {SURFACE_HOVER_COLOR};
+    color: {TEXT_COLOR};
+}}
+
+/* ========================================================================== */
+/* StatisticsScreen - Tabs                                                    */
+/* ========================================================================== */
+
+QTabWidget#StatisticsTabs::pane {{
+    background-color: {BACKGROUND_COLOR};
+    border: 2px solid {BORDER_COLOR};
+    border-radius: 8px;
+    top: -1px;
+}}
+
+QTabWidget#StatisticsTabs QTabBar::tab {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+    border: 2px solid {BORDER_COLOR};
+    border-bottom: none;
+    padding: 8px 14px;
+    margin-right: 4px;
+    min-width: 100px;
+    font-size: 14px;
+    font-weight: bold;
+}}
+
+QTabWidget#StatisticsTabs QTabBar::tab:selected {{
+    background-color: {SURFACE_SECONDARY_COLOR};
+    color: {TEXT_COLOR};
+    border-color: {PRIMARY_COLOR};
+}}
+
+QTabWidget#StatisticsTabs QTabBar::tab:!selected {{
+    color: {TEXT_MUTED_COLOR};
+}}
+
+QTabWidget#StatisticsTabs QTabBar::tab:hover {{
     background-color: {SURFACE_HOVER_COLOR};
     color: {TEXT_COLOR};
 }}

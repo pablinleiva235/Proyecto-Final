@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QPen
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog,
-    QScrollArea,
+    QScrollArea, QTabWidget, QTextEdit,
 )
 
 from config_gui.strings import (
@@ -16,11 +16,18 @@ from config_gui.strings import (
     STATISTICS_LOAD_DATA_TEXT,
     STATISTICS_NO_DATA,
     STATISTICS_LOAD_ERROR,
+    STATISTICS_DATA_TAB,
+    STATISTICS_LOGS_TAB,
+    STATISTICS_LOAD_LOG_TEXT,
+    STATISTICS_LOAD_FILE_TEXT,
+    STATISTICS_NO_LOGS,
+    STATISTICS_LOG_LOAD_ERROR,
     BACK_BUTTON_TEXT,
 )
 import config_gui.strings as strings
 from services.recipe_log import RECIPE_DATA_PATH, RECIPE_LOG_DIRECTORY
 from services.maintenance_data_log import MAINTENANCE_COLUMNS, MAINTENANCE_DATA_DIRECTORY
+from services.shutdown_log import SHUTDOWN_LOG_DIRECTORY
 
 
 class ProcessPlot(QWidget):
@@ -105,6 +112,7 @@ class StatisticsScreen(QWidget):
         self.setup_layout()
         self.connect_signals()
         self.refresh_data()
+        self.refresh_logs()
 
     def create_widgets(self):
         self.title_label = QLabel(STATISTICS_TITLE)
@@ -125,15 +133,30 @@ class StatisticsScreen(QWidget):
             "MFC1_FLOW": self.mfc1_plot, "MFC2_FLOW": self.mfc2_plot,
             "THROTTLE_POSITION": self.throttle_plot, "PLASMA": self.plasma_plot,
         }
-        self.refresh_button = QPushButton(STATISTICS_LOAD_DATA_TEXT)
+        self.load_file_button = QPushButton(STATISTICS_LOAD_FILE_TEXT)
+        self.load_file_button.setObjectName("StatisticsLoadFileButton")
+        # Backwards-compatible attribute for callers that refresh CSV data.
+        self.refresh_button = self.load_file_button
+        self.log_path = None
+        self.logs_title_label = QLabel(STATISTICS_NO_LOGS)
+        self.logs_title_label.setObjectName("SubtitleLabel")
+        self.logs_view = QTextEdit()
+        self.logs_view.setReadOnly(True)
+        self.logs_view.setLineWrapMode(QTextEdit.NoWrap)
         self.back_button = QPushButton(BACK_BUTTON_TEXT)
+        self.back_button.setObjectName("StatisticsBackButton")
 
     def setup_layout(self):
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 8, 16, 10)
         layout.setSpacing(6)
         layout.addWidget(self.title_label)
-        layout.addWidget(self.subtitle_label)
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("StatisticsTabs")
+        data_tab = QWidget()
+        data_layout = QVBoxLayout(data_tab)
+        data_layout.setContentsMargins(0, 0, 0, 0)
+        data_layout.addWidget(self.subtitle_label)
         plots_container = QWidget()
         plots_layout = QVBoxLayout(plots_container)
         plots_layout.setContentsMargins(0, 0, 0, 0)
@@ -142,16 +165,30 @@ class StatisticsScreen(QWidget):
         self.plots_scroll = QScrollArea()
         self.plots_scroll.setWidgetResizable(True)
         self.plots_scroll.setWidget(plots_container)
-        layout.addWidget(self.plots_scroll, 1)
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.refresh_button)
-        buttons.addWidget(self.back_button)
-        layout.addLayout(buttons)
+        data_layout.addWidget(self.plots_scroll, 1)
+        logs_tab = QWidget()
+        logs_layout = QVBoxLayout(logs_tab)
+        logs_layout.setContentsMargins(0, 0, 0, 0)
+        logs_layout.addWidget(self.logs_title_label)
+        logs_layout.addWidget(self.logs_view, 1)
+        self.tabs.addTab(data_tab, STATISTICS_DATA_TAB)
+        self.tabs.addTab(logs_tab, STATISTICS_LOGS_TAB)
+        layout.addWidget(self.tabs, 1)
+        self.footer_buttons = QHBoxLayout()
+        self.footer_buttons.addWidget(self.load_file_button, 1)
+        self.footer_buttons.addWidget(self.back_button, 1)
+        layout.addLayout(self.footer_buttons)
         self.setLayout(layout)
 
     def connect_signals(self):
-        self.refresh_button.clicked.connect(self.choose_data_file)
+        self.load_file_button.clicked.connect(self.choose_active_file)
         self.back_button.clicked.connect(self.back_requested.emit)
+
+    def choose_active_file(self):
+        if self.tabs.currentIndex() == 1:
+            self.choose_log_file()
+        else:
+            self.choose_data_file()
 
     def refresh_data(self):
         if self._explicit_data_path is not None:
@@ -192,6 +229,66 @@ class StatisticsScreen(QWidget):
             return max(paths, key=lambda path: path.stat().st_mtime_ns, default=None)
         except OSError:
             return None
+
+    @staticmethod
+    def _available_log_files():
+        paths = set()
+        for directory, pattern in (
+            (RECIPE_LOG_DIRECTORY, "recipe_*.log"),
+            (SHUTDOWN_LOG_DIRECTORY, "shutdown_*.log"),
+        ):
+            try:
+                paths.update(directory.glob(pattern))
+            except OSError:
+                continue
+        return list(paths)
+
+    @classmethod
+    def _latest_log_path(cls):
+        try:
+            return max(
+                cls._available_log_files(),
+                key=lambda path: path.stat().st_mtime_ns,
+                default=None,
+            )
+        except OSError:
+            return None
+
+    def refresh_logs(self):
+        path = self._latest_log_path()
+        if path is None:
+            self.log_path = None
+            self.logs_title_label.setText(strings.tr(STATISTICS_NO_LOGS))
+            self.logs_view.clear()
+            return
+        self._load_log_file(path)
+
+    def choose_log_file(self):
+        available_files = self._available_log_files()
+        if not available_files:
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            strings.tr(STATISTICS_LOAD_LOG_TEXT),
+            str(available_files[0].parent),
+            "Logs (*.log)",
+        )
+        if path:
+            self._load_log_file(Path(path))
+
+    def _load_log_file(self, path):
+        path = Path(path)
+        try:
+            content = path.read_text(encoding="utf-8-sig")
+        except (OSError, UnicodeError):
+            self.logs_title_label.setText(strings.tr(
+                STATISTICS_LOG_LOAD_ERROR.format(filename=path.name)
+            ))
+            return False
+        self.log_path = path
+        self.logs_title_label.setText(path.name)
+        self.logs_view.setPlainText(content)
+        return True
 
     def choose_data_file(self):
         try:

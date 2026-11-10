@@ -12,6 +12,7 @@ class ProcessController(QObject):
     state_changed = pyqtSignal(str, bool)
 
     IGNITION_DELAY_S = 2.0
+    LAMP_FAULT_CONFIRMATION_READS = 2
 
     def __init__(
         self,
@@ -32,6 +33,11 @@ class ProcessController(QObject):
         self._plasma_started_at = 0.0
         self._plasma_grace_debug_reported = False
         self._warning_shown = False
+        self._lamp_fault_reads = {
+            "LAMP1_FAIL": 0,
+            "LAMP2_FAIL": 0,
+            "LAMP3_FAIL": 0,
+        }
         self._pulse_timer = QTimer(self)
         self._pulse_timer.setSingleShot(True)
         self._pulse_timer.timeout.connect(self._finish_lamps13)
@@ -75,6 +81,8 @@ class ProcessController(QObject):
             hardware_attempted = True
             self._write("LAMP1_ON_CMD", True)
             self._write("LAMP3_ON_CMD", True)
+            self._lamp_fault_reads["LAMP1_FAIL"] = 0
+            self._lamp_fault_reads["LAMP3_FAIL"] = 0
             self._lamps13 = True
             self._pulse_timer.start(round(duration * 1000))
             self.state_changed.emit("lamps13", True)
@@ -98,6 +106,9 @@ class ProcessController(QObject):
             self._pulse_timer.stop()
             self._write("LAMP1_ON_CMD", enabled)
             self._write("LAMP3_ON_CMD", enabled)
+            if not enabled:
+                self._lamp_fault_reads["LAMP1_FAIL"] = 0
+                self._lamp_fault_reads["LAMP3_FAIL"] = 0
             self._lamps13 = enabled
             self.state_changed.emit("lamps13", enabled)
             return True
@@ -154,6 +165,24 @@ class ProcessController(QObject):
             lamp1 = self._lamps13 and read_fault_input("LAMP1_FAIL")
             lamp2 = self._lamp2 and read_fault_input("LAMP2_FAIL")
             lamp3 = self._lamps13 and read_fault_input("LAMP3_FAIL")
+            raw_lamp_faults = {
+                "LAMP1_FAIL": bool(lamp1),
+                "LAMP2_FAIL": bool(lamp2),
+                "LAMP3_FAIL": bool(lamp3),
+            }
+            active_lamps = {
+                "LAMP1_FAIL": self._lamps13,
+                "LAMP2_FAIL": self._lamp2,
+                "LAMP3_FAIL": self._lamps13,
+            }
+            for signal_name, is_active in active_lamps.items():
+                if not is_active or not raw_lamp_faults[signal_name]:
+                    self._lamp_fault_reads[signal_name] = 0
+                else:
+                    self._lamp_fault_reads[signal_name] += 1
+            lamp1 = self._lamp_fault_reads["LAMP1_FAIL"] >= self.LAMP_FAULT_CONFIRMATION_READS
+            lamp2 = self._lamp_fault_reads["LAMP2_FAIL"] >= self.LAMP_FAULT_CONFIRMATION_READS
+            lamp3 = self._lamp_fault_reads["LAMP3_FAIL"] >= self.LAMP_FAULT_CONFIRMATION_READS
             plasma_elapsed = time.monotonic() - self._plasma_started_at
             plasma_grace_passed = (
                 self._plasma and plasma_elapsed > self.IGNITION_DELAY_S
@@ -231,6 +260,8 @@ class ProcessController(QObject):
             except Exception as error:
                 errors.append(f"{signal}: {error}")
         self._lamps13 = self._lamp2 = self._plasma = False
+        for signal_name in self._lamp_fault_reads:
+            self._lamp_fault_reads[signal_name] = 0
         self._plasma_started_at = 0.0
         self._plasma_grace_debug_reported = False
         for name in ("lamps13", "lamp2", "plasma"):
@@ -243,6 +274,8 @@ class ProcessController(QObject):
             self._write("LAMP1_ON_CMD", False)
             self._write("LAMP3_ON_CMD", False)
             self._lamps13 = False
+            self._lamp_fault_reads["LAMP1_FAIL"] = 0
+            self._lamp_fault_reads["LAMP3_FAIL"] = 0
             self.state_changed.emit("lamps13", False)
         except Exception as error:
             self.operation_error.emit("Lámparas 1 y 3", str(error))
@@ -253,6 +286,8 @@ class ProcessController(QObject):
                 self._require_operation()
             self._write(signal, bool(enabled))
             setattr(self, "_" + state_name, bool(enabled))
+            if state_name == "lamp2":
+                self._lamp_fault_reads["LAMP2_FAIL"] = 0
             self.state_changed.emit(state_name, bool(enabled))
             if state_name == "plasma" and not enabled:
                 self._plasma_started_at = 0.0

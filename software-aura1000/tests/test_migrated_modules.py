@@ -1055,6 +1055,8 @@ class MigratedModulesTests(unittest.TestCase):
         controller.set_plasma(True)
         self.hardware.set_input_state("LAMP1_FAIL", True)
         controller.check_faults()
+        self.assertEqual(alarms, [])
+        controller.check_faults()
         self.assertTrue(alarms)
         for output_name in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD", "RF_ON_CMD"):
             self.assertFalse(self.hardware.digital_read(output_name))
@@ -1136,6 +1138,8 @@ class MigratedModulesTests(unittest.TestCase):
         self.hardware.set_input_state("LAMP1_FAIL", True)
 
         process.check_faults()
+        self.assertEqual(alarms, [])
+        process.check_faults()
 
         for name in ("MFC1", "MFC2"):
             self.assertFalse(self.hardware.digital_read(f"{name}_OPEN"))
@@ -1170,6 +1174,8 @@ class MigratedModulesTests(unittest.TestCase):
             digital_set(signal_name, active)
 
         with patch.object(self.hardware, "digital_set", side_effect=fail_mfc1_close):
+            process.check_faults()
+            self.assertEqual(alarms, [])
             process.check_faults()
 
         self.assertTrue(self.hardware.digital_read("MFC1_OPEN"))
@@ -1224,8 +1230,50 @@ class MigratedModulesTests(unittest.TestCase):
                 self.hardware.set_input_state(signal, True)
                 activate(controller)
                 controller.check_faults()
+                self.assertEqual(alarms, [])
+                controller.check_faults()
                 self.assertTrue(alarms)
                 self.assertIn(message, alarms[0])
+
+    def test_lamp_fault_requires_two_consecutive_reads_and_resets_on_normal_read(self):
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        alarms = []
+        controller.alarm_raised.connect(alarms.append)
+        self.hardware.set_input_state("LAMP1_FAIL", True)
+        controller.set_lamps13(True)
+
+        controller.check_faults()
+        self.assertEqual(alarms, [])
+        self.hardware.set_input_state("LAMP1_FAIL", False)
+        controller.check_faults()
+        self.hardware.set_input_state("LAMP1_FAIL", True)
+        controller.check_faults()
+        self.assertEqual(alarms, [])
+        controller.check_faults()
+
+        self.assertEqual(len(alarms), 1)
+        self.assertIn("Falla en lámpara 1", alarms[0])
+
+    def test_lamp_fault_read_counters_are_independent(self):
+        controller = ProcessController(self.hardware, can_operate=lambda: True)
+        alarms = []
+        controller.alarm_raised.connect(alarms.append)
+        for signal in ("LAMP1_FAIL", "LAMP2_FAIL", "LAMP3_FAIL"):
+            self.hardware.set_input_state(signal, False)
+        controller.set_lamps13(True)
+        controller.set_lamp2(True)
+
+        self.hardware.set_input_state("LAMP1_FAIL", True)
+        controller.check_faults()
+        self.hardware.set_input_state("LAMP1_FAIL", False)
+        self.hardware.set_input_state("LAMP2_FAIL", True)
+        controller.check_faults()
+        self.assertEqual(alarms, [])
+        controller.check_faults()
+
+        self.assertEqual(len(alarms), 1)
+        self.assertIn("Falla en lámpara 2", alarms[0])
+        self.assertNotIn("Falla en lámpara 1", alarms[0])
 
     def test_plasma_fail_input_waits_for_ignition_grace_period(self):
         from unittest.mock import patch

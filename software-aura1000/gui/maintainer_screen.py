@@ -74,7 +74,7 @@ class MaintainerScreen(QWidget):
     vent_chamber_sequence_requested = pyqtSignal()
     mfc_flow_requested = pyqtSignal(str, float)
     mfc_valve_requested = pyqtSignal(str, bool)
-    mfc_calibration_requested = pyqtSignal(str, float)
+    mfc_calibration_requested = pyqtSignal(str)
     throttle_move_requested = pyqtSignal(bool)
     throttle_steps_requested = pyqtSignal(bool, int, bool)
     pressure_start_requested = pyqtSignal(float)
@@ -816,6 +816,10 @@ class MaintainerScreen(QWidget):
     def set_mfc_calibration_running(self, name, running):
         card = self.mfc1_card if name == "MFC1" else self.mfc2_card
         card.set_calibration_running(running)
+
+    def set_mfc_calibration_date(self, name, date_iso):
+        card = self.mfc1_card if name == "MFC1" else self.mfc2_card
+        card.set_calibration_date(date_iso)
 
     def set_throttle_moving(self, moving, direction):
         state = direction.upper() if moving else "DETENIDO"

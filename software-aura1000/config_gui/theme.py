@@ -1046,6 +1046,42 @@ QDialog#RecipeEditorDialog, QDialog#RecipeViewerDialog {{
     color: {TEXT_COLOR};
 }}
 
+QDialog#MFCCalibrationDialog {{
+    background-color: {SURFACE_COLOR};
+    color: {TEXT_COLOR};
+}}
+
+QLabel#MFCCalibrationPhase {{
+    color: {TEXT_COLOR};
+    font-size: 18px;
+    font-weight: bold;
+}}
+
+QLabel#MFCCalibrationResult {{
+    color: {TEXT_MUTED_COLOR};
+}}
+
+QTableWidget#MFCCalibrationTable {{
+    background-color: {TEXTBOX_BACKGROUND_COLOR};
+    color: {TEXT_COLOR};
+    border: 1px solid {BORDER_COLOR};
+    gridline-color: {BORDER_COLOR};
+    selection-background-color: {SURFACE_SECONDARY_COLOR};
+}}
+
+QProgressBar#MFCCalibrationProgress {{
+    min-height: 20px;
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 8px;
+    color: {TEXT_COLOR};
+    text-align: center;
+}}
+
+QProgressBar#MFCCalibrationProgress::chunk {{
+    background-color: {PRIMARY_COLOR};
+    border-radius: 7px;
+}}
+
 QLineEdit#RecipeInput {{
     background-color: {TEXTBOX_BACKGROUND_COLOR};
     color: {TEXT_COLOR};

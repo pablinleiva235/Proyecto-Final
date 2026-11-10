@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from controllers.analog_signal_controller import AnalogSignalController
@@ -16,7 +17,9 @@ from controllers.throttle_controller import ThrottleController
 from controllers.temperature_controller import TemperatureController
 from config.pressure_limits import minimum_process_pressure
 from gui.maintainer_screen import MaintainerScreen
+from gui.mfc_calibration_dialog import MFCCalibrationDialog
 from gui.recipe_dialogs import RecipeEditorDialog
+from gui.widgets.mfc_control_card import MFCControlCard
 from gui.widgets.localization import translate_widget_tree
 import config_gui.strings as strings
 from services.recipe_service import Recipe, RecipeError, RecipeService
@@ -46,7 +49,9 @@ class MigratedModulesTests(unittest.TestCase):
         controller.set_flow("MFC2", 0.45)
         self.assertAlmostEqual(
             self.hardware.get_analog_output("MFC1_SETPOINT"),
-            max(0.0, 3.25 - 0.16) / 0.981 / 10.0 * 5.0,
+            MFCController.flow_to_voltage(
+                "MFC1", 3.25, offset=controller.output_offset("MFC1", 3.25)
+            ),
         )
         self.assertAlmostEqual(self.hardware.get_analog_output("MFC2_SETPOINT"), 2.25)
 
@@ -54,7 +59,9 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(errors)
         self.assertAlmostEqual(
             self.hardware.get_analog_output("MFC1_SETPOINT"),
-            max(0.0, 3.25 - 0.16) / 0.981 / 10.0 * 5.0,
+            MFCController.flow_to_voltage(
+                "MFC1", 3.25, offset=controller.output_offset("MFC1", 3.25)
+            ),
         )
 
         controller.set_flow("MFC2", 0.09)
@@ -67,14 +74,14 @@ class MigratedModulesTests(unittest.TestCase):
 
     def test_mfc_calibration_boundaries_and_measurement_conversion(self):
         self.assertEqual(MFCController.flow_to_voltage("MFC1", 0), 0.0)
-        self.assertEqual(MFCController.flow_to_voltage("MFC1", 0.16), 0.0)
-        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC1", 6.5), 3.2313965341)
+        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC1", 0.16), 0.16 / 10.0 / 0.981 * 5.0)
+        self.assertAlmostEqual(MFCController.flow_to_voltage("MFC1", 6.5), 6.5 / 10.0 / 0.981 * 5.0)
         self.assertAlmostEqual(MFCController.flow_to_voltage("MFC2", 0.1), 0.5)
         self.assertAlmostEqual(MFCController.flow_to_voltage("MFC2", 0.65), 3.25)
         self.assertAlmostEqual(MFCController.voltage_to_flow("MFC1", 2.5), 4.905)
         self.assertAlmostEqual(MFCController.voltage_to_flow("MFC2", 2.5), 0.5)
 
-    def test_mfc_output_offset_calibration_is_persisted_and_keeps_read_conversion(self):
+    def test_mfc_output_offset_calibration_persists_six_points_and_date(self):
         class MemorySettings:
             NoError = 0
             values = {}
@@ -100,28 +107,141 @@ class MigratedModulesTests(unittest.TestCase):
         with patch("controllers.mfc_controller.QSettings", MemorySettings):
             controller = MFCController(self.hardware, can_operate=lambda: True)
             results = []
+            progress = []
             controller.calibration_finished.connect(lambda *args: results.append(args))
-            controller.calibrate_output_offset("MFC1", 2.0)
-            measured_voltage = 2.4 / (10.0 * 0.981) * 5.0
-            for _ in range(4):
-                controller.update_flow_measurement("MFC1", measured_voltage)
-            controller._finish_calibration("MFC1")
+            controller.calibration_progress.connect(lambda *args: progress.append(args))
+            controller.calibrate_output_offset("MFC1")
+            self.assertEqual(controller._targets["MFC1"], 1.0)
+            for expected in controller.CALIBRATION_FLOWS["MFC1"]:
+                measured = expected + expected / 10.0
+                voltage = measured / (10.0 * 0.981) * 5.0
+                for _ in range(3):
+                    controller.update_flow_measurement("MFC1", voltage)
+                controller._complete_calibration_point("MFC1")
 
             self.assertEqual(len(results), 1)
             self.assertTrue(results[0][1])
-            self.assertAlmostEqual(results[0][2], 0.4)
             self.assertTrue(results[0][4])
+            phases = [event[1] for event in progress]
+            self.assertEqual(phases.count("measuring"), 6)
+            self.assertEqual(phases.count("point_complete"), 6)
+            self.assertIn("saving", phases)
+            self.assertEqual(phases[-1], "completed")
+            for expected, measured_offset in controller.calibration_table("MFC1").items():
+                self.assertAlmostEqual(measured_offset, expected / 10.0)
+            self.assertTrue(controller.calibration_date("MFC1"))
             self.assertFalse(controller._valves["MFC1"])
             self.assertEqual(self.hardware.get_analog_output("MFC1_SETPOINT"), 0.0)
-            self.assertAlmostEqual(MFCController.voltage_to_flow("MFC1", measured_voltage), 2.4)
 
             reloaded = MFCController(self.hardware, can_operate=lambda: True)
-            self.assertAlmostEqual(reloaded.output_offset("MFC1"), 0.4)
-            reloaded.set_flow("MFC1", 3.0)
+            self.assertEqual(reloaded.calibration_table("MFC1"), controller.calibration_table("MFC1"))
+            self.assertEqual(reloaded.calibration_date("MFC1"), controller.calibration_date("MFC1"))
+            reloaded.set_flow("MFC1", 2.4)
+            chosen_offset = reloaded.calibration_table("MFC1")[2.0]
             self.assertAlmostEqual(
                 self.hardware.get_analog_output("MFC1_SETPOINT"),
-                (3.0 - 0.4) / 0.981 / 10.0 * 5.0,
+                (2.4 - chosen_offset) / 0.981 / 10.0 * 5.0,
             )
+
+    def test_mfc_calibration_failure_keeps_previous_table_and_date(self):
+        class MemorySettings:
+            NoError = 0
+            values = {}
+
+            def __init__(self, *args):
+                pass
+
+            def value(self, key, default=None, type=None):
+                value = self.values.get(key, default)
+                return type(value) if type is not None else value
+
+            def setValue(self, key, value):
+                self.values[key] = value
+
+            def sync(self):
+                pass
+
+            def status(self):
+                return self.NoError
+
+        MemorySettings.values = {}
+        for flow in MFCController.CALIBRATION_FLOWS["MFC2"]:
+            MemorySettings.values[f"mfc/output_offsets/MFC2/{flow:g}"] = 0.025
+        MemorySettings.values["mfc/last_calibration/MFC2"] = "2025-01-02T03:04:05-03:00"
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        with patch("controllers.mfc_controller.QSettings", MemorySettings):
+            controller = MFCController(self.hardware, can_operate=lambda: True)
+            old_table = controller.calibration_table("MFC2")
+            old_date = controller.calibration_date("MFC2")
+            results = []
+            progress = []
+            controller.calibration_finished.connect(lambda *args: results.append(args))
+            controller.calibration_progress.connect(lambda *args: progress.append(args))
+            controller.calibrate_output_offset("MFC2")
+            controller.update_flow_measurement("MFC2", 0.12 / 1.0 * 5.0)
+            controller._complete_calibration_point("MFC2")
+            controller._complete_calibration_point("MFC2")
+
+            self.assertFalse(results[0][1])
+            self.assertFalse(results[0][4])
+            self.assertEqual(progress[-1][1], "failed")
+            self.assertEqual(controller.calibration_table("MFC2"), old_table)
+            self.assertEqual(controller.calibration_date("MFC2"), old_date)
+            self.assertFalse(controller._valves["MFC2"])
+
+    def test_mfc_offset_selection_uses_nearest_reference_and_lower_on_tie(self):
+        class MemorySettings:
+            NoError = 0
+            def __init__(self, *args): pass
+            def value(self, key, default=None, type=None): return default
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        with patch("controllers.mfc_controller.QSettings", MemorySettings):
+            controller = MFCController(self.hardware, can_operate=lambda: True)
+            controller._output_offsets["MFC1"] = {1.0: .1, 2.0: .2, 3.0: .3, 4.0: .4, 5.0: .5, 6.0: .6}
+            self.assertEqual(controller.output_offset("MFC1", 2.4), .2)
+            self.assertEqual(controller.output_offset("MFC1", 2.5), .2)
+            self.assertEqual(controller.output_offset("MFC1", 6.5), .6)
+
+    def test_mfc_calibration_dialog_shows_progress_and_partial_offsets(self):
+        dialog = MFCCalibrationDialog("MFC2")
+        self.assertTrue(dialog.isModal())
+        self.assertEqual(dialog.references, (0.1, 0.2, 0.3, 0.4, 0.5, 0.6))
+        self.assertEqual(
+            [dialog.points_table.item(row, 0).text() for row in range(6)],
+            ["1", "2", "3", "4", "5", "6"],
+        )
+        self.assertEqual(dialog.points_table.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOff)
+        self.assertGreaterEqual(dialog.points_table.height(), 270)
+        self.assertFalse(dialog.close_button.isEnabled())
+
+        dialog.update_progress("measuring", 0, 6, 0.1, {})
+        dialog.update_progress("point_complete", 1, 6, 0.1, {0.1: 0.025})
+        self.assertEqual(dialog.progress_bar.value(), 1)
+        self.assertEqual(dialog.points_table.item(0, 2).text(), "+0.0250 SLPM")
+        self.assertEqual(dialog.points_table.item(0, 3).text(), strings.tr("Completado"))
+
+        dialog.update_progress("failed", 1, 6, 0.2, {0.1: 0.025})
+        dialog.set_result(False, False, "No se recibieron lecturas")
+        self.assertTrue(dialog.close_button.isEnabled())
+        self.assertIn("No se recibieron lecturas", dialog.result_label.text())
+
+        immediate_error_dialog = MFCCalibrationDialog("MFC1")
+        immediate_error_dialog.set_result(False, False, "Interlock inactivo")
+        self.assertEqual(immediate_error_dialog.progress_bar.value(), 0)
+        self.assertTrue(immediate_error_dialog.close_button.isEnabled())
+        self.assertIn("Interlock inactivo", immediate_error_dialog.result_label.text())
+
+    def test_mfc_card_shows_calibration_date_without_time(self):
+        card = MFCControlCard("MFC1", "O₂", 6.5)
+        self.assertEqual(card.calibration_date_label.text(), strings.tr("Sin calibrar"))
+
+        card.set_calibration_date("2026-11-09T19:39:42-03:00")
+        self.assertEqual(
+            card.calibration_date_label.text(),
+            strings.tr("Última calibración: 2026-11-09"),
+        )
+        self.assertNotIn("19:39", card.calibration_date_label.text())
+
 
     def test_flow_monitor_waits_for_three_seconds_and_trips_over_tolerance(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)

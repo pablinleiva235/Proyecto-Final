@@ -65,7 +65,7 @@ class Mfc:
     def set_valve(self, name, opened):
         self.calls.append(("valve", name, opened))
 
-    def output_offset(self, name):
+    def output_offset(self, name, flow=None):
         return MFCController._CONFIG[name]["offset"]
 
     def flow_to_voltage(self, name, value, offset=None):

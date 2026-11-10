@@ -35,6 +35,7 @@ from gui.statistics_screen import StatisticsScreen
 from gui.normal_operation_screen import NormalOperationScreen
 from gui.login_dialog import LoginDialog
 from gui.settings_dialog import SettingsDialog
+from gui.mfc_calibration_dialog import MFCCalibrationDialog
 from services.maintenance_data_log import MaintenanceDataLog
 from gui.widgets.localization import translate_widget_tree
 import config_gui.strings as strings
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow):
         self.vent_sequence = vent_sequence
         self.settings_manager = settings_manager
         self.use_mock_hardware = bool(use_mock_hardware)
+        self._mfc_calibration_dialogs = {}
 
 
         self.create_widgets()
@@ -436,7 +438,10 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.mfc_flow_requested.connect(self.mfc_controller.set_flow)
         self.maintainer_screen.mfc_valve_requested.connect(self.mfc_controller.set_valve)
         self.maintainer_screen.mfc_calibration_requested.connect(
-            self.mfc_controller.calibrate_output_offset
+            self._start_mfc_calibration
+        )
+        self.mfc_controller.calibration_progress.connect(
+            self._update_mfc_calibration_progress
         )
         self.mfc_controller.calibration_state_changed.connect(
             self.maintainer_screen.set_mfc_calibration_running
@@ -444,12 +449,16 @@ class MainWindow(QMainWindow):
         self.mfc_controller.calibration_finished.connect(
             self._show_mfc_calibration_result
         )
+        for name in ("MFC1", "MFC2"):
+            self.maintainer_screen.set_mfc_calibration_date(
+                name, self.mfc_controller.calibration_date(name)
+            )
         self.mfc_controller.flow_applied.connect(self.maintainer_screen.set_mfc_flow)
         self.mfc_controller.valve_state_changed.connect(self.maintainer_screen.set_mfc_valve_state)
         self.mfc_controller.flow_applied.connect(
             lambda name, value: self.recipe_sequence.module_action_confirmed(
                 f"{name} flow",
-                f"{value:g} SLPM; {self.mfc_controller.flow_to_voltage(name, value, offset=self.mfc_controller.output_offset(name)):.3f} V",
+                f"{value:g} SLPM; {self.mfc_controller.flow_to_voltage(name, value, offset=self.mfc_controller.output_offset(name, value)):.3f} V",
             )
         )
         self.mfc_controller.valve_state_changed.connect(
@@ -1053,22 +1062,63 @@ class MainWindow(QMainWindow):
         )
 
     def _show_mfc_calibration_result(self, name, success, offset, error, saved):
+        if saved:
+            self.maintainer_screen.set_mfc_calibration_date(
+                name, self.mfc_controller.calibration_date(name)
+            )
+        dialog = self._mfc_calibration_dialogs.get(name)
+        if dialog is not None:
+            dialog.set_result(
+                success,
+                saved,
+                error,
+                self.mfc_controller.calibration_date(name),
+            )
+            return
+
         title = strings.tr("Calibración de MFC")
         if success:
             message = strings.tr(
-                "La calibración de {name} fue exitosa. Offset de salida guardado: {offset:.4f} SLPM."
-            ).format(name=name, offset=offset)
+                "La calibración de {name} fue exitosa. Tabla de offsets guardada. Última calibración: {date}."
+            ).format(name=name, date=self.mfc_controller.calibration_date(name))
             QMessageBox.information(self, title, message, QMessageBox.Ok)
         else:
             if saved:
                 message = strings.tr(
-                    "La calibración de {name} no pudo finalizar correctamente, pero se guardó el offset de salida {offset:.4f} SLPM. Motivo: {error}"
-                ).format(name=name, offset=offset, error=error or "Error desconocido")
+                    "La calibración de {name} no pudo finalizar correctamente, pero se guardó la tabla de offsets. Motivo: {error}"
+                ).format(name=name, error=error or "Error desconocido")
             else:
                 message = strings.tr(
                     "No se pudo completar la calibración de {name}. No se guardó un offset nuevo. Motivo: {error}"
                 ).format(name=name, error=error or "Error desconocido")
             QMessageBox.warning(self, title, message, QMessageBox.Ok)
+
+    def _start_mfc_calibration(self, name):
+        existing = self._mfc_calibration_dialogs.get(name)
+        if existing is not None:
+            existing.raise_()
+            existing.activateWindow()
+            return
+        dialog = MFCCalibrationDialog(name, self)
+        self._mfc_calibration_dialogs[name] = dialog
+        dialog.finished.connect(
+            lambda _result, mfc=name, calibration_dialog=dialog:
+                self._close_mfc_calibration_dialog(mfc, calibration_dialog)
+        )
+        dialog.show()
+        self.mfc_controller.calibrate_output_offset(name)
+
+    def _update_mfc_calibration_progress(
+        self, name, phase, completed, total, current_flow, offsets
+    ):
+        dialog = self._mfc_calibration_dialogs.get(name)
+        if dialog is not None:
+            dialog.update_progress(phase, completed, total, current_flow, offsets)
+
+    def _close_mfc_calibration_dialog(self, name, dialog):
+        if self._mfc_calibration_dialogs.get(name) is dialog:
+            self._mfc_calibration_dialogs.pop(name, None)
+        dialog.deleteLater()
 
     def _toggle_manual_throttle(self, closing):
         if self.throttle_controller.is_moving:

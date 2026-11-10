@@ -19,7 +19,7 @@ from config_gui.strings import tr
 class MFCControlCard(QFrame):
     flow_requested = pyqtSignal(str, float)
     valve_requested = pyqtSignal(str, bool)
-    calibration_requested = pyqtSignal(str, float)
+    calibration_requested = pyqtSignal(str)
 
     def __init__(self, name, gas, maximum_flow, minimum_flow=0.0, parent=None):
         super().__init__(parent)
@@ -49,10 +49,14 @@ class MFCControlCard(QFrame):
         self.measured_value.setObjectName("MaintenanceCardValue")
         self.measured_unit = QLabel("SLPM medidos")
         self.measured_unit.setObjectName("MaintenanceCardUnit")
+        self.calibration_date_label = QLabel()
+        self.calibration_date_label.setObjectName("MaintenanceCardUnit")
         reading.addWidget(self.icon_label)
         reading.addWidget(self.measured_value)
         reading.addWidget(self.measured_unit)
         reading.addStretch()
+        reading.addWidget(self.calibration_date_label, 0, Qt.AlignRight | Qt.AlignVCenter)
+        self.set_calibration_date("")
 
         self.progress = QProgressBar()
         self.progress.setObjectName("MFCFlowProgress")
@@ -110,7 +114,7 @@ class MFCControlCard(QFrame):
 
         self.apply_button.clicked.connect(self._request_flow)
         self.calibrate_button.clicked.connect(
-            lambda: self.calibration_requested.emit(self.name, self.setpoint.value())
+            lambda: self.calibration_requested.emit(self.name)
         )
         self.valve_button.clicked.connect(
             lambda checked: self.valve_requested.emit(self.name, checked)
@@ -144,6 +148,11 @@ class MFCControlCard(QFrame):
 
     def set_setpoint(self, flow):
         self.setpoint.setValue(float(flow))
+
+    def set_calibration_date(self, date_iso):
+        date = str(date_iso or "").split("T", 1)[0]
+        text = f"Última calibración: {date}" if date else "Sin calibrar"
+        set_localized_text(self.calibration_date_label, text)
 
     def set_valve_state(self, opened):
         self._valve_open = bool(opened)

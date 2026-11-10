@@ -102,6 +102,12 @@ class RecipeSequence(QObject):
         self._data_sample_timer = QTimer(self)
         self._data_sample_timer.setInterval(1000)
         self._data_sample_timer.timeout.connect(self._record_process_sample)
+        self._door_closed_stable_timer = QTimer(self)
+        self._door_closed_stable_timer.setSingleShot(True)
+        self._door_closed_stable_timer.setInterval(1000)
+        self._door_closed_stable_timer.timeout.connect(
+            self._start_vacuum_after_door_stabilization
+        )
         if self.throttle is not None:
             self.throttle.safety_return_finished.connect(
                 self._on_safety_return_finished
@@ -253,6 +259,17 @@ class RecipeSequence(QObject):
         self._try_start_vacuum()
 
     def _try_start_vacuum(self):
+        if self._state != RecipeState.VERIFYING_DOOR_CLOSED:
+            self._door_closed_stable_timer.stop()
+            return
+        if (self._digital_state_getter("DOOR_OPEN") is not False
+                or self._digital_state_getter("DOOR_CLOSE") is not True):
+            self._door_closed_stable_timer.stop()
+            return
+        if not self._door_closed_stable_timer.isActive():
+            self._door_closed_stable_timer.start()
+
+    def _start_vacuum_after_door_stabilization(self):
         if self._state != RecipeState.VERIFYING_DOOR_CLOSED:
             return
         if (self._digital_state_getter("DOOR_OPEN") is not False
@@ -669,6 +686,7 @@ class RecipeSequence(QObject):
         if self._stopping or not self.is_active:
             return
         self._rf_timer.stop()
+        self._door_closed_stable_timer.stop()
         self._stopping = True
         self._waiting_for_throttle_before_gas_flow = False
         self._completion_message = message
@@ -800,6 +818,7 @@ class RecipeSequence(QObject):
 
     def _finish(self, failed, message):
         self._rf_timer.stop()
+        self._door_closed_stable_timer.stop()
         self._data_sample_timer.stop()
         self._waiting_for_throttle_after_vent = False
         self._finalizing = True

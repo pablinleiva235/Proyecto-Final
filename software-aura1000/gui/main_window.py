@@ -170,12 +170,12 @@ class MainWindow(QMainWindow):
         self.throttle_controller = ThrottleController(
             hardware=self.hardware,
             can_operate=self._can_move_throttle,
-            can_operate_process=self._can_control_process_modules,
+            can_operate_process=self._can_operate_throttle_process,
             parent=self,
         )
         self.pressure_controller = PressureController(
             throttle_controller=self.throttle_controller,
-            can_operate=self._can_control_process_modules,
+            can_operate=self._can_operate_throttle_process,
             parent=self,
         )
         self.process_controller = ProcessController(
@@ -502,6 +502,14 @@ class MainWindow(QMainWindow):
         )
         self.throttle_controller.operation_error.connect(self._handle_throttle_error)
         self.throttle_controller.operation_error.connect(self.recipe_sequence.controller_error)
+        self.throttle_controller.startup_homing_failed.connect(
+            self._handle_throttle_error
+        )
+        self.throttle_controller.startup_homing_completed.connect(
+            lambda: self.recipe_sequence.module_action_confirmed(
+                "Throttle", "homing completado en THROTTLE_OPEN"
+            )
+        )
         self.maintainer_screen.pressure_start_requested.connect(
             lambda target: self.pressure_controller.start(
                 target, o2_flow=self.maintainer_screen.mfc1_card.setpoint.value()
@@ -923,26 +931,40 @@ class MainWindow(QMainWindow):
             "[VentSequence] Venteo completado."
         )
         self.interlock_controller.vent_completed()
-        if self.recipe_sequence.state != RecipeState.VENTING:
-            try:
-                self.throttle_controller.return_to_rest_for_safety(
-                    can_operate=self._can_return_throttle_after_vent
+        try:
+            if not self._can_return_throttle_after_vent():
+                raise RuntimeError(
+                    "No se puede iniciar el homing de la throttle después del venteo: "
+                    "los interlocks no están habilitados."
                 )
-            except Exception as error:
-                self._handle_throttle_error(str(error))
+            self.throttle_controller.home_on_startup(keep_driver_enabled=True)
+        except Exception as error:
+            self._handle_throttle_error(str(error))
         self._update_sequence_permissions()
+
+    def home_throttle_after_startup(self):
+        """Enable and verify the stepper driver, then home the throttle."""
+        try:
+            self.hardware.digital_set("DRIVER_ENABLE", True)
+            if self.hardware.digital_read("DRIVER_ENABLE") is not True:
+                raise RuntimeError(
+                    "No se pudo confirmar DRIVER_ENABLE antes del homing de startup."
+                )
+            self.throttle_controller.home_on_startup()
+        except Exception as error:
+            try:
+                self.hardware.digital_set("DRIVER_ENABLE", False)
+                if self.hardware.digital_read("DRIVER_ENABLE") is not False:
+                    raise RuntimeError("No se confirmó la deshabilitación de DRIVER_ENABLE.")
+            except Exception as cleanup_error:
+                error = RuntimeError(f"{error}; limpieza de DRIVER_ENABLE: {cleanup_error}")
+            self._handle_throttle_error(str(error))
 
     def _can_return_throttle_after_vent(self):
         if not self.interlock_controller.can_operate_sequences():
             return False
-        door_is_closed = (
-            self.door_sequence.state == DoorState.CLOSED
-            and self.signal_controller.get_last_state("DOOR_CLOSE") is True
-            and self.signal_controller.get_last_state("DOOR_OPEN") is False
-        )
         return (
-            door_is_closed
-            and self.soft_vacuum_sequence.state == SoftVacuumState.IDLE
+            self.soft_vacuum_sequence.state == SoftVacuumState.IDLE
             and self.main_vacuum_sequence.state == MainVacuumState.IDLE
             and self.vent_sequence.state == VentState.IDLE
         )
@@ -967,23 +989,26 @@ class MainWindow(QMainWindow):
         )
 
     def _can_move_throttle(self):
-        """Permite mover la throttle sin vacío, con puerta y driver seguros."""
-        if not self.interlock_controller.can_operate_sequences():
-            return False
-        try:
-            door_is_closed = (
-                self.door_sequence.state == DoorState.CLOSED
-                and self.signal_controller.get_last_state("DOOR_CLOSE") is True
-                and self.signal_controller.get_last_state("DOOR_OPEN") is False
-            )
-            return door_is_closed and self.vent_sequence.state == VentState.IDLE
-        except Exception:
-            return False
+        """Permite movimiento manual con driver confirmado y venteo inactivo."""
+        return (
+            self.interlock_controller.can_operate_sequences()
+            and self.vent_sequence.state == VentState.IDLE
+        )
+
+    def _can_operate_throttle_process(self):
+        """Permite presión/throttle con vacío y driver, sin interlock de puerta."""
+        return (
+            self.interlock_controller.can_operate_sequences()
+            and self.main_vacuum_sequence.state == MainVacuumState.RUNNING
+            and self.vent_sequence.state == VentState.IDLE
+        )
 
     def _sync_module_permissions(self):
         allowed = self._can_control_process_modules()
         self.maintainer_screen.set_module_controls_enabled(
-            allowed, throttle_enabled=self._can_move_throttle()
+            allowed,
+            throttle_enabled=self._can_move_throttle(),
+            pressure_enabled=self._can_operate_throttle_process(),
         )
         if allowed == self._module_access:
             return
@@ -1002,15 +1027,23 @@ class MainWindow(QMainWindow):
                 RecipeState.VENTING,
             ):
                 return
-            if self.pressure_controller.is_active:
+            if (
+                self.pressure_controller.is_active
+                and not self._can_operate_throttle_process()
+            ):
                 self.pressure_controller.abort(
-                    "Se perdió el vacío principal, la confirmación de puerta cerrada o el interlock de venteo."
+                    "Se perdió el vacío principal o el interlock de venteo."
                 )
             if self.temperature_controller.is_active:
                 self.temperature_controller.abort(
                     "Se perdió el vacío principal, la confirmación de puerta cerrada o el interlock de venteo."
                 )
-            self.throttle_controller.stop()
+            if (
+                not self.pressure_controller.is_active
+                and self.throttle_controller.is_moving
+                and not self._can_move_throttle()
+            ):
+                self.throttle_controller.stop()
             self.mfc_controller.shutdown()
             try:
                 self.process_controller.stop_all()

@@ -18,7 +18,7 @@ class ThrottleController(QObject):
 
     PULSE_INTERVAL_MS = 4
     REST_POSITION_STEPS = 400
-    HOMING_TIMEOUT_MS = 30000
+    HOMING_TIMEOUT_MS = 60000
     MAX_BURST_STEPS = 1400
     LIMIT_DEBOUNCE_READS = 5
 
@@ -45,6 +45,7 @@ class ThrottleController(QObject):
         self._startup_homing_motion_started = False
         self._startup_homing_samples = 0
         self._startup_driver_enabled = False
+        self._startup_keep_driver_enabled = False
         self._limit_counts = {"THROTTLE_OPEN": 0, "THROTTLE_CLOSED": 0}
         self._limit_stable = {"THROTTLE_OPEN": False, "THROTTLE_CLOSED": False}
         self._homing_timer = QTimer(self)
@@ -126,7 +127,7 @@ class ThrottleController(QObject):
             print(f"[THROTTLE] Solicitud de pasos inválida: {error}")
             self.operation_error.emit(str(error))
 
-    def home_on_startup(self):
+    def home_on_startup(self, keep_driver_enabled=False):
         """Home toward THROTTLE_OPEN without requiring process vacuum."""
         if self._automatic_mode or self._safety_return_active:
             raise RuntimeError("La throttle estÃ¡ reservada para otro movimiento.")
@@ -134,12 +135,15 @@ class ThrottleController(QObject):
             raise RuntimeError("Detenga el movimiento actual de la throttle antes del homing de startup.")
         if self._startup_homing_active:
             return
+        if not self._motion_allowed():
+            raise RuntimeError("Los interlocks no permiten iniciar el homing de la throttle.")
 
         self._limit_counts = {"THROTTLE_OPEN": 0, "THROTTLE_CLOSED": 0}
         self._limit_stable = {"THROTTLE_OPEN": False, "THROTTLE_CLOSED": False}
         self._startup_homing_samples = 0
         self._startup_homing_motion_started = False
         self._startup_driver_enabled = False
+        self._startup_keep_driver_enabled = bool(keep_driver_enabled)
         self._step_state = False
         self._closing = False
         self._startup_homing_active = True
@@ -163,13 +167,15 @@ class ThrottleController(QObject):
                     self._hardware.digital_set(signal_name, False)
                 except Exception as error:
                     errors.append(f"{signal_name}: {error}")
-        try:
-            self._hardware.digital_set("DRIVER_ENABLE", False)
-            if self._hardware.digital_read("DRIVER_ENABLE") is not False:
-                raise RuntimeError("DRIVER_ENABLE continÃºa activo")
-        except Exception as error:
-            errors.append(f"DRIVER_ENABLE: {error}")
+        if not self._startup_keep_driver_enabled:
+            try:
+                self._hardware.digital_set("DRIVER_ENABLE", False)
+                if self._hardware.digital_read("DRIVER_ENABLE") is not False:
+                    raise RuntimeError("DRIVER_ENABLE continÃºa activo")
+            except Exception as error:
+                errors.append(f"DRIVER_ENABLE: {error}")
         self._startup_driver_enabled = False
+        self._startup_keep_driver_enabled = False
         if errors:
             return "; ".join(errors)
         return None
@@ -258,7 +264,7 @@ class ThrottleController(QObject):
             else self._can_operate_process() is True
         )
         if not can_position:
-            raise RuntimeError("El posicionamiento requiere vacío principal activo y puerta cerrada.")
+            raise RuntimeError("El posicionamiento requiere vacío principal activo y el interlock de venteo inactivo.")
         self._automatic_mode = True
         self._open_only = False
         self._remaining_steps = None
@@ -573,7 +579,7 @@ class ThrottleController(QObject):
                     self._fail_automatic_motion("Se perdió un interlock durante el movimiento de la throttle.")
                 else:
                     self.stop()
-                    self.operation_error.emit("Se perdió el interlock de vacío o puerta cerrada.")
+                    self.operation_error.emit("Se perdió un interlock requerido para mover la throttle.")
                 return
             if self._limit_reached():
                 if self._automatic_mode and self._homing_active and not self._closing:
@@ -646,12 +652,8 @@ class ThrottleController(QObject):
 
     def _pulse_startup_homing(self):
         try:
-            if (
-                self._hardware.digital_read("DOOR_CLOSE") is not True
-                or self._hardware.digital_read("DOOR_OPEN") is not False
-            ):
-                raise RuntimeError("El homing del throttle requiere la puerta cerrada.")
-
+            if not self._motion_allowed():
+                raise RuntimeError("Se perdió un interlock requerido durante el homing de la throttle.")
             open_limit = self._limit_reached()
             self._startup_homing_samples += 1
             if open_limit:
@@ -674,6 +676,8 @@ class ThrottleController(QObject):
 
             self._step_state = not self._step_state
             self._write("STEPPER_STEP", self._step_state)
+            if self._step_state and self._position_steps is not None:
+                self._set_position_steps(max(0.0, self._position_steps - 1.0))
         except Exception as error:
             self._fail_startup_homing(str(error))
 

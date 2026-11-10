@@ -536,27 +536,8 @@ class RecipeSequence(QObject):
     def vent_completed(self):
         if self._state != RecipeState.VENTING:
             return
-        if self.throttle is not None and not self.throttle.is_at_rest_position:
-            if not self._set_state(RecipeState.POSITIONING_THROTTLE_AFTER_VENT):
-                return
-            self._waiting_for_throttle_after_vent = True
-            try:
-                started = self.throttle.return_to_rest_for_safety(
-                    can_operate=self._can_return_throttle_after_vent
-                )
-            except Exception as error:
-                self._waiting_for_throttle_after_vent = False
-                self._log_throttle_return_after_vent(False, str(error))
-                self._open_door_after_vent()
-                return
-            if started or not self._waiting_for_throttle_after_vent:
-                return
-            self._waiting_for_throttle_after_vent = False
-            self._log_throttle_return_after_vent(
-                False, "No se pudo iniciar el retorno de la throttle."
-            )
-            self._open_door_after_vent()
-            return
+        # MainWindow inicia el homing al recibir el mismo evento. La puerta
+        # continúa sin esperar ese movimiento de fondo.
         self._open_door_after_vent()
 
     def _open_door_after_vent(self):

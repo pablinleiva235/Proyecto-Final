@@ -865,11 +865,16 @@ class MaintainerScreen(QWidget):
             opening_percent = max(0.0, min(100.0, opening_percent))
             self.throttle_position_card.set_value(opening_percent, precision=1)
 
-    def set_module_controls_enabled(self, enabled, throttle_enabled=None):
+    def set_module_controls_enabled(
+        self, enabled, throttle_enabled=None, pressure_enabled=None
+    ):
         enabled = bool(enabled) and not self._manual_controls_locked
         if throttle_enabled is None:
             throttle_enabled = enabled
         throttle_enabled = bool(throttle_enabled) and not self._manual_controls_locked
+        if pressure_enabled is None:
+            pressure_enabled = enabled
+        pressure_enabled = bool(pressure_enabled) and not self._manual_controls_locked
         self.mfc1_card.set_controls_enabled(enabled)
         self.mfc2_card.set_controls_enabled(enabled)
         widgets = (
@@ -882,6 +887,7 @@ class MaintainerScreen(QWidget):
             widget.setEnabled(enabled)
         self._module_controls_enabled = enabled
         self._throttle_controls_enabled = throttle_enabled
+        self._pressure_controls_enabled = pressure_enabled
         throttle_widgets = (
             self.throttle_open_button, self.throttle_close_button,
             self.throttle_step_count, self.throttle_step_mode,
@@ -891,14 +897,14 @@ class MaintainerScreen(QWidget):
             widget.setEnabled(throttle_enabled)
         pressure_active = getattr(self, "_pressure_control_active", False)
         self.pressure_start_button.setEnabled(
-            enabled and not pressure_active
+            pressure_enabled and not pressure_active
         )
-        self.pressure_stop_button.setEnabled(enabled and pressure_active)
+        self.pressure_stop_button.setEnabled(pressure_active)
         self.throttle_open_button.setEnabled(throttle_enabled and not pressure_active)
         self.throttle_close_button.setEnabled(throttle_enabled and not pressure_active)
         for widget in throttle_widgets[2:]:
             widget.setEnabled(throttle_enabled and not pressure_active)
-        self.pressure_setpoint.setEnabled(enabled and not pressure_active)
+        self.pressure_setpoint.setEnabled(pressure_enabled and not pressure_active)
         temperature_active = self.temperature_stop_button.isEnabled()
         self.temperature_start_button.setEnabled(enabled and not temperature_active)
         self.temperature_stop_button.setEnabled(enabled and temperature_active)
@@ -923,7 +929,7 @@ class MaintainerScreen(QWidget):
         active = state in ("posicionando", "regulando", "reposicionando")
         self._pressure_control_active = active
         self.pressure_stop_button.setEnabled(active)
-        controls_enabled = getattr(self, "_module_controls_enabled", False)
+        controls_enabled = getattr(self, "_pressure_controls_enabled", False)
         throttle_enabled = getattr(self, "_throttle_controls_enabled", False)
         self.pressure_start_button.setEnabled(controls_enabled and not active)
         self.pressure_setpoint.setEnabled(controls_enabled and not active)

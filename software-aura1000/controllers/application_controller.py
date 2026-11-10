@@ -142,6 +142,8 @@ class ApplicationController(QObject):
 
     def _handle_startup_ready(self) -> None:
         #Realiza la transición de StartupScreen a MainWindow.
+        # Inicia el homing sin esperar su finalización para pasar a READY.
+        self._main_window.home_throttle_after_startup()
         # Oculta la pantalla de inicio.
         self._startup_screen.hide()
         # Muestra la aplicación principal.

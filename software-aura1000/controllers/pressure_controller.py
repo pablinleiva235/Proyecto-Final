@@ -89,7 +89,7 @@ class PressureController(QObject):
                     f"{self.MAX_PRESSURE_TORR:g} Torr para {float(o2_flow):g} SLPM de O2."
                 )
             if not self._can_operate():
-                raise RuntimeError("El control requiere vacío principal activo y puerta cerrada.")
+                raise RuntimeError("El control requiere vacío principal activo y el interlock de venteo inactivo.")
             if self._pressure is None or self._last_reading_at is None:
                 raise RuntimeError("No hay una lectura BARATRON disponible.")
             if time.monotonic() - self._last_reading_at > self.STALE_READING_SECONDS:
@@ -225,7 +225,7 @@ class PressureController(QObject):
         if not self.is_active:
             return
         if not self._can_operate():
-            self._stop_with_error("Se perdió el vacío principal, la puerta cerrada o el interlock de venteo.")
+            self._stop_with_error("Se perdió el vacío principal o el interlock de venteo.")
         elif self._state != "reposicionando" and (
             self._last_reading_at is None
             or time.monotonic() - self._last_reading_at > self.STALE_READING_SECONDS

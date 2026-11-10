@@ -10,6 +10,8 @@ from config.digital_signals import DIGITALSIGNALS
 
 class MockHardware:
 
+    _THROTTLE_MAX_STEPS = 1400
+
     _BARATRON_PRESSURES = {
         "ATM_SWITCH": 10.0,
         "SOFT_START_CONTROL": 0.1,
@@ -17,6 +19,7 @@ class MockHardware:
     }
 
     def __init__(self):
+        self._throttle_position_steps = 0
         self._digital_states = {
             name: (signal["initial_state"] == signal["active_state"])
             for name, signal in DIGITALSIGNALS.items()
@@ -24,6 +27,7 @@ class MockHardware:
         # SYS_POWER debe permanecer inactiva al iniciar la simulación; de lo
         # contrario, el valor inicial configurado como activo solicita apagar.
         self._digital_states["SYS_POWER"] = False
+        self._update_simulated_throttle_limits()
         self._analog_values = {
             "MFC1_FLOW": 0.0,
             "MFC2_FLOW": 0.0,
@@ -55,8 +59,32 @@ class MockHardware:
             raise ValueError(f"La señal {signal_name} no está configurada como salida.")
 
         active = bool(active)
+        if signal_name == "STEPPER_STEP" and active and not self._digital_states[signal_name]:
+            self._advance_simulated_throttle()
         self._digital_states[signal_name] = active
         self._update_simulated_pressure(signal_name, active)
+
+    def _advance_simulated_throttle(self):
+        """Cuenta un paso en el flanco ascendente de STEPPER_STEP."""
+        direction = self._digital_states["STEPPER_DIR"]
+        if direction:
+            self._throttle_position_steps = min(
+                self._THROTTLE_MAX_STEPS,
+                self._throttle_position_steps + 1,
+            )
+        else:
+            self._throttle_position_steps = max(
+                0,
+                self._throttle_position_steps - 1,
+            )
+        self._update_simulated_throttle_limits()
+
+    def _update_simulated_throttle_limits(self):
+        """Actualiza los finales de carrera simulados según la posición."""
+        self._digital_states["THROTTLE_OPEN"] = self._throttle_position_steps == 0
+        self._digital_states["THROTTLE_CLOSED"] = (
+            self._throttle_position_steps == self._THROTTLE_MAX_STEPS
+        )
 
     def initialize_DIO(self):
         """Inicializa el estado lógico de salidas como el hardware real."""

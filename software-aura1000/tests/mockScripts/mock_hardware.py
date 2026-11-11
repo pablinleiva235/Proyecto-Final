@@ -11,6 +11,7 @@ from config.digital_signals import DIGITALSIGNALS
 class MockHardware:
 
     _THROTTLE_MAX_STEPS = 1400
+    _TEMPERATURE_STEP_C = 5.0
 
     _BARATRON_PRESSURES = {
         "ATM_SWITCH": 10.0,
@@ -140,6 +141,13 @@ class MockHardware:
         if signal_name != "CHAMBER_TEMP":
             raise KeyError(f"Termocupla no configurada: {signal_name}")
         return self._analog_values[signal_name]
+
+    def adjust_temperature(self, direction):
+        """Ajusta la temperatura simulada en un paso de 5 °C."""
+        direction = float(direction)
+        if direction not in (-1.0, 1.0):
+            raise ValueError("La dirección debe ser -1 o 1.")
+        self._analog_values["CHAMBER_TEMP"] += direction * self._TEMPERATURE_STEP_C
 
     def analog_write(self, signal_name, voltage):
         from config.analog_signals import ANALOG_OUTPUTS

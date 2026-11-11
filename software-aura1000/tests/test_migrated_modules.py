@@ -885,17 +885,29 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
 
-        # La histéresis queda bloqueada hasta la primera caída por debajo de
-        # setpoint + 7 °C; luego L2 conmuta en los límites ±7 °C.
+        # Tras la rampa, L2 permanece encendida hasta que la temperatura
+        # supera la consigna y vuelve a ella; después conmuta en -7 °C/+0 °C.
         for _ in range(11):
             temperature.set_temperature_reading(188.0)
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
         for _ in range(11):
-            temperature.set_temperature_reading(187.0)
+            temperature.set_temperature_reading(181.0)
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(180.0)
+        self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(174.0)
         self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         for _ in range(11):
             temperature.set_temperature_reading(173.0)
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(179.0)
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        for _ in range(11):
+            temperature.set_temperature_reading(180.0)
+        self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         for _ in range(11):
             temperature.set_temperature_reading(177.0)
         self.assertEqual(reached, [180.0])
@@ -906,6 +918,64 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertFalse(self.hardware.digital_read("RF_ON_CMD"))
         for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD"):
             self.assertFalse(self.hardware.digital_read(signal))
+
+    def test_temperature_overtemp_cutoff_only_runs_after_preheat_ramp(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+
+        temperature.set_temperature_reading(190.0)
+        self.assertEqual(temperature.state, "precalentando")
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+
+        # La muestra que completa la rampa no ejecuta aún el corte: el
+        # controlador pasa a mantenimiento y lo evalúa en la lectura siguiente.
+        temperature.set_temperature_reading(190.0)
+        self.assertEqual(temperature.state, "manteniendo")
+        self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
+        self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
+
+        temperature.set_temperature_reading(190.0)
+        self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
+        self.assertTrue(temperature.is_active)
+
+    def test_temperature_overtemp_cutoff_waits_for_threshold_and_recovers(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+
+        for _ in range(11):
+            temperature.set_temperature_reading(163.0)
+        self.assertEqual(temperature.state, "manteniendo")
+        self.assertTrue(process.lamp2_active)
+
+        for _ in range(11):
+            temperature.set_temperature_reading(189.0)
+        self.assertTrue(process.lamp2_active)
+
+        # El filtrado por mediana alcanza 190 °C después de varias muestras.
+        for _ in range(11):
+            temperature.set_temperature_reading(190.0)
+        self.assertFalse(process.lamp2_active)
+        self.assertTrue(temperature.is_active)
+
+        with patch.object(process, "set_lamp2", wraps=process.set_lamp2) as set_lamp2:
+            temperature.set_temperature_reading(190.0)
+            set_lamp2.assert_not_called()
+
+        for _ in range(11):
+            temperature.set_temperature_reading(180.0)
+        self.assertFalse(process.lamp2_active)
+        for _ in range(11):
+            temperature.set_temperature_reading(173.0)
+        self.assertTrue(process.lamp2_active)
+        self.assertTrue(temperature.is_active)
+        temperature.stop()
 
     def test_temperature_control_aborts_on_lost_interlock_or_reading(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)

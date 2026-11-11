@@ -35,6 +35,14 @@ class SimulationController(QObject):
             if event.key() == Qt.Key_X:
                 self._toggle_input("PLASMA_FAIL")
                 return True
+
+            if event.key() == Qt.Key_4:
+                self._hardware.adjust_temperature(-1)
+                return True
+
+            if event.key() == Qt.Key_6:
+                self._hardware.adjust_temperature(1)
+                return True
             
         return super().eventFilter(obj,event)
 

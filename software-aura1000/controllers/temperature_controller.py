@@ -18,6 +18,7 @@ class TemperatureController(QObject):
     MIN_SETPOINT_C = 130.0
     MAX_SETPOINT_C = 190.0
     HYSTERESIS_C = 7.0
+    OVER_TEMP_LAMP2_CUTOFF_DELTA_C = 10.0
     RECIPE_REACHED_TOLERANCE_C = 3.0
     HIGH_TEMP_CUTOFF_C = 160.0
     ASSIST_DELTA_C = 10.0
@@ -161,8 +162,20 @@ class TemperatureController(QObject):
                 print(f"[TEMP] Rampa completada a {temperature:.1f} °C; comienza mantenimiento.")
             return
 
+        over_temp_cutoff = self._target + self.OVER_TEMP_LAMP2_CUTOFF_DELTA_C
+        if temperature >= over_temp_cutoff and self._process.lamp2_active:
+            print(
+                f"[TEMP] Sobretemperatura: {temperature:.1f} °C >= "
+                f"consigna + {self.OVER_TEMP_LAMP2_CUTOFF_DELTA_C:.1f} °C "
+                f"({over_temp_cutoff:.1f} °C); apagando LAMP2."
+            )
+            if not self._process.set_lamp2(False):
+                self._abort("No se pudo apagar LAMP2 por sobretemperatura.")
+                return
+
         low = self._target - self.HYSTERESIS_C
-        high = self._target + self.HYSTERESIS_C
+        high = self._target
+        lamp2_turned_off_post_ramp = False
         if self._waiting_first_dip:
             if temperature > high:
                 self._post_ramp_above_high = True
@@ -171,6 +184,15 @@ class TemperatureController(QObject):
                 return
             self._waiting_first_dip = False
             self._post_ramp_above_high = False
+            if self._process.lamp2_active:
+                print(
+                    f"[TEMP] Caída post-rampa hasta la consigna ({temperature:.1f} °C); "
+                    "apagando LAMP2."
+                )
+                if not self._process.set_lamp2(False):
+                    self._abort("No se pudo apagar la lámpara central al completar la rampa.")
+                    return
+                lamp2_turned_off_post_ramp = True
 
         if (
             self._target >= self.HIGH_TEMP_CUTOFF_C
@@ -185,15 +207,23 @@ class TemperatureController(QObject):
             print(f"[TEMP] Asistencia térmica: pulso LAMP1/LAMP3 a {temperature:.1f} °C por {self.ASSIST_PULSE_MS} ms.")
             self._assist_timer.start(self.ASSIST_PULSE_MS)
 
-        if temperature <= low and not self._process.lamp2_active:
+        if (
+            not lamp2_turned_off_post_ramp
+            and temperature <= low
+            and not self._process.lamp2_active
+        ):
             # debugg de contorl de lamparas y plasma
             print(f"[TEMP] {temperature:.1f} °C <= límite inferior {low:.1f} °C; encendiendo LAMP2.")
             if not self._process.set_lamp2(True):
                 self._abort("No se pudo encender la lámpara central.")
                 return
-        elif temperature >= high and self._process.lamp2_active:
+        elif (
+            not lamp2_turned_off_post_ramp
+            and temperature >= high
+            and self._process.lamp2_active
+        ):
             # debugg de contorl de lamparas y plasma
-            print(f"[TEMP] {temperature:.1f} °C >= límite superior {high:.1f} °C; apagando LAMP2.")
+            print(f"[TEMP] {temperature:.1f} °C >= consigna {high:.1f} °C; apagando LAMP2.")
             if not self._process.set_lamp2(False):
                 self._abort("No se pudo apagar la lámpara central.")
                 return

@@ -324,6 +324,10 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.temperature_reached(150)
         self.sequence.update_analog("EOP", 2.0)
         self.assertEqual(self.sequence.state, RecipeState.RUNNING_PLASMA)
+        contents = self.log_path.read_text(encoding="utf-8")
+        self.assertIn("Consigna de temperatura alcanzada: 150 C", contents)
+        self.assertIn("ACCION: Activar RF/plasma", contents)
+        self.assertIn("Estado de receta: running_plasma", contents)
         self.sequence.update_analog("EOP", 1.99)
 
         self.assertEqual(rf_finished, [True])

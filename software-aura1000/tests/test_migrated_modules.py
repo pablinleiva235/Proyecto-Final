@@ -964,10 +964,45 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP1_ON_CMD"))
         self.assertFalse(self.hardware.digital_read("LAMP3_ON_CMD"))
-
         temperature.set_temperature_reading(190.0)
         self.assertFalse(self.hardware.digital_read("LAMP2_ON_CMD"))
         self.assertTrue(temperature.is_active)
+
+    def test_recipe_overtemperature_requires_more_than_two_continuous_seconds(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        errors = []
+        temperature.operation_error.connect(errors.append)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        temperature._temperature = 200.0
+
+        self.assertFalse(temperature._check_overtemperature(200.0, now=10.0))
+        self.assertFalse(temperature._check_overtemperature(200.0, now=12.0))
+        self.assertTrue(temperature.is_active)
+        self.assertTrue(temperature._check_overtemperature(200.0, now=12.001))
+
+        self.assertFalse(temperature.is_active)
+        self.assertTrue(any("sobretemperatura" in error.lower() for error in errors))
+        self.assertFalse(process.plasma_active)
+        for signal in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD", "RF_ON_CMD"):
+            self.assertFalse(self.hardware.digital_read(signal))
+
+    def test_recipe_overtemperature_timer_resets_below_threshold(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+
+        self.assertFalse(temperature._check_overtemperature(200.0, now=10.0))
+        self.assertFalse(temperature._check_overtemperature(199.9, now=11.5))
+        self.assertFalse(temperature._check_overtemperature(200.0, now=12.0))
+        self.assertFalse(temperature._check_overtemperature(200.0, now=14.0))
+        self.assertTrue(temperature.is_active)
+        self.assertTrue(temperature._check_overtemperature(200.0, now=14.001))
+        self.assertFalse(temperature.is_active)
 
     def test_temperature_overtemp_cutoff_waits_for_threshold_and_recovers(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)
@@ -1002,6 +1037,47 @@ class MigratedModulesTests(unittest.TestCase):
             temperature.set_temperature_reading(173.0)
         self.assertTrue(process.lamp2_active)
         self.assertTrue(temperature.is_active)
+        temperature.stop()
+
+    def test_temperature_stable_within_recipe_tolerance_reaches_after_three_seconds(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        temperature._ramp_active = False
+        temperature._waiting_first_dip = True
+        reached = []
+        temperature.setpoint_reached.connect(reached.append)
+
+        temperature._update_control(180.0, now=10.0)
+        temperature._update_control(182.0, now=12.9)
+        self.assertEqual(reached, [])
+        temperature._update_control(179.0, now=13.0)
+
+        self.assertEqual(reached, [180.0])
+        self.assertTrue(temperature._target_reached)
+        temperature.stop()
+
+    def test_temperature_stability_timer_resets_when_reading_leaves_tolerance(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        process = ProcessController(self.hardware, can_operate=lambda: True)
+        temperature = TemperatureController(process, can_operate=lambda: True)
+        temperature.set_temperature_reading(100.0)
+        temperature.start(180.0)
+        temperature._ramp_active = False
+        temperature._waiting_first_dip = True
+        reached = []
+        temperature.setpoint_reached.connect(reached.append)
+
+        temperature._update_control(180.0, now=10.0)
+        temperature._update_control(176.0, now=12.9)
+        temperature._update_control(180.0, now=13.0)
+        temperature._update_control(180.0, now=15.9)
+        self.assertEqual(reached, [])
+        temperature._update_control(180.0, now=16.0)
+
+        self.assertEqual(reached, [180.0])
         temperature.stop()
 
     def test_temperature_control_aborts_on_lost_interlock_or_reading(self):

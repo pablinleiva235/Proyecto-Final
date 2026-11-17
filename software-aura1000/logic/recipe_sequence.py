@@ -530,6 +530,10 @@ class RecipeSequence(QObject):
     def temperature_reached(self, _value):
         if self._state != RecipeState.CONTROLLING_TEMPERATURE:
             return
+        if not self._log_event(
+            f"Consigna de temperatura alcanzada: {float(_value):g} C."
+        ):
+            return
         if not self._perform_action("Activar RF/plasma", lambda: self.process.set_plasma(True),
                                     outputs={"RF_ON_CMD": True}):
             return

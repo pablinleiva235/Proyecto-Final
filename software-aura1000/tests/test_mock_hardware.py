@@ -21,6 +21,9 @@ class MockHardwareTests(unittest.TestCase):
         voltage = flow / (10.0 * 0.981) * 5.0
         self.hardware.analog_write("MFC1_SETPOINT", voltage)
 
+    def test_eop_starts_at_ten_volts(self):
+        self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
+
     def test_digital_write_updates_state_and_reads_are_passive(self):
         output = StringIO()
 

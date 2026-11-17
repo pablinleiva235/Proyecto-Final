@@ -36,7 +36,7 @@ class MockHardware:
             "MFC3_FLOW": 0.0,
             "MFC4_FLOW": 0.0,
             "BARATRON": 0.0,
-            "EOP": 0.0,
+            "EOP": 10.0,
             "CHAMBER_TEMP": 20.0,
         }
         self._analog_outputs = {}

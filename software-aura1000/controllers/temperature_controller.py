@@ -20,6 +20,9 @@ class TemperatureController(QObject):
     HYSTERESIS_C = 7.0
     OVER_TEMP_LAMP2_CUTOFF_DELTA_C = 10.0
     RECIPE_REACHED_TOLERANCE_C = 3.0
+    RECIPE_REACHED_STABLE_DURATION_S = 3.0
+    RECIPE_OVER_TEMP_DELTA_C = 20.0
+    RECIPE_OVER_TEMP_DURATION_S = 2.0
     HIGH_TEMP_CUTOFF_C = 160.0
     ASSIST_DELTA_C = 10.0
     ASSIST_PULSE_MS = 250
@@ -40,6 +43,8 @@ class TemperatureController(QObject):
         self._post_ramp_above_high = False
         self._start_temperature = None
         self._target_reached = False
+        self._target_stable_since = None
+        self._over_temp_since = None
         self._assist_active = False
         self._assist_timer = QTimer(self)
         self._assist_timer.setSingleShot(True)
@@ -109,6 +114,8 @@ class TemperatureController(QObject):
             self._post_ramp_above_high = False
             self._start_temperature = self._temperature
             self._target_reached = False
+            self._target_stable_since = None
+            self._over_temp_since = None
             self._set_state("precalentando")
             # debugg de contorl de lamparas y plasma
             print(f"[TEMP] Inicio de control: objetivo={target:.1f} °C, temperatura inicial={self._temperature:.1f} °C.")
@@ -134,6 +141,8 @@ class TemperatureController(QObject):
         self._ramp_active = False
         self._waiting_first_dip = False
         self._post_ramp_above_high = False
+        self._target_stable_since = None
+        self._over_temp_since = None
         if not self._turn_process_outputs_off():
             # debugg de contorl de lamparas y plasma
             print("[TEMP] Error al apagar todas las lámparas durante la detención.")
@@ -144,9 +153,13 @@ class TemperatureController(QObject):
         if self.is_active:
             self._abort(message)
 
-    def _update_control(self, temperature):
+    def _update_control(self, temperature, now=None):
         if self._target is None:
             return
+        now = self._last_reading_at if now is None else now
+        if self._check_overtemperature(temperature, now=now):
+            return
+        self._update_stable_target_reached(temperature, now=now)
         if self._ramp_active:
             if temperature >= self._ramp_threshold():
                 # debugg de contorl de lamparas y plasma
@@ -229,10 +242,34 @@ class TemperatureController(QObject):
                 return
 
         if not self._target_reached and abs(temperature - self._target) <= self.RECIPE_REACHED_TOLERANCE_C:
-            self._target_reached = True
-            # debugg de contorl de lamparas y plasma
+            self._emit_target_reached(temperature)
+
+    def _update_stable_target_reached(self, temperature, now):
+        if self._target_reached:
+            return
+        if abs(temperature - self._target) > self.RECIPE_REACHED_TOLERANCE_C:
+            self._target_stable_since = None
+            return
+
+        if self._target_stable_since is None:
+            self._target_stable_since = now
+            return
+        if now - self._target_stable_since >= self.RECIPE_REACHED_STABLE_DURATION_S:
+            self._emit_target_reached(temperature, stable=True)
+
+    def _emit_target_reached(self, temperature, stable=False):
+        if self._target_reached:
+            return
+        self._target_reached = True
+        self._target_stable_since = None
+        if stable:
+            print(
+                f"[TEMP] Objetivo alcanzado por estabilidad: "
+                f"{self._target:.1f} °C; lectura={temperature:.1f} °C."
+            )
+        else:
             print(f"[TEMP] Objetivo alcanzado: {self._target:.1f} °C; lectura={temperature:.1f} °C.")
-            self.setpoint_reached.emit(self._target)
+        self.setpoint_reached.emit(self._target)
 
     def _ramp_threshold(self):
         if self._target <= self.HIGH_TEMP_CUTOFF_C:
@@ -259,6 +296,32 @@ class TemperatureController(QObject):
         elif self._last_reading_at is None or time.monotonic() - self._last_reading_at > self.STALE_READING_SECONDS:
             self._abort("Se perdió la lectura actualizada de la termocupla.")
 
+    def _check_overtemperature(self, temperature=None, now=None):
+        """Abort after a sustained recipe overtemperature."""
+        if not self.is_active or self._target is None:
+            self._over_temp_since = None
+            return False
+
+        temperature = self._temperature if temperature is None else temperature
+        threshold = self._target + self.RECIPE_OVER_TEMP_DELTA_C
+        if temperature is None or temperature < threshold:
+            self._over_temp_since = None
+            return False
+
+        now = time.monotonic() if now is None else now
+        if self._over_temp_since is None:
+            self._over_temp_since = now
+            return False
+        if now - self._over_temp_since <= self.RECIPE_OVER_TEMP_DURATION_S:
+            return False
+
+        self._abort(
+            f"Falla por sobretemperatura: {temperature:.1f} C durante mas de "
+            f"{self.RECIPE_OVER_TEMP_DURATION_S:g} s por encima de la consigna "
+            f"({threshold:.1f} C)."
+        )
+        return True
+
     def _abort(self, message):
         # debugg de contorl de lamparas y plasma
         print(f"[TEMP] Abortando control térmico: {message}")
@@ -266,6 +329,8 @@ class TemperatureController(QObject):
         self._assist_timer.stop()
         self._assist_active = False
         self._target = None
+        self._target_stable_since = None
+        self._over_temp_since = None
         self._ramp_active = False
         self._waiting_first_dip = False
         self._post_ramp_above_high = False

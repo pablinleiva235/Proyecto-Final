@@ -529,10 +529,6 @@ def toggle_mfc2_valve(win):
         btn_shutoff.setText("Abrir Valvula MFC2: N2")
         btn_shutoff.setStyleSheet("")
         btn_set.setStyleSheet("")
-        
-# Constante configurable al inicio del módulo
-MFC1_ZERO_OFFSET_SLM = 0.16  # Offset físico de flujo al abrir la válvula (SLPM de O2)
-
 
 def set_mfc1_flow(win):
     """Lee el QLineEdit, valida el valor e ingresa la tensión a la DAQ para O2 (compensando offset de cero)."""

@@ -2,6 +2,8 @@
 
 from enum import Enum
 from datetime import datetime
+from collections import deque
+import time
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
@@ -24,11 +26,13 @@ class RecipeState(Enum):
     VERIFYING_DOOR_CLOSED = "verifying_door_closed"
     VERIFYING_DOOR_CLOSED_AFTER_RECIPE = "verifying_door_closed_after_recipe"
     STARTING_SOFT_VACUUM = "starting_soft_vacuum"
+    WAITING_SOFT_VACUUM_STABILIZATION = "waiting_soft_vacuum_stabilization"
     STARTING_MAIN_VACUUM = "starting_main_vacuum"
     PUMPING_TO_BASE = "pumping_to_base"
     POSITIONING_THROTTLE = "positioning_throttle"
     POSITIONING_THROTTLE_AFTER_VENT = "positioning_throttle_after_vent"
     STARTING_GAS_FLOW = "starting_gas_flow"
+    WAITING_FOR_MFC_FLOWS = "waiting_for_mfc_flows"
     CONTROLLING_PRESSURE = "controlling_pressure"
     CONTROLLING_TEMPERATURE = "controlling_temperature"
     RUNNING_PLASMA = "running_plasma"
@@ -47,6 +51,10 @@ class RecipeSequence(QObject):
     error_raised = pyqtSignal(str)
     finished = pyqtSignal(bool, str)
     rf_finished = pyqtSignal()
+
+    SOFT_VACUUM_STABILIZATION_MS = 1000
+    MFC_FLOW_CONFIRMATION_TIMEOUT_MS = 15000
+    MFC_FLOW_CONFIRMATION_WINDOW_S = 3.0
 
     def __init__(
         self, door_sequence, soft_vacuum_sequence, main_vacuum_sequence,
@@ -99,6 +107,22 @@ class RecipeSequence(QObject):
         self._rf_timer = QTimer(self)
         self._rf_timer.setSingleShot(True)
         self._rf_timer.timeout.connect(self._rf_time_limit_reached)
+        self._soft_vacuum_stabilization_timer = QTimer(self)
+        self._soft_vacuum_stabilization_timer.setSingleShot(True)
+        self._soft_vacuum_stabilization_timer.setInterval(self.SOFT_VACUUM_STABILIZATION_MS)
+        self._soft_vacuum_stabilization_timer.timeout.connect(
+            self._start_main_vacuum_after_soft_stabilization
+        )
+        self._mfc_flow_confirmation_timer = QTimer(self)
+        self._mfc_flow_confirmation_timer.setSingleShot(True)
+        self._mfc_flow_confirmation_timer.setInterval(self.MFC_FLOW_CONFIRMATION_TIMEOUT_MS)
+        self._mfc_flow_confirmation_timer.timeout.connect(
+            self._mfc_flow_confirmation_timed_out
+        )
+        self._confirmed_mfc_flows = set()
+        self._mfc_flow_samples = {"MFC1": deque(), "MFC2": deque()}
+        self._mfc_flow_window_started_at = {"MFC1": None, "MFC2": None}
+        self._mfc_flow_window_ready = set()
         self._data_sample_timer = QTimer(self)
         self._data_sample_timer.setInterval(1000)
         self._data_sample_timer.timeout.connect(self._record_process_sample)
@@ -160,6 +184,11 @@ class RecipeSequence(QObject):
         self._completion_message = ""
         self._shutdown_errors = []
         self._vacuum_started = False
+        self._confirmed_mfc_flows.clear()
+        self._soft_vacuum_stabilization_timer.stop()
+        self._mfc_flow_confirmation_timer.stop()
+        if hasattr(self.mfc, "set_flow_confirmation_mode"):
+            self.mfc.set_flow_confirmation_mode(False)
         if self.door.state != DoorState.CLOSED:
             self.error_raised.emit("La puerta debe estar cerrada antes de iniciar una receta.")
             return False
@@ -284,6 +313,14 @@ class RecipeSequence(QObject):
             self._fail("No se pudo iniciar Soft Vacuum.")
             return
         self._vacuum_started = True
+        if not self._set_state(RecipeState.WAITING_SOFT_VACUUM_STABILIZATION):
+            return
+        self._soft_vacuum_stabilization_timer.start()
+
+    def _start_main_vacuum_after_soft_stabilization(self):
+        if (not self.is_active
+                or self._state != RecipeState.WAITING_SOFT_VACUUM_STABILIZATION):
+            return
         if not self._set_state(RecipeState.STARTING_MAIN_VACUUM):
             return
         if not self._perform_action("Activar Main Vacuum", self.main_vacuum.start,
@@ -305,8 +342,16 @@ class RecipeSequence(QObject):
 
     def update_analog(self, name, value):
         self.cache_analog(name, value)
+        if name in ("MFC1_FLOW", "MFC2_FLOW"):
+            print(
+                f"[RecipeSequence.update_analog] {name}={value} SLPM "
+                f"| estado={self._state.value}",
+                flush=True,
+            )
         if not self.is_active:
             return
+        if name in ("MFC1_FLOW", "MFC2_FLOW"):
+            self._update_mfc_flow_confirmation(name[:4], value)
         if name == "BARATRON" and self._state == RecipeState.PUMPING_TO_BASE:
             if value <= self._recipe.base_pressure:
                 self._prepare_throttle_before_gas_flow()
@@ -346,9 +391,71 @@ class RecipeSequence(QObject):
         except (TypeError, ValueError):
             self._analog_readings[name] = None
 
+    def _update_mfc_flow_confirmation(self, name, value):
+        if self._state != RecipeState.WAITING_FOR_MFC_FLOWS:
+            return
+        if name not in ("MFC1", "MFC2"):
+            return
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return
+        now = time.monotonic()
+        samples = self._mfc_flow_samples[name]
+        if self._mfc_flow_window_started_at[name] is None:
+            self._mfc_flow_window_started_at[name] = now
+        samples.append((now, value))
+        if (now - self._mfc_flow_window_started_at[name]
+                >= self.MFC_FLOW_CONFIRMATION_WINDOW_S):
+            self._mfc_flow_window_ready.add(name)
+        if name not in self._mfc_flow_window_ready:
+            return
+        while samples and now - samples[0][0] > self.MFC_FLOW_CONFIRMATION_WINDOW_S:
+            samples.popleft()
+        if not samples:
+            return
+        target = self._recipe.o2_flow if name == "MFC1" else self._recipe.n2_flow
+        average = sum(sample for _, sample in samples) / len(samples)
+        in_tolerance = 0.75 * target <= average <= 1.25 * target
+        was_confirmed = name in self._confirmed_mfc_flows
+        if in_tolerance == was_confirmed:
+            return
+        if in_tolerance:
+            self._confirmed_mfc_flows.add(name)
+            self._log_event(
+                f"Caudal {name} confirmado: promedio={average:.3f} SLPM, "
+                f"consigna={target:g} SLPM (rango {0.75 * target:.3f}-{1.25 * target:.3f})."
+            )
+        else:
+            self._confirmed_mfc_flows.discard(name)
+            self._log_event(
+                f"Caudal {name} salio del rango: promedio={average:.3f} SLPM, "
+                f"consigna={target:g} SLPM (rango {0.75 * target:.3f}-{1.25 * target:.3f})."
+            )
+        if {"MFC1", "MFC2"}.issubset(self._confirmed_mfc_flows):
+            self._mfc_flow_confirmation_timer.stop()
+            if hasattr(self.mfc, "set_flow_confirmation_mode"):
+                self.mfc.set_flow_confirmation_mode(False)
+            self._log_event("Confirmacion de caudales MFC: OK")
+            self._start_pressure_control()
+
+    def _mfc_flow_confirmation_timed_out(self):
+        if self._state != RecipeState.WAITING_FOR_MFC_FLOWS:
+            return
+        missing = ", ".join(sorted({"MFC1", "MFC2"} - self._confirmed_mfc_flows))
+        timeout_seconds = self.MFC_FLOW_CONFIRMATION_TIMEOUT_MS / 1000
+        self._fail(
+            f"No se confirmaron los caudales MFC dentro de +/-25% en {timeout_seconds:g} segundos. "
+            f"Pendientes: {missing or 'sin lecturas validas'}."
+        )
+
     def analog_error(self, name, message):
         self.cache_analog_error(name)
         if not self.is_active or self._stopping:
+            return
+        if (name in ("MFC1_FLOW", "MFC2_FLOW")
+                and self._state == RecipeState.WAITING_FOR_MFC_FLOWS):
+            self._fail(f"Lectura de caudal {name} perdida: {message}")
             return
         if name == "BARATRON" and self._state in (
             RecipeState.PUMPING_TO_BASE, RecipeState.POSITIONING_THROTTLE,
@@ -524,6 +631,10 @@ class RecipeSequence(QObject):
         if not self.is_active:
             return
         self._rf_timer.stop()
+        self._soft_vacuum_stabilization_timer.stop()
+        self._mfc_flow_confirmation_timer.stop()
+        if hasattr(self.mfc, "set_flow_confirmation_mode"):
+            self.mfc.set_flow_confirmation_mode(False)
         self._waiting_for_throttle_rest = False
         self._waiting_for_throttle_after_vent = False
         self._shutdown_continuation_started = True
@@ -637,6 +748,23 @@ class RecipeSequence(QObject):
             return
         if not self.is_active:
             return
+        self._confirmed_mfc_flows.clear()
+        for samples in self._mfc_flow_samples.values():
+            samples.clear()
+        self._mfc_flow_window_started_at = {"MFC1": None, "MFC2": None}
+        self._mfc_flow_window_ready.clear()
+        if hasattr(self.mfc, "set_flow_confirmation_mode"):
+            self.mfc.set_flow_confirmation_mode(True)
+        if not self._set_state(RecipeState.WAITING_FOR_MFC_FLOWS):
+            if hasattr(self.mfc, "set_flow_confirmation_mode"):
+                self.mfc.set_flow_confirmation_mode(False)
+            return
+        self._mfc_flow_confirmation_timer.start()
+
+    def _start_pressure_control(self):
+        if (not self.is_active
+                or self._state != RecipeState.WAITING_FOR_MFC_FLOWS):
+            return
         if not self._set_state(RecipeState.CONTROLLING_PRESSURE):
             return
         if not self._perform_action(
@@ -668,6 +796,10 @@ class RecipeSequence(QObject):
             return
         self._rf_timer.stop()
         self._door_closed_stable_timer.stop()
+        self._soft_vacuum_stabilization_timer.stop()
+        self._mfc_flow_confirmation_timer.stop()
+        if hasattr(self.mfc, "set_flow_confirmation_mode"):
+            self.mfc.set_flow_confirmation_mode(False)
         self._stopping = True
         self._waiting_for_throttle_before_gas_flow = False
         self._completion_message = message
@@ -800,6 +932,10 @@ class RecipeSequence(QObject):
     def _finish(self, failed, message):
         self._rf_timer.stop()
         self._door_closed_stable_timer.stop()
+        self._soft_vacuum_stabilization_timer.stop()
+        self._mfc_flow_confirmation_timer.stop()
+        if hasattr(self.mfc, "set_flow_confirmation_mode"):
+            self.mfc.set_flow_confirmation_mode(False)
         self._data_sample_timer.stop()
         self._waiting_for_throttle_after_vent = False
         self._finalizing = True

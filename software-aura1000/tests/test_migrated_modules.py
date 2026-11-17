@@ -252,11 +252,38 @@ class MigratedModulesTests(unittest.TestCase):
         controller.set_valve("MFC1", True)
         # Una desviación del 26% supera la tolerancia de 25%.
         voltage = (2.0 * 1.26) / (10.0 * 0.981) * 5.0
-        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 1.0, 2.0, 2.99, 3.0)):
-            for _ in range(4):
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0.0, 0.81, 1.94, 3.07)):
+            for _ in range(3):
                 controller.update_flow_measurement("MFC1", voltage)
             self.assertFalse(faults)
             controller.update_flow_measurement("MFC1", voltage)
+        self.assertEqual(len(faults), 1)
+
+    def test_recipe_flow_confirmation_uses_fresh_three_second_average_without_startup_fault(self):
+        self.hardware.digital_set("DRIVER_ENABLE", True)
+        controller = MFCController(self.hardware, can_operate=lambda: True)
+        faults = []
+        controller.flow_fault.connect(faults.append)
+        controller.set_flow("MFC1", 2.0)
+        controller.update_flow_measurement("MFC1", 0.0)
+        controller.set_valve("MFC1", True)
+        self.assertEqual(len(controller._samples["MFC1"]), 0)
+
+        controller.set_flow_confirmation_mode(True)
+        target_voltage = self.hardware.analog_read("MFC1_FLOW")
+        self.assertAlmostEqual(
+            MFCController.voltage_to_flow("MFC1", target_voltage), 2.0
+        )
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(0, 0.81, 1.94, 3.07)):
+            for _ in range(4):
+                controller.update_flow_measurement("MFC1", target_voltage)
+        self.assertEqual(faults, [])
+
+        controller.set_flow_confirmation_mode(False)
+        off_target_voltage = 1.0 / (10.0 * 0.981) * 5.0
+        with patch("controllers.mfc_controller.time.monotonic", side_effect=(4, 4.81, 5.94, 7.07)):
+            for _ in range(4):
+                controller.update_flow_measurement("MFC1", off_target_voltage)
         self.assertEqual(len(faults), 1)
 
     def test_mfc1_flow_monitor_accepts_deviation_up_to_25_percent(self):

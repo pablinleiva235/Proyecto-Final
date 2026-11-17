@@ -13,11 +13,12 @@ class MockHardware:
     _THROTTLE_MAX_STEPS = 1400
     _TEMPERATURE_STEP_C = 5.0
 
-    _BARATRON_PRESSURES = {
-        "ATM_SWITCH": 10.0,
-        "SOFT_START_CONTROL": 0.1,
-        "MAIN_VACUUM_CONTROL": 0.06,
-    }
+    _BARATRON_MAX_TORR = 10.0
+    _BARATRON_REFERENCE_THROTTLE_STEPS = 400
+    _BARATRON_O2_FLOW_PRESSURES = (
+        (0.0, 0.83), (1.0, 1.14), (2.0, 1.51), (3.0, 1.86),
+        (4.0, 2.23), (5.0, 2.63), (6.0, 3.0),
+    )
 
     def __init__(self):
         self._throttle_position_steps = 0
@@ -79,6 +80,7 @@ class MockHardware:
                 self._throttle_position_steps - 1,
             )
         self._update_simulated_throttle_limits()
+        self._update_simulated_pressure()
 
     def _update_simulated_throttle_limits(self):
         """Actualiza los finales de carrera simulados según la posición."""
@@ -114,14 +116,55 @@ class MockHardware:
         self._digital_states[signal_name] = active
         self._update_simulated_pressure(signal_name, active)
 
-    def _update_simulated_pressure(self, signal_name, active):
-        """Update BARATRON when ATM or a simulated vacuum pump is activated."""
-        if not active or signal_name not in self._BARATRON_PRESSURES:
+    def _update_simulated_pressure(self, signal_name=None, active=None):
+        """Actualiza BARATRON según ATM o el modelo de caudal y throttle."""
+        if signal_name == "ATM_SWITCH" and active:
+            self._analog_values["BARATRON"] = self._BARATRON_MAX_TORR
             return
 
-        self._analog_values["BARATRON"] = self._BARATRON_PRESSURES[signal_name]
-        if signal_name in ("SOFT_START_CONTROL", "MAIN_VACUUM_CONTROL"):
+        if signal_name in ("SOFT_START_CONTROL", "MAIN_VACUUM_CONTROL") and active:
             self._digital_states["ATM_SWITCH"] = False
+
+        if self._digital_states["ATM_SWITCH"]:
+            self._analog_values["BARATRON"] = self._BARATRON_MAX_TORR
+        elif self._vacuum_pump_active():
+            self._analog_values["BARATRON"] = self._calculate_simulated_pressure()
+
+    def _vacuum_pump_active(self):
+        return any(
+            self._digital_states.get(name, False)
+            for name in ("SOFT_START_CONTROL", "MAIN_VACUUM_CONTROL")
+        )
+
+    def _calculate_simulated_pressure(self):
+        o2_flow_voltage = self._analog_values["MFC1_FLOW"]
+        o2_flow = o2_flow_voltage / 5.0 * 10.0 * 0.981
+        table = self._BARATRON_O2_FLOW_PRESSURES
+        for (flow_a, pressure_a), (flow_b, pressure_b) in zip(table, table[1:]):
+            if o2_flow <= flow_b:
+                ratio = (o2_flow - flow_a) / (flow_b - flow_a)
+                base_pressure = pressure_a + ratio * (pressure_b - pressure_a)
+                break
+        else:
+            (flow_a, pressure_a), (flow_b, pressure_b) = table[-2:]
+            ratio = (o2_flow - flow_a) / (flow_b - flow_a)
+            base_pressure = pressure_a + ratio * (pressure_b - pressure_a)
+
+        pressure = base_pressure * (
+            self._throttle_position_steps / self._BARATRON_REFERENCE_THROTTLE_STEPS
+        )
+        return min(self._BARATRON_MAX_TORR, max(0.0, pressure))
+
+    def _update_simulated_mfc_flow(self, setpoint_name, voltage):
+        """La lectura simulada sigue la consigna analógica enviada al MFC."""
+        input_name = {
+            "MFC1_SETPOINT": "MFC1_FLOW",
+            "MFC2_SETPOINT": "MFC2_FLOW",
+        }.get(setpoint_name)
+        if input_name is None:
+            return
+        self._analog_values[input_name] = max(0.0, voltage)
+        self._update_simulated_pressure()
 
     def initialize_AD(self):
         """Simula la inicialización de la placa analógica."""
@@ -158,6 +201,7 @@ class MockHardware:
         if not config["min_voltage"] <= value <= config["max_voltage"]:
             raise ValueError(f"Tensión fuera de rango para {signal_name}")
         self._analog_outputs[signal_name] = value
+        self._update_simulated_mfc_flow(signal_name, value)
 
     def set_analog_value(self, signal_name, value):
         if signal_name not in self._analog_values:

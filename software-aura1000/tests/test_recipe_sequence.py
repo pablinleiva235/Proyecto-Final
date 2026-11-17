@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import patch
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -58,6 +61,7 @@ class Vent:
 class Mfc:
     def __init__(self):
         self.calls = []
+        self.confirmation_mode = False
 
     def set_flow(self, name, value):
         self.calls.append(("flow", name, value))
@@ -73,6 +77,9 @@ class Mfc:
 
     def shutdown(self):
         self.calls.append(("shutdown",))
+
+    def set_flow_confirmation_mode(self, enabled):
+        self.confirmation_mode = bool(enabled)
 
 
 class Pressure:
@@ -197,6 +204,20 @@ class RecipeSequenceTests(unittest.TestCase):
         self.digital_set_calls.append((name, active))
         self.digital_states[name] = active
 
+    def _confirm_recipe_mfc_flows(self):
+        clock = iter((0.0, 0.83, 1.91, 3.07, 3.2, 4.01, 5.22, 6.3))
+        with patch("logic.recipe_sequence.time.monotonic", side_effect=lambda: next(clock)):
+            for value in (self.recipe.o2_flow,) * 4:
+                self.sequence.update_analog("MFC1_FLOW", value)
+            for value in (self.recipe.n2_flow,) * 4:
+                self.sequence.update_analog("MFC2_FLOW", value)
+
+    def _advance_vacuum_startup_timers(self):
+        self.sequence._door_closed_stable_timer.stop()
+        self.sequence._door_closed_stable_timer.timeout.emit()
+        self.sequence._soft_vacuum_stabilization_timer.stop()
+        self.sequence._soft_vacuum_stabilization_timer.timeout.emit()
+
     def _finish_with_door_open(self):
         if hasattr(self.sequence.throttle, "_position_steps"):
             self.sequence.throttle._position_steps = 400.0
@@ -282,9 +303,21 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.assertEqual(self.sequence.state, RecipeState.PUMPING_TO_BASE)
 
         self.sequence.update_analog("BARATRON", 1.0)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_MFC_FLOWS)
+        clock = iter(range(12))
+        with patch("logic.recipe_sequence.time.monotonic", side_effect=lambda: next(clock)):
+            for value in (self.recipe.o2_flow * 1.5,) * 4:
+                self.sequence.update_analog("MFC1_FLOW", value)
+            self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_MFC_FLOWS)
+            for value in (self.recipe.o2_flow * 1.25,) * 4:
+                self.sequence.update_analog("MFC1_FLOW", value)
+            self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_MFC_FLOWS)
+            for value in (self.recipe.n2_flow * 0.75,) * 4:
+                self.sequence.update_analog("MFC2_FLOW", value)
         self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
         self.sequence.pressure_reached(1.5)
         self.assertEqual(self.temperature.target, 150)
@@ -298,6 +331,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
         self.assertFalse(self.sequence._rf_timer.isActive())
         self.assertFalse(self.process.plasma_active)
+
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
         self.throttle.position_steps = 400.0
@@ -336,6 +370,40 @@ class RecipeSequenceTests(unittest.TestCase):
             "throttle_position_steps,plasma_state"
         ))
 
+    def test_recipe_mfc_window_matures_with_jittered_sample_intervals(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
+        self.sequence.update_analog("BARATRON", 1.0)
+
+        clock = iter((0.0, 0.1, 0.83, 0.91, 1.91, 2.01, 3.07, 3.11))
+        with patch("logic.recipe_sequence.time.monotonic", side_effect=lambda: next(clock)):
+            self.sequence.update_analog("MFC1_FLOW", self.recipe.o2_flow)
+            self.sequence.update_analog("MFC2_FLOW", self.recipe.n2_flow)
+            self.sequence.update_analog("MFC1_FLOW", self.recipe.o2_flow)
+            self.sequence.update_analog("MFC2_FLOW", self.recipe.n2_flow)
+            self.sequence.update_analog("MFC1_FLOW", self.recipe.o2_flow)
+            self.sequence.update_analog("MFC2_FLOW", self.recipe.n2_flow)
+            self.sequence.update_analog("MFC1_FLOW", self.recipe.o2_flow)
+            self.sequence.update_analog("MFC2_FLOW", self.recipe.n2_flow)
+
+        self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
+        self.assertEqual(self.sequence._confirmed_mfc_flows, {"MFC1", "MFC2"})
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_update_analog_prints_only_mfc_flow_values_and_recipe_state(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            self.sequence.update_analog("MFC1_FLOW", 1.5)
+            self.sequence.update_analog("MFC2_FLOW", 0.1)
+            self.sequence.update_analog("BARATRON", 1.0)
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
+        self.assertIn("MFC1_FLOW=1.5 SLPM", lines[0])
+        self.assertIn("MFC2_FLOW=0.1 SLPM", lines[1])
+        self.assertTrue(all("estado=idle" in line for line in lines))
+
     def test_every_recipe_event_logs_current_throttle_position(self):
         self.sequence.start(self.recipe)
 
@@ -345,6 +413,55 @@ class RecipeSequenceTests(unittest.TestCase):
             all("Posición throttle=400 pasos" in line for line in lines)
         )
         self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_soft_vacuum_stabilization_precedes_main_vacuum(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence._door_closed_stable_timer.stop()
+        self.sequence._door_closed_stable_timer.timeout.emit()
+
+        self.assertEqual(self.soft.state, SoftVacuumState.RUNNING)
+        self.assertEqual(self.main.state, MainVacuumState.IDLE)
+        self.assertEqual(
+            self.sequence.state, RecipeState.WAITING_SOFT_VACUUM_STABILIZATION
+        )
+        self.assertTrue(self.sequence._soft_vacuum_stabilization_timer.isActive())
+
+        self.sequence._soft_vacuum_stabilization_timer.stop()
+        self.sequence._soft_vacuum_stabilization_timer.timeout.emit()
+        self.assertEqual(self.main.state, MainVacuumState.RUNNING)
+        self.sequence.stop()
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_stop_during_soft_vacuum_delay_cancels_main_vacuum_start(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self.sequence._door_closed_stable_timer.stop()
+        self.sequence._door_closed_stable_timer.timeout.emit()
+
+        self.assertTrue(self.sequence._soft_vacuum_stabilization_timer.isActive())
+        self.sequence.stop()
+        self.assertFalse(self.sequence._soft_vacuum_stabilization_timer.isActive())
+        self.sequence._soft_vacuum_stabilization_timer.timeout.emit()
+
+        self.assertEqual(self.main.state, MainVacuumState.IDLE)
+        self.sequence._finish(False, "Prueba finalizada.")
+
+    def test_mfc_confirmation_timeout_aborts_before_pressure_control(self):
+        self.sequence.start(self.recipe)
+        self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
+        self.sequence.update_analog("BARATRON", 1.0)
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_MFC_FLOWS)
+        self.assertTrue(self.sequence._mfc_flow_confirmation_timer.isActive())
+
+        self.sequence._mfc_flow_confirmation_timer.stop()
+        self.sequence._mfc_flow_confirmation_timer.timeout.emit()
+
+        self.assertFalse(self.pressure.is_active)
+        self.assertTrue(any(call[0] == "shutdown" for call in self.mfc.calls))
+        self.assertIn("No se confirmaron los caudales MFC", self.sequence._completion_message)
+        self.sequence._finish(True, self.sequence._completion_message)
 
     def test_recipe_event_logs_unavailable_position_without_throttle(self):
         self.sequence.throttle = None
@@ -382,6 +499,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.throttle.position_steps = 100.0
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
 
         self.sequence.update_analog("BARATRON", 0.09)
 
@@ -391,6 +509,8 @@ class RecipeSequenceTests(unittest.TestCase):
 
         self.throttle.complete_return()
 
+        self.assertEqual(self.sequence.state, RecipeState.WAITING_FOR_MFC_FLOWS)
+        self._confirm_recipe_mfc_flows()
         self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
         self.assertTrue(any(call[0] == "flow" for call in self.mfc.calls))
         self.assertTrue(any(call[0] == "valve" for call in self.mfc.calls))
@@ -401,6 +521,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.throttle.position_steps = 10.0
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
 
         self.sequence.update_analog("BARATRON", 0.07)
         self.assertEqual(self.sequence.state, RecipeState.PUMPING_TO_BASE)
@@ -411,6 +532,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.assertFalse(any(call[0] in ("flow", "valve") for call in self.mfc.calls))
         self.throttle.complete_return()
         self.assertTrue(any(call[0] == "flow" for call in self.mfc.calls))
+        self._confirm_recipe_mfc_flows()
         self.sequence._finish(False, "Prueba finalizada.")
 
     def test_recipe_does_not_activate_mfc_when_throttle_return_fails(self):
@@ -418,6 +540,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.throttle.position_steps = 100.0
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 0.09)
 
         self.throttle.complete_return(success=False)
@@ -431,7 +554,9 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
+        self._confirm_recipe_mfc_flows()
         self.sequence.pressure_reached(1.5)
         self.sequence.temperature_reached(150)
 
@@ -453,7 +578,9 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.rf_finished.connect(lambda: rf_finished.append(True))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
+        self._confirm_recipe_mfc_flows()
         self.sequence.pressure_reached(1.5)
         self.sequence.temperature_reached(150)
 
@@ -512,6 +639,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.finished.connect(lambda success, message: finished.append((success, message)))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 0.5)
         self.sequence._record_process_sample()
 
@@ -545,7 +673,9 @@ class RecipeSequenceTests(unittest.TestCase):
     def test_stop_during_process_turns_modules_off_and_starts_vent(self):
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 0.5)
+        self._confirm_recipe_mfc_flows()
         self.sequence.pressure_reached(1.5)
         self.sequence.temperature_reached(150)
         self.sequence.stop()
@@ -560,6 +690,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.vent.start_state = VentState.STARTING
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
         self.sequence.stop()
 
@@ -585,9 +716,11 @@ class RecipeSequenceTests(unittest.TestCase):
 
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
         while throttle.is_moving:
             throttle._pulse()
+        self._confirm_recipe_mfc_flows()
         self.assertEqual(self.sequence.state, RecipeState.CONTROLLING_PRESSURE)
         throttle._position_steps = 398.0
 
@@ -624,6 +757,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.recipe.base_pressure = 0.5
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
 
         self.sequence.process_alarm("falla crítica simulada")
@@ -647,6 +781,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.recipe.base_pressure = 0.5
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 1.0)
 
         self.sequence.process_alarm("falla crítica simulada")
@@ -683,6 +818,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.finished.connect(lambda success, message: results.append((success, message)))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.analog_error("BARATRON", "sensor desconectado")
 
         self.assertEqual(self.sequence.state, RecipeState.VENTING)
@@ -718,6 +854,7 @@ class RecipeSequenceTests(unittest.TestCase):
         self.sequence.finished.connect(lambda success, message: finished.append((success, message)))
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
 
         self.assertEqual(self.main.state, MainVacuumState.IDLE)
         self.assertEqual(self.soft.state, SoftVacuumState.IDLE)
@@ -772,6 +909,7 @@ class RecipeSequenceTests(unittest.TestCase):
     def test_stop_while_waiting_for_wafer_removal_does_not_restart_vent(self):
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 0.5)
         self.sequence.stop()
         vent_starts_before_completion = self.vent.start_calls
@@ -788,6 +926,7 @@ class RecipeSequenceTests(unittest.TestCase):
     def test_recipe_finishes_open_when_user_confirms_wafer_not_removed(self):
         self.sequence.start(self.recipe)
         self.sequence.confirm_wafer_loaded(True)
+        self._advance_vacuum_startup_timers()
         self.sequence.update_analog("BARATRON", 0.5)
         self.sequence.stop()
         self.throttle.position_steps = 400.0

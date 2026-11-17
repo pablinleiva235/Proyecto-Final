@@ -44,7 +44,10 @@ class MFCController(QObject):
         self._valves = {name: False for name in self._CONFIG}
         self._targets = {name: 0.0 for name in self._CONFIG}
         self._samples = {name: deque() for name in self._CONFIG}
+        self._sample_window_started_at = {name: None for name in self._CONFIG}
+        self._sample_window_ready = {name: False for name in self._CONFIG}
         self._fault_latched = False
+        self._flow_confirmation_mode = False
         self._settings = QSettings("UTN", "Plasma Asher AURA 1000")
         self._output_offsets = {}
         self._calibration_dates = {}
@@ -115,6 +118,7 @@ class MFCController(QObject):
                 raise RuntimeError("El vacío principal debe estar activo para controlar los MFC.")
             if opened:
                 self._write_digital(config["valve"], True)
+                self._clear_samples(mfc_name)
             else:
                 self._clear_samples(mfc_name)
                 errors = []
@@ -143,6 +147,11 @@ class MFCController(QObject):
                 self.valve_state_changed.emit(mfc_name, self._valves[mfc_name])
             self.operation_error.emit(mfc_name, str(error))
 
+    def set_flow_confirmation_mode(self, enabled):
+        """Let startup flows stabilize without latching the regular flow fault."""
+        self._flow_confirmation_mode = bool(enabled)
+        self._clear_samples()
+
     def can_enable_plasma(self):
         return self._valves["MFC1"] and self._targets["MFC1"] > 0
 
@@ -166,14 +175,23 @@ class MFCController(QObject):
             return
         now = time.monotonic()
         samples = self._samples[mfc_name]
+        if self._sample_window_started_at[mfc_name] is None:
+            self._sample_window_started_at[mfc_name] = now
         samples.append((now, flow))
-        while samples and now - samples[0][0] > self.MONITOR_WINDOW_S:
-            samples.popleft()
+        if (now - self._sample_window_started_at[mfc_name]
+                >= self.MONITOR_WINDOW_S):
+            self._sample_window_ready[mfc_name] = True
+        if self._sample_window_ready[mfc_name]:
+            while samples and now - samples[0][0] > self.MONITOR_WINDOW_S:
+                samples.popleft()
         target = self._targets[mfc_name]
-        if (not self._fault_latched and self._valves[mfc_name] and target > 0
-                and samples and now - samples[0][0] >= self.MONITOR_WINDOW_S):
+        if (self._valves[mfc_name] and target > 0
+                and samples and self._sample_window_ready[mfc_name]):
             average = sum(value for _, value in samples) / len(samples)
-            if abs(average - target) / target > self._CONFIG[mfc_name]["tolerance"]:
+            in_tolerance = (
+                abs(average - target) / target <= self._CONFIG[mfc_name]["tolerance"]
+            )
+            if not self._flow_confirmation_mode and not self._fault_latched and not in_tolerance:
                 self._fault_latched = True
                 self._clear_samples()
                 self.flow_fault.emit(f"{mfc_name}: consigna {target:g} SLPM, promedio medido {average:.3f} SLPM.")
@@ -390,6 +408,8 @@ class MFCController(QObject):
         names = (mfc_name,) if mfc_name else tuple(self._samples)
         for name in names:
             self._samples[name].clear()
+            self._sample_window_started_at[name] = None
+            self._sample_window_ready[name] = False
 
     def _require_driver_enabled(self):
         if self._hardware.digital_read("DRIVER_ENABLE") is not True:

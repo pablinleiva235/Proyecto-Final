@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -97,6 +98,13 @@ class NormalOperationScreen(QWidget):
         "finished": text.EQUIPMENT_FINISHED,
     }
 
+    DIGITAL_READOUTS = {
+        "ATM_SWITCH": "ATM Switch",
+        "LAMP1_ON_CMD": "Lámpara 1",
+        "LAMP2_ON_CMD": "Lámpara 2",
+        "LAMP3_ON_CMD": "Lámpara 3",
+    }
+
     def __init__(self, parent=None, use_mock_hardware=True):
         super().__init__(parent)
         self._readouts = {}
@@ -123,14 +131,34 @@ class NormalOperationScreen(QWidget):
         self.readings_panel = self._make_panel(text.OPERATION_READINGS_TITLE)
         readings_layout = self.readings_panel.layout()
         readings_layout.setSpacing(6)
+        self.readings_scroll = QScrollArea(self.readings_panel)
+        self.readings_scroll.setObjectName("OperationReadingsScroll")
+        self.readings_scroll.setWidgetResizable(True)
+        self.readings_scroll.setFrameShape(QFrame.NoFrame)
+        self.readings_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.readings_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.readings_content = QWidget()
+        self.readings_content.setObjectName("OperationReadingsContent")
+        self.readings_content_layout = QVBoxLayout(self.readings_content)
+        self.readings_content_layout.setContentsMargins(0, 0, 0, 0)
+        self.readings_content_layout.setSpacing(6)
+        readings_layout.addWidget(self.readings_scroll, 1)
         for signal_name, (label, unit, decimals) in self.ANALOG_READOUTS.items():
-            readings_layout.addWidget(
+            self.readings_content_layout.addWidget(
                 self._create_readout(signal_name, label, unit, decimals)
             )
 
         self.rf_readout = self._create_rf_status()
-        readings_layout.addWidget(self.rf_readout["card"])
-        readings_layout.addStretch(1)
+        self.readings_content_layout.addWidget(self.rf_readout["card"])
+        self.readings_content_layout.addWidget(
+            self._create_readout("THROTTLE_POSITION", "Apertura throttle", "%", 1)
+        )
+        for signal_name, label in self.DIGITAL_READOUTS.items():
+            self.readings_content_layout.addWidget(
+                self._create_readout(signal_name, label, "", 0)
+            )
+        self.readings_content_layout.addStretch(1)
+        self.readings_scroll.setWidget(self.readings_content)
 
         self.diagram_panel = self._make_panel(text.OPERATION_DIAGRAM_TITLE)
         self.diagram_image = _DiagramImageLabel()
@@ -249,11 +277,16 @@ class NormalOperationScreen(QWidget):
         value_row.addStretch(1)
         details.addLayout(value_row)
         row.addLayout(details, 1)
+        indicator = None
+        if signal_name in self.DIGITAL_READOUTS:
+            indicator = StatusIndicatorWidget("off", text.tr("APAGADA"), size=24)
+            row.addWidget(indicator)
         self._readouts[signal_name] = {
             "card": card,
             "value": value_label,
             "unit": unit_label,
             "decimals": decimals,
+            "indicator": indicator,
         }
         return card
 
@@ -282,6 +315,29 @@ class NormalOperationScreen(QWidget):
         self.rf_readout["indicator"].set_state(
             "on" if enabled else "off", text.tr(state_text)
         )
+
+    def set_digital_state(self, signal_name, enabled):
+        readout = self._readouts.get(signal_name)
+        if readout is None:
+            return
+        state_text = "ENCENDIDA" if enabled else "APAGADA"
+        readout["value"].setProperty("i18nSourceText_text", None)
+        set_localized_text(readout["value"], state_text)
+        if readout["indicator"] is not None:
+            readout["indicator"].set_state(
+                "on" if enabled else "off", text.tr(state_text)
+            )
+
+    def set_throttle_position(self, steps):
+        readout = self._readouts.get("THROTTLE_POSITION")
+        if readout is None:
+            return
+        if steps is None:
+            set_localized_text(readout["value"], text.OPERATION_READING_UNAVAILABLE)
+            return
+        percent = max(0.0, min(100.0, 100.0 * (1.0 - float(steps) / 1400.0)))
+        readout["value"].setProperty("i18nSourceText_text", None)
+        readout["value"].setText(f"{percent:.1f}")
 
     @staticmethod
     def _recipe_button(label):

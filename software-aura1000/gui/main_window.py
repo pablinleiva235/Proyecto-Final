@@ -489,7 +489,13 @@ class MainWindow(QMainWindow):
         self.throttle_controller.position_changed.connect(
             self.maintainer_screen.set_throttle_position
         )
+        self.throttle_controller.position_changed.connect(
+            self.normal_operation_screen.set_throttle_position
+        )
         self.maintainer_screen.set_throttle_position(
+            self.throttle_controller.position_steps
+        )
+        self.normal_operation_screen.set_throttle_position(
             self.throttle_controller.position_steps
         )
         self.throttle_controller.limit_state_changed.connect(
@@ -785,6 +791,7 @@ class MainWindow(QMainWindow):
         # del controlador; el resto conserva la lectura confirmada habitual.
         if signal_name not in ("THROTTLE_OPEN", "THROTTLE_CLOSED"):
             self.maintainer_screen.set_signal_active(signal_name, active)
+        self.normal_operation_screen.set_digital_state(signal_name, active)
 
     def _handle_digital_signal_sampled(self, signal_name, active):
         if signal_name == "DRIVER_ENABLE":

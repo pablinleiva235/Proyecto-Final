@@ -151,43 +151,85 @@ class ThrottleController:
             return
 
         import os
-        from datetime import datetime
+        import traceback
         import matplotlib.pyplot as plt
+        from datetime import datetime
+        from pathlib import Path
 
-        # Carpeta logs/ siempre al lado de throttle_controller.py
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        logs_dir = os.path.join(base_dir, "logs")
-        os.makedirs(logs_dir, exist_ok=True)
+        # Carpeta permanente para guardar los registros
+        data_dir = Path(os.environ.get(
+            "LOCALAPPDATA",
+            Path.home() / "AppData" / "Local"
+        ))
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename  = os.path.join(logs_dir, f"throttle_log_{timestamp}.png")
+        logs_dir = data_dir / "AURA1000" / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
-        fig, ax = plt.subplots(figsize=(12, 5))
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = logs_dir / f"throttle_log_{timestamp}.png"
 
-        ax.plot(self._log_time, self._log_pressure,
-                label="Presión medida", color="royalblue", linewidth=1.5)
-        ax.plot(self._log_time, self._log_setpoint,
-                label="Setpoint", color="red",
-                linewidth=1.2, linestyle="--")
+            fig, ax = plt.subplots(figsize=(12, 5))
 
-        # Banda muerta
-        ax.axhline(self.target_pressure + self.deadband,
-                color="orange", linewidth=0.8,
-                linestyle=":", label=f"Deadband (±{self.deadband} Torr)")
-        ax.axhline(self.target_pressure - self.deadband,
-                color="orange", linewidth=0.8, linestyle=":")
+            ax.plot(
+                self._log_time,
+                self._log_pressure,
+                label="Presión medida",
+                color="royalblue",
+                linewidth=1.5
+            )
 
-        ax.set_xlabel("Tiempo (s)")
-        ax.set_ylabel("Presión (Torr)")
-        ax.set_title(f"Control de Presión Throttle — Setpoint: {self.target_pressure:.3f} Torr")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+            ax.plot(
+                self._log_time,
+                self._log_setpoint,
+                label="Setpoint",
+                color="red",
+                linewidth=1.2,
+                linestyle="--"
+            )
 
-        plt.tight_layout()
-        plt.savefig(filename, dpi=150)
-        plt.close(fig)
+            # Banda muerta
+            ax.axhline(
+                self.target_pressure + self.deadband,
+                color="orange",
+                linewidth=0.8,
+                linestyle=":",
+                label=f"Deadband (±{self.deadband} Torr)"
+            )
 
-        print(f"[THROTTLE] Gráfico guardado en: {filename}")
+            ax.axhline(
+                self.target_pressure - self.deadband,
+                color="orange",
+                linewidth=0.8,
+                linestyle=":"
+            )
+
+            ax.set_xlabel("Tiempo (s)")
+            ax.set_ylabel("Presión (Torr)")
+
+            ax.set_title(
+                f"Control de Presión Throttle — "
+                f"Setpoint: {self.target_pressure:.3f} Torr"
+            )
+
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+
+            plt.tight_layout()
+            plt.savefig(filename, dpi=150)
+            plt.close(fig)
+
+            print(f"[THROTTLE] Gráfico guardado en: {filename}")
+
+        except Exception:
+            error_file = logs_dir / "error_pressure.txt"
+
+            with open(error_file, "a", encoding="utf-8") as f:
+                f.write(f"\n\n{datetime.now()}\n")
+                f.write(traceback.format_exc())
+
+            plt.close("all")
+            print("[THROTTLE] Error al generar el gráfico.")
 
     # =============================================================================
     #              METODOS PARA CONTROL AUTOMATICO DE PRESION

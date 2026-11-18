@@ -1,5 +1,4 @@
 # logic/temperature_controller.py
-import os
 import time
 import statistics
 from PyQt5 import QtCore
@@ -73,52 +72,66 @@ class TempController:
             print("[TEMP] Sin datos suficientes para graficar.")
             return
 
-        from datetime import datetime
+        import os
+        import traceback
         import matplotlib.pyplot as plt
+        from datetime import datetime
+        from pathlib import Path
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        logs_dir = os.path.join(base_dir, "logs")
-        os.makedirs(logs_dir, exist_ok=True)
+        data_dir = Path(os.environ.get(
+            "LOCALAPPDATA",
+            Path.home() / "AppData" / "Local"
+        ))
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(logs_dir, f"temp_log_{timestamp}.png")
+        logs_dir = data_dir / "AURA1000" / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
 
-        fig, ax = plt.subplots(figsize=(12, 5))
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = logs_dir / f"temp_log_{timestamp}.png"
 
-        ax.plot(
-            self._log_time,
-            self._log_temp,
-            label="Temperatura medida",
-            color="crimson",
-            linewidth=1.5,
-        )
-        ax.plot(
-            self._log_time,
-            self._log_setpoint,
-            label="Setpoint",
-            color="darkblue",
-            linewidth=1.2,
-            linestyle="--",
-        )
+            fig, ax = plt.subplots(figsize=(12, 5))
 
-        # Banda muerta de histéresis
-        ax.axhline(self.target_temp + self.HYSTERESIS_HIGH,
-                   color="orange", linewidth=0.8,
-                   linestyle=":", label=f"Banda Muerta (±{self.HYSTERESIS_HIGH} °C)")
-        ax.axhline(self.target_temp - self.HYSTERESIS_LOW,
-                   color="orange", linewidth=0.8, linestyle=":")
+            ax.plot(self._log_time, self._log_temp,
+                    label="Temperatura medida", color="crimson",
+                    linewidth=1.5)
 
-        ax.set_xlabel("Tiempo (s)")
-        ax.set_ylabel("Temperatura (°C)")
-        ax.set_title(f"Control de Temperatura (Histéresis) — Setpoint: {self.target_temp:.1f} °C")
-        ax.legend(loc="upper left")
-        ax.grid(True, alpha=0.3)
+            ax.plot(self._log_time, self._log_setpoint,
+                    label="Setpoint", color="darkblue",
+                    linewidth=1.2, linestyle="--")
 
-        plt.tight_layout()
-        plt.savefig(filename, dpi=150)
-        plt.close(fig)
+            ax.axhline(self.target_temp + self.HYSTERESIS_HIGH,
+                    color="orange", linewidth=0.8,
+                    linestyle=":",
+                    label=f"Banda Muerta (±{self.HYSTERESIS_HIGH} °C)")
 
-        print(f"[TEMP] Gráfico de temperatura guardado en: {filename}")
+            ax.axhline(self.target_temp - self.HYSTERESIS_LOW,
+                    color="orange", linewidth=0.8, linestyle=":")
+
+            ax.set_xlabel("Tiempo (s)")
+            ax.set_ylabel("Temperatura (°C)")
+            ax.set_title(
+                f"Control de Temperatura (Histéresis) — "
+                f"Setpoint: {self.target_temp:.1f} °C"
+            )
+            ax.legend(loc="upper left")
+            ax.grid(True, alpha=0.3)
+
+            plt.tight_layout()
+            plt.savefig(filename, dpi=150)
+            plt.close(fig)
+
+            print(f"[TEMP] Gráfico guardado en: {filename}")
+
+        except Exception:
+            error_file = logs_dir / "error_temperature.txt"
+
+            with open(error_file, "a", encoding="utf-8") as f:
+                f.write(f"\n\n{datetime.now()}\n")
+                f.write(traceback.format_exc())
+
+            plt.close("all")
+            print("[TEMP] Error al generar el gráfico.")
 
     # =============================================================================
     #                   INICIO Y PARADA DE LAZO AUTOMÁTICO

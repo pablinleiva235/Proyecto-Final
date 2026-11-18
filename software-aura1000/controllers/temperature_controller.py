@@ -19,8 +19,6 @@ class TemperatureController(QObject):
     MAX_SETPOINT_C = 190.0
     HYSTERESIS_C = 7.0
     OVER_TEMP_LAMP2_CUTOFF_DELTA_C = 10.0
-    RECIPE_REACHED_TOLERANCE_C = 3.0
-    RECIPE_REACHED_STABLE_DURATION_S = 3.0
     RECIPE_OVER_TEMP_DELTA_C = 20.0
     RECIPE_OVER_TEMP_DURATION_S = 2.0
     HIGH_TEMP_CUTOFF_C = 160.0
@@ -43,7 +41,6 @@ class TemperatureController(QObject):
         self._post_ramp_above_high = False
         self._start_temperature = None
         self._target_reached = False
-        self._target_stable_since = None
         self._over_temp_since = None
         self._assist_active = False
         self._assist_timer = QTimer(self)
@@ -74,6 +71,7 @@ class TemperatureController(QObject):
             self.invalidate_temperature(str(error))
             return
 
+        self._emit_target_reached_from_direct_reading(temperature)
         self._last_reading_at = time.monotonic()
         self._samples.append(temperature)
         self._temperature = statistics.median(self._samples)
@@ -114,7 +112,6 @@ class TemperatureController(QObject):
             self._post_ramp_above_high = False
             self._start_temperature = self._temperature
             self._target_reached = False
-            self._target_stable_since = None
             self._over_temp_since = None
             self._set_state("precalentando")
             # debugg de contorl de lamparas y plasma
@@ -141,7 +138,6 @@ class TemperatureController(QObject):
         self._ramp_active = False
         self._waiting_first_dip = False
         self._post_ramp_above_high = False
-        self._target_stable_since = None
         self._over_temp_since = None
         if not self._turn_process_outputs_off():
             # debugg de contorl de lamparas y plasma
@@ -159,7 +155,6 @@ class TemperatureController(QObject):
         now = self._last_reading_at if now is None else now
         if self._check_overtemperature(temperature, now=now):
             return
-        self._update_stable_target_reached(temperature, now=now)
         if self._ramp_active:
             if temperature >= self._ramp_threshold():
                 # debugg de contorl de lamparas y plasma
@@ -241,34 +236,19 @@ class TemperatureController(QObject):
                 self._abort("No se pudo apagar la lámpara central.")
                 return
 
-        if not self._target_reached and abs(temperature - self._target) <= self.RECIPE_REACHED_TOLERANCE_C:
-            self._emit_target_reached(temperature)
-
-    def _update_stable_target_reached(self, temperature, now):
-        if self._target_reached:
-            return
-        if abs(temperature - self._target) > self.RECIPE_REACHED_TOLERANCE_C:
-            self._target_stable_since = None
-            return
-
-        if self._target_stable_since is None:
-            self._target_stable_since = now
-            return
-        if now - self._target_stable_since >= self.RECIPE_REACHED_STABLE_DURATION_S:
-            self._emit_target_reached(temperature, stable=True)
-
-    def _emit_target_reached(self, temperature, stable=False):
-        if self._target_reached:
+    def _emit_target_reached_from_direct_reading(self, temperature):
+        if (
+            self._state != "manteniendo"
+            or self._target is None
+            or self._target_reached
+            or temperature <= self._target
+        ):
             return
         self._target_reached = True
-        self._target_stable_since = None
-        if stable:
-            print(
-                f"[TEMP] Objetivo alcanzado por estabilidad: "
-                f"{self._target:.1f} °C; lectura={temperature:.1f} °C."
-            )
-        else:
-            print(f"[TEMP] Objetivo alcanzado: {self._target:.1f} °C; lectura={temperature:.1f} °C.")
+        print(
+            f"[TEMP] Objetivo superado en mantenimiento: "
+            f"{self._target:.1f} °C; lectura directa={temperature:.1f} °C."
+        )
         self.setpoint_reached.emit(self._target)
 
     def _ramp_threshold(self):
@@ -329,7 +309,6 @@ class TemperatureController(QObject):
         self._assist_timer.stop()
         self._assist_active = False
         self._target = None
-        self._target_stable_since = None
         self._over_temp_since = None
         self._ramp_active = False
         self._waiting_first_dip = False

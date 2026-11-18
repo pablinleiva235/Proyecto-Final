@@ -1039,45 +1039,42 @@ class MigratedModulesTests(unittest.TestCase):
         self.assertTrue(temperature.is_active)
         temperature.stop()
 
-    def test_temperature_stable_within_recipe_tolerance_reaches_after_three_seconds(self):
+    def test_temperature_setpoint_reached_once_on_direct_reading_above_target_in_maintenance(self):
         self.hardware.digital_set("DRIVER_ENABLE", True)
         process = ProcessController(self.hardware, can_operate=lambda: True)
         temperature = TemperatureController(process, can_operate=lambda: True)
         temperature.set_temperature_reading(100.0)
         temperature.start(180.0)
-        temperature._ramp_active = False
-        temperature._waiting_first_dip = True
         reached = []
         temperature.setpoint_reached.connect(reached.append)
 
-        temperature._update_control(180.0, now=10.0)
-        temperature._update_control(182.0, now=12.9)
+        # Un cruce durante precalentamiento no emite la señal.
+        temperature.set_temperature_reading(181.0)
         self.assertEqual(reached, [])
-        temperature._update_control(179.0, now=13.0)
 
+        # La mediana lleva al controlador a mantenimiento, mientras la
+        # lectura directa permanece separada del valor filtrado.
+        for _ in range(11):
+            temperature.set_temperature_reading(163.0)
+        self.assertEqual(temperature.state, "manteniendo")
+        self.assertEqual(reached, [])
+
+        temperature.set_temperature_reading(180.0)
+        self.assertEqual(reached, [])
+        temperature.set_temperature_reading(180.1)
         self.assertEqual(reached, [180.0])
-        self.assertTrue(temperature._target_reached)
+        temperature.set_temperature_reading(190.0)
+        self.assertEqual(reached, [180.0])
+
+        # Un nuevo ciclo reinicia el indicador y habilita una emisión nueva.
         temperature.stop()
-
-    def test_temperature_stability_timer_resets_when_reading_leaves_tolerance(self):
-        self.hardware.digital_set("DRIVER_ENABLE", True)
-        process = ProcessController(self.hardware, can_operate=lambda: True)
-        temperature = TemperatureController(process, can_operate=lambda: True)
         temperature.set_temperature_reading(100.0)
         temperature.start(180.0)
-        temperature._ramp_active = False
-        temperature._waiting_first_dip = True
-        reached = []
-        temperature.setpoint_reached.connect(reached.append)
-
-        temperature._update_control(180.0, now=10.0)
-        temperature._update_control(176.0, now=12.9)
-        temperature._update_control(180.0, now=13.0)
-        temperature._update_control(180.0, now=15.9)
-        self.assertEqual(reached, [])
-        temperature._update_control(180.0, now=16.0)
-
-        self.assertEqual(reached, [180.0])
+        for _ in range(11):
+            temperature.set_temperature_reading(163.0)
+        self.assertEqual(temperature.state, "manteniendo")
+        temperature.set_temperature_reading(180.1)
+        self.assertEqual(reached, [180.0, 180.0])
         temperature.stop()
 
     def test_temperature_control_aborts_on_lost_interlock_or_reading(self):

@@ -15,7 +15,7 @@ Emite `state_changed(object)`, solicitudes de confirmación de carga/retiro (`wa
 3. Lee `BARATRON` hasta alcanzar la presión base de receta. Lleva throttle a posición de reposo antes de configurar los gases.
 4. Ajusta MFC1/O2 y MFC2/N2, abre `MFC1_OPEN`/`MFC2_OPEN` y comienza control de presión con la consigna de receta.
 5. Al alcanzar la consigna de presión, continúa el control de temperatura y procesos térmicos/RF conforme a los controladores. Un timer limita el tiempo máximo de RF configurado en la receta.
-6. Durante la receta recibe `EOP`; por debajo de 2 V mientras corre plasma detiene RF e inicia cierre normal. También cierra al vencer el tiempo máximo de RF.
+6. Durante la receta recibe `EOP`; primero debe superar estrictamente 8 V para armar la detección de fin. Una lectura posterior inferior a 2 V detiene RF e inicia el cierre normal. Si no alcanza 8 V, sigue esperando; el tiempo máximo de RF continúa activo.
 7. Detiene RF, temperatura, lámparas, MFC y presión; solicita retorno seguro de throttle, detiene vacíos e inicia venteo. Al completar ATM, devuelve throttle a reposo si corresponde y abre puerta; pide confirmar retiro de oblea, vuelve a cerrar y verifica entradas de puerta antes de finalizar.
 
 Las transiciones dependen de eventos de presión/temperatura alcanzadas, muestras analógicas, cambios digitales de puerta/ATM, señales de los controladores y confirmaciones del operador. Las magnitudes y tiempos efectivos deben cotejarse con configuración/controladores y validarse con equipo.

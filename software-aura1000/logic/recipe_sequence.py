@@ -55,6 +55,9 @@ class RecipeSequence(QObject):
     SOFT_VACUUM_STABILIZATION_MS = 1000
     MFC_FLOW_CONFIRMATION_TIMEOUT_MS = 15000
     MFC_FLOW_CONFIRMATION_WINDOW_S = 3.0
+    EOP_IGNITION_TIMEOUT_MS = 5000
+    EOP_ARM_THRESHOLD_V = 2.2
+    EOP_DROP_THRESHOLD_V = 2.0
 
     def __init__(
         self, door_sequence, soft_vacuum_sequence, main_vacuum_sequence,
@@ -103,10 +106,15 @@ class RecipeSequence(QObject):
         self._suppress_throttle_return_notice = False
         self._shutdown_continuation_started = False
         self._eop = None
+        self._eop_armed = False
         self._vacuum_started = False
         self._rf_timer = QTimer(self)
         self._rf_timer.setSingleShot(True)
         self._rf_timer.timeout.connect(self._rf_time_limit_reached)
+        self._eop_ignition_timer = QTimer(self)
+        self._eop_ignition_timer.setSingleShot(True)
+        self._eop_ignition_timer.setInterval(self.EOP_IGNITION_TIMEOUT_MS)
+        self._eop_ignition_timer.timeout.connect(self._eop_ignition_timed_out)
         self._soft_vacuum_stabilization_timer = QTimer(self)
         self._soft_vacuum_stabilization_timer.setSingleShot(True)
         self._soft_vacuum_stabilization_timer.setInterval(self.SOFT_VACUUM_STABILIZATION_MS)
@@ -180,11 +188,13 @@ class RecipeSequence(QObject):
         self._waiting_for_throttle_before_gas_flow = False
         self._shutdown_continuation_started = False
         self._eop = None
+        self._eop_armed = False
         self._failed = False
         self._completion_message = ""
         self._shutdown_errors = []
         self._vacuum_started = False
         self._confirmed_mfc_flows.clear()
+        self._eop_ignition_timer.stop()
         self._soft_vacuum_stabilization_timer.stop()
         self._mfc_flow_confirmation_timer.stop()
         if hasattr(self.mfc, "set_flow_confirmation_mode"):
@@ -351,13 +361,30 @@ class RecipeSequence(QObject):
                 self._prepare_throttle_before_gas_flow()
         elif name == "EOP":
             self._eop = value
-            if self._state == RecipeState.RUNNING_PLASMA and value < 2.0:
-                self._rf_timer.stop()
-                self.rf_finished.emit()
-                self._begin_shutdown(
-                    "RF apagada por EOP inferior a 2 V; continúa el cierre normal de la receta.",
-                    failed=False,
-                )
+            if self._state == RecipeState.RUNNING_PLASMA and not self._stopping:
+                if not self._eop_armed:
+                    if value >= self.EOP_ARM_THRESHOLD_V:
+                        self._eop_armed = True
+                        self._eop_ignition_timer.stop()
+                        self._log_event(
+                            f"Señal EOP estabilizada ({value:.2f} V); "
+                            f"detección de fin de proceso armada."
+                        )
+                elif value < self.EOP_DROP_THRESHOLD_V:
+                    self._rf_timer.stop()
+                    self.rf_finished.emit()
+                    self._begin_shutdown(
+                        f"RF apagada por EOP inferior a {self.EOP_DROP_THRESHOLD_V:g} V; "
+                        f"continúa el cierre normal de la receta.",
+                        failed=False,
+                    )
+
+    def _eop_ignition_timed_out(self):
+        if (self._state == RecipeState.RUNNING_PLASMA and not self._stopping
+                and not self._eop_armed):
+            self._fail(
+                f"La señal EOP no superó {self.EOP_ARM_THRESHOLD_V:g} V tras activar el plasma."
+            )
 
     def _record_process_sample(self):
         if (not self.is_active or self._recipe_data_log is None
@@ -535,9 +562,11 @@ class RecipeSequence(QObject):
             self._fail("No se pudo encender el plasma.")
             return
         self._eop = None
+        self._eop_armed = False
         self._set_state(RecipeState.RUNNING_PLASMA)
         if self._state == RecipeState.RUNNING_PLASMA:
             self._rf_timer.start(int(self._recipe.rf_max_on_time) * 1000)
+            self._eop_ignition_timer.start()
 
     def _rf_time_limit_reached(self):
         if (self._state == RecipeState.RUNNING_PLASMA and not self._stopping
@@ -582,6 +611,7 @@ class RecipeSequence(QObject):
     def process_state_changed(self, name, enabled):
         if name == "plasma" and not enabled:
             self._rf_timer.stop()
+            self._eop_ignition_timer.stop()
         if self.is_active:
             signals = {
                 "lamps13": {"LAMP1_ON_CMD": enabled, "LAMP3_ON_CMD": enabled},
@@ -629,6 +659,8 @@ class RecipeSequence(QObject):
         if not self.is_active:
             return
         self._rf_timer.stop()
+        self._eop_ignition_timer.stop()
+        self._eop_armed = False
         self._soft_vacuum_stabilization_timer.stop()
         self._mfc_flow_confirmation_timer.stop()
         if hasattr(self.mfc, "set_flow_confirmation_mode"):
@@ -793,6 +825,8 @@ class RecipeSequence(QObject):
         if self._stopping or not self.is_active:
             return
         self._rf_timer.stop()
+        self._eop_ignition_timer.stop()
+        self._eop_armed = False
         self._door_closed_stable_timer.stop()
         self._soft_vacuum_stabilization_timer.stop()
         self._mfc_flow_confirmation_timer.stop()
@@ -929,6 +963,8 @@ class RecipeSequence(QObject):
 
     def _finish(self, failed, message):
         self._rf_timer.stop()
+        self._eop_ignition_timer.stop()
+        self._eop_armed = False
         self._door_closed_stable_timer.stop()
         self._soft_vacuum_stabilization_timer.stop()
         self._mfc_flow_confirmation_timer.stop()

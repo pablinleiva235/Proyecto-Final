@@ -75,6 +75,11 @@ class TemperatureController(QObject):
         self._last_reading_at = time.monotonic()
         self._samples.append(temperature)
         self._temperature = statistics.median(self._samples)
+        if self.is_active:
+            print(
+                f"[TEMP] Lectura actual={temperature:.1f} °C | "
+                f"lectura filtrada={self._temperature:.1f} °C."
+            )
         self.temperature_changed.emit(self._temperature)
         if self.is_active:
             self._update_control(self._temperature)

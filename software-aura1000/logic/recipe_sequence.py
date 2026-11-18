@@ -342,12 +342,6 @@ class RecipeSequence(QObject):
 
     def update_analog(self, name, value):
         self.cache_analog(name, value)
-        if name in ("MFC1_FLOW", "MFC2_FLOW"):
-            print(
-                f"[RecipeSequence.update_analog] {name}={value} SLPM "
-                f"| estado={self._state.value}",
-                flush=True,
-            )
         if not self.is_active:
             return
         if name in ("MFC1_FLOW", "MFC2_FLOW"):

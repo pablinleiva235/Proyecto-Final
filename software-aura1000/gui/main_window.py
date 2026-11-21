@@ -209,6 +209,12 @@ class MainWindow(QMainWindow):
         self.module_monitor_timer = QTimer(self)
         self.module_monitor_timer.setInterval(100)
         self.module_monitor_timer.timeout.connect(self._monitor_migrated_modules)
+        self._driver_enable_retry_timer = QTimer(self)
+        self._driver_enable_retry_timer.setSingleShot(True)
+        self._driver_enable_retry_timer.setInterval(15)
+        self._driver_enable_retry_timer.timeout.connect(
+            lambda: self._attempt_normal_operation_driver_enable(2)
+        )
         self._module_access = False
         self._emergency_shutdown_in_progress = False
         self._maintenance_low_pressure_seen = False
@@ -642,13 +648,49 @@ class MainWindow(QMainWindow):
 
     def _show_normal_operation_screen(self):
         """Muestra operación normal e inicia el monitoreo analógico."""
+        self.normal_operation_screen.set_drivers_confirmed(False)
         self.navigation_controller.show_screen(
             NORMAL_OPERATION_SCREEN
         )
         self.signal_controller.start_monitoring()
         self.analog_controller.start_monitoring()
+        self._attempt_normal_operation_driver_enable(1)
+
+    def _attempt_normal_operation_driver_enable(self, attempt):
+        try:
+            if self.hardware.digital_read("DRIVER_ENABLE") is not True:
+                self.hardware.digital_set("DRIVER_ENABLE", True)
+            if self.hardware.digital_read("DRIVER_ENABLE") is True:
+                self._driver_enable_retry_timer.stop()
+                self.normal_operation_screen.set_drivers_confirmed(True)
+                return
+            error = "la lectura de confirmación sigue inactiva"
+        except Exception as error:
+            error = str(error)
+
+        self.normal_operation_screen.set_drivers_confirmed(False)
+        if attempt == 1:
+            self._driver_enable_retry_timer.start()
+            return
+        QMessageBox.critical(
+            self,
+            "Error de activación de drivers",
+            f"No se pudieron activar los drivers: {error}",
+        )
 
     def _start_recipe(self, recipe):
+        try:
+            driver_enabled = self.hardware.digital_read("DRIVER_ENABLE") is True
+        except Exception:
+            driver_enabled = False
+        if not driver_enabled:
+            self.normal_operation_screen.set_drivers_confirmed(False)
+            QMessageBox.critical(
+                self,
+                "Drivers no activos",
+                "No se puede iniciar la receta porque los drivers no están activos.",
+            )
+            return
         self.signal_controller.start_monitoring()
         self.analog_controller.start_monitoring()
         self.signal_controller.refresh_signals()

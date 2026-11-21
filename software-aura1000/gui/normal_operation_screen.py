@@ -111,6 +111,7 @@ class NormalOperationScreen(QWidget):
         self._recipe_service = RecipeService()
         self._active_recipe = None
         self._recipe_running = False
+        self._drivers_confirmed = False
         self.create_widgets()
         self.setup_layout()
         self.connect_signals()
@@ -439,7 +440,9 @@ class NormalOperationScreen(QWidget):
         self.active_recipe_name.setProperty("i18nSourceText_text", None)
         self.active_recipe_name.setText(recipe.name or text.tr(text.NO_ACTIVE_RECIPE))
         self.view_recipe_button.setEnabled(True)
-        self.start_recipe_button.setEnabled(not self._recipe_running)
+        self.start_recipe_button.setEnabled(
+            not self._recipe_running and self._drivers_confirmed
+        )
         self.start_recipe_button.setToolTip("")
         self.start_recipe_button.setAccessibleDescription("")
 
@@ -487,8 +490,19 @@ class NormalOperationScreen(QWidget):
         )
         self.start_recipe_button.setEnabled(
             (self._recipe_running and can_stop)
-            or (not self._recipe_running and self._active_recipe is not None)
+            or (
+                not self._recipe_running
+                and self._active_recipe is not None
+                and self._drivers_confirmed
+            )
         )
+
+    def set_drivers_confirmed(self, confirmed):
+        self._drivers_confirmed = bool(confirmed)
+        if not self._recipe_running:
+            self.start_recipe_button.setEnabled(
+                self._active_recipe is not None and self._drivers_confirmed
+            )
 
     def set_recipe_status(self, status):
         set_localized_text(self.recipe_status_label, status)

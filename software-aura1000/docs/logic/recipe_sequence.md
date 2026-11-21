@@ -10,7 +10,7 @@ Emite `state_changed(object)`, solicitudes de confirmación de carga/retiro (`wa
 
 ## Recorrido normal
 
-1. `start(recipe)` rechaza otra receta activa, puerta no cerrada, venteo/vacíos activos o entradas que no confirmen puerta cerrada (`DOOR_OPEN=False`, `DOOR_CLOSE=True`). Abre logs de eventos y datos, activa/verifica `DRIVER_ENABLE`, abre la puerta y solicita confirmar la oblea.
+1. Al entrar a operación normal, `MainWindow` activa y confirma `DRIVER_ENABLE` antes de habilitar el inicio de recetas. `start(recipe)` rechaza otra receta activa, puerta no cerrada, venteo/vacíos activos o entradas que no confirmen puerta cerrada (`DOOR_OPEN=False`, `DOOR_CLOSE=True`). Abre logs de eventos y datos, abre la puerta y solicita confirmar la oblea.
 2. Tras confirmación, ordena cerrar la puerta y espera lecturas de cierre; inicia Soft Vacuum y Main Vacuum. Al confirmar vacío principal, apaga Soft Vacuum.
 3. Lee `BARATRON` hasta alcanzar la presión base de receta. Lleva throttle a posición de reposo antes de configurar los gases.
 4. Ajusta MFC1/O2 y MFC2/N2, abre `MFC1_OPEN`/`MFC2_OPEN` y comienza control de presión con la consigna de receta.

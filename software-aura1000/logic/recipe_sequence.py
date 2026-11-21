@@ -233,32 +233,6 @@ class RecipeSequence(QObject):
             f"tiempo_maximo_RF={recipe.rf_max_on_time} s"
         ):
             return False
-        try:
-            driver_enabled = (
-                self._digital_hardware_reader("DRIVER_ENABLE")
-                if self._digital_hardware_reader is not None
-                else self._digital_state_getter("DRIVER_ENABLE")
-            )
-            if driver_enabled is not True:
-                if self._digital_state_setter is None:
-                    raise RuntimeError("No hay un controlador disponible para activar la salida.")
-                if not self._perform_action(
-                    "Activar DRIVER_ENABLE",
-                    lambda: self._digital_state_setter("DRIVER_ENABLE", True),
-                    outputs={"DRIVER_ENABLE": True},
-                ):
-                    return False
-                driver_enabled = (
-                    self._digital_hardware_reader("DRIVER_ENABLE")
-                    if self._digital_hardware_reader is not None
-                    else self._digital_state_getter("DRIVER_ENABLE")
-                )
-            if driver_enabled is not True:
-                raise RuntimeError("La lectura de confirmación sigue inactiva.")
-        except Exception as error:
-            message = f"No se pudo confirmar DRIVER_ENABLE activa: {error}"
-            self._finish(True, message)
-            return False
         if not self._set_state(RecipeState.WAITING_FOR_WAFER):
             return False
         if not self._record_process_sample():

@@ -1,10 +1,7 @@
 """Pantalla de operación normal con lecturas y espacio para el esquema."""
 
 from dataclasses import replace
-from pathlib import Path
-
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QFrame,
     QFileDialog,
@@ -20,61 +17,9 @@ from PyQt5.QtWidgets import (
 import config_gui.strings as text
 from gui.widgets.localization import set_localized_text, translate_widget_tree
 from gui.widgets.status_indicator import StatusIndicatorWidget
+from gui.widgets.schematic_diagram import SchematicDiagramWidget
 from gui.recipe_dialogs import RecipeEditorDialog, RecipeViewerDialog
 from services.recipe_service import RecipeError, RecipeService
-
-
-class _DiagramImageLabel(QLabel):
-    """Display a diagram scaled to fit while preserving its aspect ratio."""
-
-    def __init__(self, pixmap=None, fallback_text="", parent=None):
-        super().__init__(parent)
-        self._source_pixmap = (
-            pixmap if pixmap is not None and not pixmap.isNull() else None
-        )
-        self.setAlignment(Qt.AlignCenter)
-        if self._source_pixmap is None:
-            self.setText(fallback_text)
-            self.setWordWrap(True)
-            self.setObjectName("OperationDiagramFallback")
-        else:
-            self.setObjectName("OperationDiagramImage")
-            self._update_scaled_pixmap()
-
-    def set_source_pixmap(self, pixmap, fallback_text=""):
-        self._source_pixmap = pixmap if pixmap is not None and not pixmap.isNull() else None
-        if self._source_pixmap is None:
-            self.clear()
-            self.setObjectName("OperationDiagramFallback")
-            self.setText(fallback_text)
-            self.setWordWrap(True)
-            self.style().unpolish(self)
-            self.style().polish(self)
-            return
-        self.clear()
-        self.setObjectName("OperationDiagramImage")
-        self.setWordWrap(False)
-        self.style().unpolish(self)
-        self.style().polish(self)
-        self._update_scaled_pixmap()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._update_scaled_pixmap()
-
-    def _update_scaled_pixmap(self):
-        if self._source_pixmap is None:
-            return
-        available_size = self.contentsRect().size()
-        if available_size.width() <= 0 or available_size.height() <= 0:
-            return
-        self.setPixmap(
-            self._source_pixmap.scaled(
-                available_size,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        )
 
 
 class NormalOperationScreen(QWidget):
@@ -162,7 +107,7 @@ class NormalOperationScreen(QWidget):
         self.readings_scroll.setWidget(self.readings_content)
 
         self.diagram_panel = self._make_panel(text.OPERATION_DIAGRAM_TITLE)
-        self.diagram_image = _DiagramImageLabel()
+        self.diagram_image = SchematicDiagramWidget()
         self.set_theme("dark")
         self.diagram_panel.layout().addWidget(self.diagram_image, 1)
 
@@ -233,16 +178,10 @@ class NormalOperationScreen(QWidget):
     def set_theme(self, theme):
         if theme not in ("light", "dark"):
             raise ValueError("El tema debe ser 'light' o 'dark'.")
-        diagram_path = (
-            Path(__file__).resolve().parents[1]
-            / "assets"
-            / f"esquematico-{theme}.svg"
-        )
-        diagram_pixmap = QPixmap(str(diagram_path))
-        fallback_text = f"{text.OPERATION_DIAGRAM_LOAD_ERROR}\n{diagram_path.name}"
-        self.diagram_image.set_source_pixmap(diagram_pixmap, fallback_text)
-        if diagram_pixmap.isNull():
-            set_localized_text(self.diagram_image, fallback_text)
+        self.diagram_image.set_theme(theme)
+        fallback_text = f"{text.tr(text.OPERATION_DIAGRAM_LOAD_ERROR)}\n"
+        fallback_text += "tubos_dark.svg" if theme == "dark" else "tubos_ligth.svg"
+        self.diagram_image.set_fallback_text(fallback_text)
 
     @staticmethod
     def _make_panel(title):

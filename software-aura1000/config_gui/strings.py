@@ -221,6 +221,11 @@ EXIT_BUTTON_TEXT = "X"
 # =============================================================================
 
 EXIT_CONFIRMATION_TITLE = "Confirmar salida"
+MAINTENANCE_EXIT_CONFIRMATION_TITLE = "Salir de mantenimiento"
+MAINTENANCE_EXIT_CONFIRMATION_MESSAGE = (
+    "Al continuar, se apagarán todos los módulos y el hardware pasará a modo seguro. ¿Desea continuar?"
+)
+MAINTENANCE_SHUTDOWN_ERROR_TITLE = "Error durante el apagado seguro"
 EXIT_CONFIRMATION_MESSAGE = (
     "¿Está seguro de que desea salir de la aplicación?"
 )
@@ -545,6 +550,10 @@ _SPANISH_TO_ENGLISH = {
     "La plantilla está protegida. Guarde la receta con otro nombre.": "The template is protected. Save the recipe with another name.",
     "No se pudo guardar la receta. Verifique los permisos de la carpeta.": "Could not save the recipe. Check folder permissions.",
     "Confirmar salida": "Confirm exit",
+    "Salir de mantenimiento": "Exit maintenance",
+    "Al continuar, se apagarán todos los módulos y el hardware pasará a modo seguro. ¿Desea continuar?": "Continuing will turn off all modules and put the hardware into a safe state. Do you want to continue?",
+    "Error durante el apagado seguro": "Safe shutdown error",
+    "No está disponible la secuencia de apagado seguro.": "The safe shutdown sequence is unavailable.",
     "Sí": "Yes",
     "No": "No",
     "¿Está seguro de que desea salir de la aplicación?": "Are you sure you want to exit the application?",

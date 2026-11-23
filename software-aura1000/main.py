@@ -140,6 +140,12 @@ def _build_runtime(app, settings_manager, simulated):
         main_vacuum_sequence=main_vacuum_sequence,
         vent_sequence=vent_sequence,
     )
+    maintenance_shutdown_sequence = ShutdownSequence(
+        hardware=hardware,
+        soft_vacuum_sequence=soft_vacuum_sequence,
+        main_vacuum_sequence=main_vacuum_sequence,
+        vent_sequence=vent_sequence,
+    )
     shutdown_controller = ShutdownController(shutdown_sequence=shutdown_sequence)
     main_window = MainWindow(
         hardware=hardware,
@@ -147,6 +153,7 @@ def _build_runtime(app, settings_manager, simulated):
         soft_vacuum_sequence=soft_vacuum_sequence,
         main_vacuum_sequence=main_vacuum_sequence,
         vent_sequence=vent_sequence,
+        shutdown_sequence=maintenance_shutdown_sequence,
         settings_manager=settings_manager,
         use_mock_hardware=simulated,
     )

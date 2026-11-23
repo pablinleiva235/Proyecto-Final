@@ -9,7 +9,14 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSignal
 
-from config_gui.strings import (APP_TITLE,EXIT_CONFIRMATION_TITLE,EXIT_CONFIRMATION_MESSAGE)
+from config_gui.strings import (
+    APP_TITLE,
+    EXIT_CONFIRMATION_TITLE,
+    EXIT_CONFIRMATION_MESSAGE,
+    MAINTENANCE_EXIT_CONFIRMATION_TITLE,
+    MAINTENANCE_EXIT_CONFIRMATION_MESSAGE,
+    MAINTENANCE_SHUTDOWN_ERROR_TITLE,
+)
 from config_gui.constants import (WELCOME_SCREEN,MAINTAINER_SCREEN,STATISTICS_SCREEN,NORMAL_OPERATION_SCREEN)
 from config_gui.maintainer_signals import (MAINTAINER_SIGNALS,MAINTAINER_OUTPUT_SIGNALS)
 
@@ -61,6 +68,7 @@ class MainWindow(QMainWindow):
         vent_sequence,
         settings_manager=None,
         use_mock_hardware=USE_MOCK_HARDWARE,
+        shutdown_sequence=None,
     ):
         super().__init__()
 
@@ -70,6 +78,9 @@ class MainWindow(QMainWindow):
         self.soft_vacuum_sequence = soft_vacuum_sequence
         self.main_vacuum_sequence = main_vacuum_sequence
         self.vent_sequence = vent_sequence
+        self.shutdown_sequence = shutdown_sequence
+        self._maintenance_shutdown_pending = False
+        self._maintenance_shutdown_error = None
         self.settings_manager = settings_manager
         self.use_mock_hardware = bool(use_mock_hardware)
         self._mfc_calibration_dialogs = {}
@@ -283,7 +294,7 @@ class MainWindow(QMainWindow):
 
         # Navegación hacia la pantalla de bienvenida
         self.maintainer_screen.back_requested.connect(
-            self._show_welcome_screen
+            self._request_maintenance_exit
         )
         self.maintainer_screen.maintenance_record_toggle_requested.connect(
             self._toggle_maintenance_recording
@@ -304,6 +315,14 @@ class MainWindow(QMainWindow):
         )
         self.recipe_sequence.error_raised.connect(self._handle_recipe_error)
         self.recipe_sequence.finished.connect(self._handle_recipe_finished)
+
+        if self.shutdown_sequence is not None:
+            self.shutdown_sequence.sequence_error.connect(
+                self._handle_maintenance_shutdown_error
+            )
+            self.shutdown_sequence.sequence_completed.connect(
+                self._handle_maintenance_shutdown_completed
+            )
 
         # Solicitud global de salida
         self.top_bar.exit_requested.connect(
@@ -599,6 +618,55 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_main_vacuum_state(self.main_vacuum_sequence.state )
         self.maintainer_screen.set_vent_state(self.vent_sequence.state )
         self._update_sequence_permissions()
+
+    def _request_maintenance_exit(self):
+        if self._maintenance_shutdown_pending:
+            return
+        if self.shutdown_sequence is None:
+            QMessageBox.warning(
+                self,
+                strings.tr(MAINTENANCE_SHUTDOWN_ERROR_TITLE),
+                strings.tr("No está disponible la secuencia de apagado seguro."),
+                QMessageBox.Ok,
+            )
+            return
+
+        response = QMessageBox.question(
+            self,
+            strings.tr(MAINTENANCE_EXIT_CONFIRMATION_TITLE),
+            strings.tr(MAINTENANCE_EXIT_CONFIRMATION_MESSAGE),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if response != QMessageBox.Yes:
+            return
+
+        self._maintenance_shutdown_pending = True
+        self._maintenance_shutdown_error = None
+        self.maintainer_screen.back_button.setEnabled(False)
+        try:
+            self.shutdown_sequence.start()
+        except Exception as error:
+            self._maintenance_shutdown_error = str(error)
+            self._handle_maintenance_shutdown_completed()
+
+    def _handle_maintenance_shutdown_error(self, message):
+        self._maintenance_shutdown_error = message
+
+    def _handle_maintenance_shutdown_completed(self):
+        if not self._maintenance_shutdown_pending:
+            return
+        error = self._maintenance_shutdown_error
+        self._maintenance_shutdown_pending = False
+        self.maintainer_screen.back_button.setEnabled(True)
+        if error:
+            QMessageBox.warning(
+                self,
+                strings.tr(MAINTENANCE_SHUTDOWN_ERROR_TITLE),
+                error,
+                QMessageBox.Ok,
+            )
+        self._show_welcome_screen()
 
     def _open_settings_dialog(self):
         if self.settings_manager is None:

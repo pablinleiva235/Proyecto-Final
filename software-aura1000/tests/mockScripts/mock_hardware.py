@@ -6,15 +6,24 @@ controladores, pero no accede a drivers ni placas físicas.
 """
 
 from config.digital_signals import DIGITALSIGNALS
+from PyQt5.QtCore import QTimer
 
 
 class MockHardware:
 
+    _DEVICE_FAILURE_SIGNALS = {
+        "LAMP1_ON_CMD": "LAMP1_FAIL",
+        "LAMP2_ON_CMD": "LAMP2_FAIL",
+        "LAMP3_ON_CMD": "LAMP3_FAIL",
+        "RF_ON_CMD": "PLASMA_FAIL",
+    }
+
     _THROTTLE_MAX_STEPS = 1400
-    _TEMPERATURE_STEP_C = 5.0
+    _TEMPERATURE_MIN_C = 25.0
     _EOP_STEP_V = 1.0
     _EOP_MIN_V = 0.0
     _EOP_MAX_V = 10.0
+    _VENT_TO_ATM_DELAY_MS = 500
 
     _BARATRON_MAX_TORR = 10.0
     _BARATRON_REFERENCE_THROTTLE_STEPS = 400
@@ -24,6 +33,14 @@ class MockHardware:
     )
 
     def __init__(self):
+        self._vent_to_atm_timer = QTimer()
+        self._vent_to_atm_timer.setSingleShot(True)
+        self._vent_to_atm_timer.setInterval(self._VENT_TO_ATM_DELAY_MS)
+        self._vent_to_atm_timer.timeout.connect(self._activate_atm_switch_after_vent)
+        self._temperature_timer = QTimer()
+        self._temperature_timer.timeout.connect(self._advance_simulated_temperature)
+        self._temperature_step_c = 0.0
+        self._temperature_min_c = None
         self._throttle_position_steps = 0
         self._digital_states = {
             name: (signal["initial_state"] == signal["active_state"])
@@ -40,7 +57,7 @@ class MockHardware:
             "MFC4_FLOW": 0.0,
             "BARATRON": 0.0,
             "EOP": self._EOP_MIN_V,
-            "CHAMBER_TEMP": 20.0,
+            "CHAMBER_TEMP": self._TEMPERATURE_MIN_C,
         }
         self._analog_outputs = {}
         self.initialize_DIO()
@@ -64,10 +81,36 @@ class MockHardware:
             raise ValueError(f"La señal {signal_name} no está configurada como salida.")
 
         active = bool(active)
+        was_active = self._digital_states[signal_name]
         if signal_name == "STEPPER_STEP" and active and not self._digital_states[signal_name]:
             self._advance_simulated_throttle()
         self._digital_states[signal_name] = active
+        failure_signal = self._DEVICE_FAILURE_SIGNALS.get(signal_name)
+        if failure_signal is not None:
+            self._digital_states[failure_signal] = not active
         self._update_simulated_pressure(signal_name, active)
+
+        if signal_name in ("MFC1_OPEN", "MFC2_OPEN"):
+            setpoint_name = signal_name.replace("_OPEN", "_SETPOINT")
+            self._update_simulated_mfc_flow(
+                setpoint_name,
+                self._analog_outputs.get(setpoint_name, 0.0),
+            )
+
+        if signal_name == "VENT_VALVE_CONTROL":
+            if active and not was_active:
+                self._vent_to_atm_timer.start()
+            elif not active:
+                self._vent_to_atm_timer.stop()
+
+        if signal_name in self._DEVICE_FAILURE_SIGNALS:
+            if active != was_active:
+                self._configure_temperature_simulation()
+
+    def _activate_atm_switch_after_vent(self):
+        """Activa ATM_SWITCH si la válvula sigue abierta tras la demora."""
+        if self._digital_states["VENT_VALVE_CONTROL"]:
+            self.set_input_state("ATM_SWITCH", True)
 
     def _advance_simulated_throttle(self):
         """Cuenta un paso en el flanco ascendente de STEPPER_STEP."""
@@ -98,11 +141,15 @@ class MockHardware:
 
     def digital_safe_state(self):
         """Lleva las salidas a los estados lógicos iniciales configurados."""
+        self._vent_to_atm_timer.stop()
         for signal_name, signal in DIGITALSIGNALS.items():
             if signal["dir"] == "OUT":
                 self._digital_states[signal_name] = (
                     signal["initial_state"] == signal["active_state"]
                 )
+        for command_signal, failure_signal in self._DEVICE_FAILURE_SIGNALS.items():
+            self._digital_states[failure_signal] = not self._digital_states[command_signal]
+        self._configure_temperature_simulation()
 
     def set_input_state(self, signal_name, active):
         """
@@ -159,14 +206,17 @@ class MockHardware:
         return min(self._BARATRON_MAX_TORR, max(0.0, pressure))
 
     def _update_simulated_mfc_flow(self, setpoint_name, voltage):
-        """La lectura simulada sigue la consigna analógica enviada al MFC."""
-        input_name = {
-            "MFC1_SETPOINT": "MFC1_FLOW",
-            "MFC2_SETPOINT": "MFC2_FLOW",
+        """Simula caudal solo cuando la válvula del MFC está abierta."""
+        mfc_signals = {
+            "MFC1_SETPOINT": ("MFC1_FLOW", "MFC1_OPEN"),
+            "MFC2_SETPOINT": ("MFC2_FLOW", "MFC2_OPEN"),
         }.get(setpoint_name)
-        if input_name is None:
+        if mfc_signals is None:
             return
-        self._analog_values[input_name] = max(0.0, voltage)
+        input_name, valve_name = mfc_signals
+        self._analog_values[input_name] = (
+            max(0.0, voltage) if self._digital_states[valve_name] else 0.0
+        )
         self._update_simulated_pressure()
 
     def initialize_AD(self):
@@ -188,12 +238,42 @@ class MockHardware:
             raise KeyError(f"Termocupla no configurada: {signal_name}")
         return self._analog_values[signal_name]
 
-    def adjust_temperature(self, direction):
-        """Ajusta la temperatura simulada en un paso de 5 °C."""
-        direction = float(direction)
-        if direction not in (-1.0, 1.0):
-            raise ValueError("La dirección debe ser -1 o 1.")
-        self._analog_values["CHAMBER_TEMP"] += direction * self._TEMPERATURE_STEP_C
+    def _configure_temperature_simulation(self):
+        """Selecciona el ritmo térmico a partir de lámparas y RF."""
+        if not hasattr(self, "_analog_values"):
+            return
+
+        lamps = tuple(
+            self._digital_states[name]
+            for name in ("LAMP1_ON_CMD", "LAMP2_ON_CMD", "LAMP3_ON_CMD")
+        )
+        rf_on = self._digital_states["RF_ON_CMD"]
+
+        if all(lamps):
+            interval_ms, step_c, minimum_c = 250, 5.0, None
+        elif lamps[0] or lamps[2]:
+            interval_ms, step_c, minimum_c = 1000, 5.0, None
+        elif lamps[1]:
+            interval_ms, step_c, minimum_c = 1000, 1.0, None
+        elif rf_on:
+            interval_ms, step_c, minimum_c = 1000, -0.5, None
+        else:
+            interval_ms, step_c, minimum_c = 500, -10.0, self._TEMPERATURE_MIN_C
+
+        self._temperature_step_c = step_c
+        self._temperature_min_c = minimum_c
+        if minimum_c is not None and self._analog_values["CHAMBER_TEMP"] <= minimum_c:
+            self._temperature_timer.stop()
+            return
+        self._temperature_timer.start(interval_ms)
+
+    def _advance_simulated_temperature(self):
+        temperature = self._analog_values["CHAMBER_TEMP"] + self._temperature_step_c
+        if self._temperature_min_c is not None:
+            temperature = max(self._temperature_min_c, temperature)
+        self._analog_values["CHAMBER_TEMP"] = temperature
+        if self._temperature_min_c is not None and temperature <= self._temperature_min_c:
+            self._temperature_timer.stop()
 
     def adjust_eop(self, direction):
         """Ajusta el EOP simulado en un paso de 1 V, limitado a 0–10 V."""

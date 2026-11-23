@@ -893,6 +893,10 @@ class MainWindow(QMainWindow):
     def _handle_recipe_state(self, state):
         label = strings.RECIPE_STATE_LABELS.get(state.value, state.value)
         self.normal_operation_screen.set_recipe_status(label)
+        if state == RecipeState.CLOSING_DOOR:
+            self.normal_operation_screen.start_cycle_timer()
+        elif state == RecipeState.WAITING_FOR_WAFER_REMOVAL:
+            self.normal_operation_screen.stop_cycle_timer()
         running = self.recipe_sequence.is_active
         can_stop = state not in (
             RecipeState.STOPPING_PROCESS,
@@ -912,6 +916,7 @@ class MainWindow(QMainWindow):
         )
 
     def _handle_recipe_finished(self, success, message):
+        self.normal_operation_screen.stop_cycle_timer()
         self.normal_operation_screen.set_equipment_status("idle")
         self.normal_operation_screen.set_recipe_status(
             strings.RECIPE_STATE_LABELS["completed" if success else "error"]

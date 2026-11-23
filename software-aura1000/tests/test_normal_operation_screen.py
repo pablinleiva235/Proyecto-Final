@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 from PyQt5.QtCore import QRectF
 from PyQt5.QtWidgets import QApplication
@@ -28,6 +28,39 @@ class NormalOperationEquipmentStatusTests(unittest.TestCase):
                 ):
                     screen.set_equipment_status(state)
                     self.assertEqual(screen.simulation_badge.text(), expected)
+
+    def test_cycle_timer_starts_on_request_and_stops_at_wafer_removal(self):
+        screen = NormalOperationScreen()
+        self.assertEqual(screen.cycle_timer_value.text(), "00:00:00")
+        self.assertIsNone(screen._cycle_started_at)
+
+        with patch("gui.normal_operation_screen.time.monotonic", side_effect=[10, 10, 16, 18]):
+            screen.start_cycle_timer()
+            self.assertEqual(screen.cycle_timer_value.text(), "00:00:00")
+            screen._update_cycle_timer()
+            self.assertEqual(screen.cycle_timer_value.text(), "00:00:06")
+            screen.stop_cycle_timer()
+
+        self.assertEqual(screen.cycle_timer_value.text(), "00:00:08")
+        self.assertIsNone(screen._cycle_started_at)
+        self.assertFalse(screen._cycle_tick_timer.isActive())
+        self.assertTrue(screen._cycle_reset_timer.isActive())
+
+    def test_cycle_timer_resets_after_two_minutes_and_new_cycle_cancels_reset(self):
+        screen = NormalOperationScreen()
+        with patch("gui.normal_operation_screen.time.monotonic", side_effect=[20, 20, 25]):
+            screen.start_cycle_timer()
+            screen.stop_cycle_timer()
+        self.assertEqual(screen.cycle_timer_value.text(), "00:00:05")
+
+        with patch("gui.normal_operation_screen.time.monotonic", return_value=30):
+            screen.start_cycle_timer()
+        self.assertFalse(screen._cycle_reset_timer.isActive())
+        self.assertEqual(screen.cycle_timer_value.text(), "00:00:00")
+
+        screen.stop_cycle_timer()
+        screen._reset_cycle_timer()
+        self.assertEqual(screen.cycle_timer_value.text(), "00:00:00")
 
 
 class SchematicDiagramTests(unittest.TestCase):

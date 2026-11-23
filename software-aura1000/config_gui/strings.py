@@ -125,6 +125,7 @@ VIEW_RECIPE_BUTTON = "Visualizar receta"
 START_RECIPE_PENDING_TOOLTIP = "Pendiente de integrar las recetas y la secuencia real del proceso."
 STOP_RECIPE_BUTTON = "Detener receta"
 RECIPE_IDLE_STATUS = "Sin receta en ejecución."
+RECIPE_CYCLE_TIME_LABEL = "Tiempo de ciclo"
 START_RECIPE_CONFIRM_TITLE = "Confirmar inicio de receta"
 WAFER_CONFIRM_TITLE = "Carga de oblea"
 WAFER_CONFIRM_MESSAGE = "Inserte la oblea en la cámara y confirme para continuar."
@@ -393,6 +394,7 @@ TUTOR_NAMES = ("Ing. Andres L. Di Donato", "Nombre del tutor 2")
 
 _ACTIVE_LANGUAGE = "es"
 _SPANISH_TO_ENGLISH = {
+    "Tiempo de ciclo": "Cycle time",
     "Presión y Temperatura": "Pressure and Temperature",
     "Caudales MFC": "MFC flows",
     "Presión": "Pressure",

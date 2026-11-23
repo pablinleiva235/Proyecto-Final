@@ -1,7 +1,9 @@
 """Pantalla de operación normal con lecturas y espacio para el esquema."""
 
 from dataclasses import replace
-from PyQt5.QtCore import Qt, pyqtSignal
+import time
+
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QFrame,
     QFileDialog,
@@ -57,7 +59,16 @@ class NormalOperationScreen(QWidget):
         self._active_recipe = None
         self._recipe_running = False
         self._drivers_confirmed = False
+        self._cycle_started_at = None
+        self._cycle_elapsed_seconds = 0
         self.create_widgets()
+        self._cycle_tick_timer = QTimer(self)
+        self._cycle_tick_timer.setInterval(1000)
+        self._cycle_tick_timer.timeout.connect(self._update_cycle_timer)
+        self._cycle_reset_timer = QTimer(self)
+        self._cycle_reset_timer.setSingleShot(True)
+        self._cycle_reset_timer.setInterval(120_000)
+        self._cycle_reset_timer.timeout.connect(self._reset_cycle_timer)
         self.setup_layout()
         self.connect_signals()
 
@@ -132,6 +143,11 @@ class NormalOperationScreen(QWidget):
         self.recipe_status_label = QLabel(text.RECIPE_IDLE_STATUS)
         self.recipe_status_label.setObjectName("OperationReadoutLabel")
         self.recipe_status_label.setWordWrap(True)
+        self.cycle_timer_label = QLabel()
+        self.cycle_timer_label.setObjectName("OperationReadoutLabel")
+        set_localized_text(self.cycle_timer_label, text.RECIPE_CYCLE_TIME_LABEL)
+        self.cycle_timer_value = QLabel("00:00:00")
+        self.cycle_timer_value.setObjectName("OperationReadoutValue")
         for button in (
             self.new_recipe_button,
             self.load_recipe_button,
@@ -140,6 +156,8 @@ class NormalOperationScreen(QWidget):
         ):
             actions_layout.addWidget(button)
         actions_layout.addWidget(self.recipe_status_label)
+        actions_layout.addWidget(self.cycle_timer_label)
+        actions_layout.addWidget(self.cycle_timer_value)
         actions_layout.addStretch(1)
 
         self.back_button = QPushButton(text.BACK_BUTTON_TEXT)
@@ -447,6 +465,39 @@ class NormalOperationScreen(QWidget):
 
     def set_recipe_status(self, status):
         set_localized_text(self.recipe_status_label, status)
+
+    def start_cycle_timer(self):
+        """Inicia el tiempo de ciclo después de confirmar la carga de oblea."""
+        self._cycle_reset_timer.stop()
+        self._cycle_tick_timer.stop()
+        self._cycle_elapsed_seconds = 0
+        self._cycle_started_at = time.monotonic()
+        self._update_cycle_timer()
+        self._cycle_tick_timer.start()
+
+    def stop_cycle_timer(self):
+        """Congela el tiempo de ciclo y lo conserva durante dos minutos."""
+        if self._cycle_started_at is None:
+            return
+        self._update_cycle_timer()
+        self._cycle_started_at = None
+        self._cycle_tick_timer.stop()
+        self._cycle_reset_timer.start()
+
+    def _update_cycle_timer(self):
+        if self._cycle_started_at is not None:
+            self._cycle_elapsed_seconds = int(
+                time.monotonic() - self._cycle_started_at
+            )
+        hours, remainder = divmod(self._cycle_elapsed_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        self.cycle_timer_value.setText(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+
+    def _reset_cycle_timer(self):
+        self._cycle_elapsed_seconds = 0
+        self._cycle_started_at = None
+        self._cycle_tick_timer.stop()
+        self.cycle_timer_value.setText("00:00:00")
 
     def set_equipment_status(self, status):
         """Actualiza el indicador del equipo en cualquier modo de operación."""

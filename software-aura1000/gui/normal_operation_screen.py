@@ -467,7 +467,9 @@ class NormalOperationScreen(QWidget):
             f"{text.tr(text.RECIPE_BASE_PRESSURE_LABEL)}: {recipe.base_pressure:g} Torr\n"
             f"{text.tr(text.RECIPE_PROCESS_PRESSURE_LABEL)}: {recipe.process_pressure:g} Torr\n"
             f"{text.tr(text.RECIPE_PROCESS_TEMPERATURE_LABEL)}: {recipe.process_temperature:g} °C\n"
-            f"{text.tr(text.RECIPE_RF_MAX_ON_TIME_LABEL)}: {recipe.rf_max_on_time} s"
+            f"{text.tr(text.RECIPE_RF_MAX_ON_TIME_LABEL)}: {recipe.rf_max_on_time} s\n"
+            f"{text.tr(text.RECIPE_USE_EOP_LABEL)}: "
+            f"{text.tr(text.RECIPE_ENABLED_LABEL if recipe.use_eop else text.RECIPE_DISABLED_LABEL)}"
         )
         answer = QMessageBox.question(
             self, text.tr(text.START_RECIPE_CONFIRM_TITLE), details,

@@ -1,8 +1,11 @@
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
+from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtGui import QKeyEvent
 
 from tests.mockScripts.mock_hardware import MockHardware
+from tests.mockScripts.controllers.simulation_controller import SimulationController
 
 
 class MockHardwareTests(unittest.TestCase):
@@ -21,8 +24,30 @@ class MockHardwareTests(unittest.TestCase):
         voltage = flow / (10.0 * 0.981) * 5.0
         self.hardware.analog_write("MFC1_SETPOINT", voltage)
 
-    def test_eop_starts_at_ten_volts(self):
+    def test_eop_starts_at_zero_volts(self):
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+
+    def test_eop_adjustment_changes_one_volt_and_stays_within_limits(self):
+        self.hardware.adjust_eop(1)
+        self.assertEqual(self.hardware.analog_read("EOP"), 1.0)
+        self.hardware.adjust_eop(-1)
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+        self.hardware.adjust_eop(-1)
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+
+        for _ in range(11):
+            self.hardware.adjust_eop(1)
         self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
+
+    def test_simulation_controller_maps_up_and_down_to_eop(self):
+        controller = SimulationController(self.hardware)
+        up = QKeyEvent(QEvent.KeyPress, Qt.Key_Up, Qt.NoModifier)
+        down = QKeyEvent(QEvent.KeyPress, Qt.Key_Down, Qt.NoModifier)
+
+        self.assertTrue(controller.eventFilter(None, up))
+        self.assertEqual(self.hardware.analog_read("EOP"), 1.0)
+        self.assertTrue(controller.eventFilter(None, down))
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
 
     def test_digital_write_updates_state_and_reads_are_passive(self):
         output = StringIO()

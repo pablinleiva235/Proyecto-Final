@@ -12,6 +12,9 @@ class MockHardware:
 
     _THROTTLE_MAX_STEPS = 1400
     _TEMPERATURE_STEP_C = 5.0
+    _EOP_STEP_V = 1.0
+    _EOP_MIN_V = 0.0
+    _EOP_MAX_V = 10.0
 
     _BARATRON_MAX_TORR = 10.0
     _BARATRON_REFERENCE_THROTTLE_STEPS = 400
@@ -36,7 +39,7 @@ class MockHardware:
             "MFC3_FLOW": 0.0,
             "MFC4_FLOW": 0.0,
             "BARATRON": 0.0,
-            "EOP": 10.0,
+            "EOP": self._EOP_MIN_V,
             "CHAMBER_TEMP": 20.0,
         }
         self._analog_outputs = {}
@@ -191,6 +194,19 @@ class MockHardware:
         if direction not in (-1.0, 1.0):
             raise ValueError("La dirección debe ser -1 o 1.")
         self._analog_values["CHAMBER_TEMP"] += direction * self._TEMPERATURE_STEP_C
+
+    def adjust_eop(self, direction):
+        """Ajusta el EOP simulado en un paso de 1 V, limitado a 0–10 V."""
+        direction = float(direction)
+        if direction not in (-1.0, 1.0):
+            raise ValueError("La dirección debe ser -1 o 1.")
+        self._analog_values["EOP"] = min(
+            self._EOP_MAX_V,
+            max(
+                self._EOP_MIN_V,
+                self._analog_values["EOP"] + direction * self._EOP_STEP_V,
+            ),
+        )
 
     def analog_write(self, signal_name, voltage):
         from config.analog_signals import ANALOG_OUTPUTS

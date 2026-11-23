@@ -4,6 +4,7 @@ import math
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
+    QButtonGroup,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -11,6 +12,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
+    QHBoxLayout,
     QVBoxLayout,
 )
 
@@ -63,6 +66,24 @@ class RecipeEditorDialog(QDialog):
             self.parameter_edits[key] = edit
             form.addRow(f"{text.tr(label)} ({unit})", edit)
 
+        self.use_eop_yes_radio = QRadioButton(text.tr(text.RECIPE_YES_LABEL))
+        self.use_eop_yes_radio.setObjectName("RecipeUseEOPYes")
+        self.use_eop_no_radio = QRadioButton(text.tr(text.RECIPE_NO_LABEL))
+        self.use_eop_no_radio.setObjectName("RecipeUseEOPNo")
+        self.use_eop_group = QButtonGroup(self)
+        self.use_eop_group.addButton(self.use_eop_yes_radio, True)
+        self.use_eop_group.addButton(self.use_eop_no_radio, False)
+        self.use_eop_yes_radio.setChecked(recipe.use_eop)
+        self.use_eop_no_radio.setChecked(not recipe.use_eop)
+        eop_options = QHBoxLayout()
+        eop_options.addWidget(self.use_eop_yes_radio)
+        eop_options.addStretch(1)
+        eop_options.addWidget(self.use_eop_no_radio)
+        form.addRow(text.tr(text.RECIPE_USE_EOP_LABEL), eop_options)
+        self.use_eop_yes_radio.toggled.connect(self._update_eop_option_emphasis)
+        self.use_eop_no_radio.toggled.connect(self._update_eop_option_emphasis)
+        self._update_eop_option_emphasis()
+
         self.parameter_edits["o2_flow"].textChanged.connect(self._update_process_pressure_minimum)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
@@ -78,6 +99,12 @@ class RecipeEditorDialog(QDialog):
         layout.addWidget(buttons)
         self.setMinimumWidth(480)
         self._update_process_pressure_minimum()
+
+    def _update_eop_option_emphasis(self, *_args):
+        for radio in (self.use_eop_yes_radio, self.use_eop_no_radio):
+            font = radio.font()
+            font.setBold(radio.isChecked())
+            radio.setFont(font)
 
     def _update_process_pressure_minimum(self):
         try:
@@ -160,6 +187,7 @@ class RecipeEditorDialog(QDialog):
             name=name,
             description=description,
             source_path=self._recipe.source_path,
+            use_eop=self.use_eop_yes_radio.isChecked(),
             **values,
         )
         if self._save_callback is not None:
@@ -209,6 +237,11 @@ class RecipeViewerDialog(QDialog):
             else:
                 value = format(float(getattr(recipe, key)), ".15g")
             details.addRow(f"{text.tr(label)} ({unit})", QLabel(value))
+        details.addRow(
+            text.tr(text.RECIPE_USE_EOP_LABEL),
+            QLabel(text.tr(text.RECIPE_ENABLED_LABEL if recipe.use_eop
+                           else text.RECIPE_DISABLED_LABEL)),
+        )
 
         close_button = QPushButton(text.tr(text.RECIPE_CLOSE_BUTTON))
         edit_button = QPushButton(text.tr(text.RECIPE_EDIT_BUTTON))

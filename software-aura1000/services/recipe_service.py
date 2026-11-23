@@ -27,6 +27,7 @@ class Recipe:
     process_temperature: float
     source_path: Optional[Path] = None
     rf_max_on_time: int = 90
+    use_eop: bool = True
 
 
 class RecipeService:
@@ -88,6 +89,11 @@ class RecipeService:
                 if parser.has_option("PARAMETERS", "rf_max_on_time")
                 else 90
             )
+            values["use_eop"] = (
+                parser.getboolean("PARAMETERS", "use_eop")
+                if parser.has_option("PARAMETERS", "use_eop")
+                else True
+            )
         except (ConfigParserError, ValueError) as error:
             raise RecipeError(text.RECIPE_ERROR_PARAMETERS)
 
@@ -105,6 +111,8 @@ class RecipeService:
             raise RecipeError(text.RECIPE_ERROR_NAME_REQUIRED)
         if not isinstance(recipe.description, str) or not recipe.description.strip():
             raise RecipeError(text.RECIPE_ERROR_METADATA)
+        if not isinstance(recipe.use_eop, bool):
+            raise RecipeError(text.RECIPE_ERROR_INVALID_VALUES)
 
         for key in self.PARAMETERS:
             try:
@@ -169,6 +177,7 @@ class RecipeService:
             key: self._format_value(float(getattr(recipe, key)))
             for key in self.PARAMETERS
         }
+        parser["PARAMETERS"]["use_eop"] = str(recipe.use_eop).lower()
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
             with path.open("w", encoding="utf-8", newline="\n") as recipe_file:

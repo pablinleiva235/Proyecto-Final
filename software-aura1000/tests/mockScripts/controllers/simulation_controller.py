@@ -43,6 +43,14 @@ class SimulationController(QObject):
             if event.key() == Qt.Key_6:
                 self._hardware.adjust_temperature(1)
                 return True
+
+            if event.key() == Qt.Key_Up:
+                self._hardware.adjust_eop(1)
+                return True
+
+            if event.key() == Qt.Key_Down:
+                self._hardware.adjust_eop(-1)
+                return True
             
         return super().eventFilter(obj,event)
 

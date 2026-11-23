@@ -230,7 +230,8 @@ class RecipeSequence(QObject):
             f"presion_base={recipe.base_pressure:g} Torr | "
             f"presion_proceso={recipe.process_pressure:g} Torr | "
             f"temperatura={recipe.process_temperature:g} C | "
-            f"tiempo_maximo_RF={recipe.rf_max_on_time} s"
+            f"tiempo_maximo_RF={recipe.rf_max_on_time} s | "
+            f"criterio_EOP={'habilitado' if recipe.use_eop else 'deshabilitado'}"
         ):
             return False
         if not self._set_state(RecipeState.WAITING_FOR_WAFER):
@@ -329,7 +330,8 @@ class RecipeSequence(QObject):
                 self._prepare_throttle_before_gas_flow()
         elif name == "EOP":
             self._eop = value
-            if self._state == RecipeState.RUNNING_PLASMA and not self._stopping:
+            if (self._state == RecipeState.RUNNING_PLASMA and not self._stopping
+                    and self._recipe.use_eop):
                 if not self._eop_armed:
                     if value > self.EOP_ARM_THRESHOLD_V:
                         self._eop_armed = True

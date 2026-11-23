@@ -45,6 +45,51 @@ class MockHardwareTests(unittest.TestCase):
             self.hardware.adjust_eop(1)
         self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
 
+    def test_plasma_starts_eop_ramp_and_runs_through_automatic_descent(self):
+        self.hardware.adjust_eop(1)
+        self.hardware.digital_set("RF_ON_CMD", True)
+
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+        self.assertEqual(self.hardware._eop_timer.interval(), 500)
+        QTest.qWait(550)
+        self.assertEqual(self.hardware.analog_read("EOP"), 1.0)
+
+        for _ in range(9):
+            self.hardware._advance_eop_cycle()
+        self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
+        self.assertEqual(self.hardware._eop_phase, "falling")
+        self.assertEqual(self.hardware._eop_timer.interval(), 1000)
+
+        for _ in range(19):
+            self.hardware._advance_eop_cycle()
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.5)
+        self.hardware._advance_eop_cycle()
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+        self.assertIsNone(self.hardware._eop_phase)
+        self.assertFalse(self.hardware._eop_timer.isActive())
+
+    def test_rf_toggle_does_not_restart_active_eop_cycle_but_can_start_a_new_cycle_afterward(self):
+        self.hardware.digital_set("RF_ON_CMD", True)
+        for _ in range(10):
+            self.hardware._advance_eop_cycle()
+        self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
+
+        self.hardware.digital_set("RF_ON_CMD", False)
+        self.hardware.digital_set("RF_ON_CMD", True)
+        self.assertEqual(self.hardware.analog_read("EOP"), 10.0)
+        self.assertEqual(self.hardware._eop_phase, "falling")
+
+        for _ in range(20):
+            self.hardware._advance_eop_cycle()
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+        self.assertIsNone(self.hardware._eop_phase)
+
+        self.hardware.digital_set("RF_ON_CMD", False)
+        self.hardware.digital_set("RF_ON_CMD", True)
+        self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+        self.assertEqual(self.hardware._eop_phase, "rising")
+        self.assertTrue(self.hardware._eop_timer.isActive())
+
     def test_simulation_controller_maps_up_and_down_to_eop(self):
         controller = SimulationController(self.hardware)
         up = QKeyEvent(QEvent.KeyPress, Qt.Key_Up, Qt.NoModifier)
@@ -54,6 +99,22 @@ class MockHardwareTests(unittest.TestCase):
         self.assertEqual(self.hardware.analog_read("EOP"), 1.0)
         self.assertTrue(controller.eventFilter(None, down))
         self.assertEqual(self.hardware.analog_read("EOP"), 0.0)
+
+    def test_simulation_controller_x_reduces_temperature_without_changing_plasma_fault_or_timer(self):
+        controller = SimulationController(self.hardware)
+        self.hardware.set_analog_value("CHAMBER_TEMP", 55.0)
+        self.hardware.digital_set("LAMP2_ON_CMD", True)
+        temperature_timer_interval = self.hardware._temperature_timer.interval()
+
+        event = QKeyEvent(QEvent.KeyPress, Qt.Key_X, Qt.NoModifier)
+        self.assertTrue(controller.eventFilter(None, event))
+
+        self.assertEqual(self.hardware.analog_read_temperature("CHAMBER_TEMP"), 35.0)
+        self.assertTrue(self.hardware.digital_read("PLASMA_FAIL"))
+        self.assertEqual(
+            self.hardware._temperature_timer.interval(), temperature_timer_interval
+        )
+        self.assertTrue(self.hardware._temperature_timer.isActive())
 
     def test_digital_write_updates_state_and_reads_are_passive(self):
         output = StringIO()

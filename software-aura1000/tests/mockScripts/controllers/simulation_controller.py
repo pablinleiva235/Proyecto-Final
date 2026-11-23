@@ -33,7 +33,8 @@ class SimulationController(QObject):
                 return True
             
             if event.key() == Qt.Key_X:
-                self._toggle_input("PLASMA_FAIL")
+                temperature = self._hardware.analog_read_temperature("CHAMBER_TEMP")
+                self._hardware.set_analog_value("CHAMBER_TEMP", temperature - 20.0)
                 return True
 
             if event.key() == Qt.Key_Up:

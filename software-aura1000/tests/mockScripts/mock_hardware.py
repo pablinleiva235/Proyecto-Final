@@ -23,6 +23,9 @@ class MockHardware:
     _EOP_STEP_V = 1.0
     _EOP_MIN_V = 0.0
     _EOP_MAX_V = 10.0
+    _EOP_RAMP_UP_INTERVAL_MS = 500
+    _EOP_RAMP_DOWN_INTERVAL_MS = 1000
+    _EOP_RAMP_DOWN_STEP_V = 0.5
     _VENT_TO_ATM_DELAY_MS = 500
 
     _BARATRON_MAX_TORR = 10.0
@@ -41,6 +44,10 @@ class MockHardware:
         self._temperature_timer.timeout.connect(self._advance_simulated_temperature)
         self._temperature_step_c = 0.0
         self._temperature_min_c = None
+        self._eop_timer = QTimer()
+        self._eop_timer.setSingleShot(True)
+        self._eop_timer.timeout.connect(self._advance_eop_cycle)
+        self._eop_phase = None
         self._throttle_position_steps = 0
         self._digital_states = {
             name: (signal["initial_state"] == signal["active_state"])
@@ -106,6 +113,8 @@ class MockHardware:
         if signal_name in self._DEVICE_FAILURE_SIGNALS:
             if active != was_active:
                 self._configure_temperature_simulation()
+            if signal_name == "RF_ON_CMD" and active and not was_active:
+                self._start_eop_cycle()
 
     def _activate_atm_switch_after_vent(self):
         """Activa ATM_SWITCH si la válvula sigue abierta tras la demora."""
@@ -287,6 +296,39 @@ class MockHardware:
                 self._analog_values["EOP"] + direction * self._EOP_STEP_V,
             ),
         )
+
+    def _start_eop_cycle(self):
+        """Inicia una rampa EOP si no hay otro ciclo en curso."""
+        if self._eop_phase is not None:
+            return
+        self._analog_values["EOP"] = self._EOP_MIN_V
+        self._eop_phase = "rising"
+        self._eop_timer.start(self._EOP_RAMP_UP_INTERVAL_MS)
+
+    def _advance_eop_cycle(self):
+        """Avanza un paso de la subida o bajada automática de EOP."""
+        if self._eop_phase == "rising":
+            self._analog_values["EOP"] = min(
+                self._EOP_MAX_V,
+                self._analog_values["EOP"] + self._EOP_STEP_V,
+            )
+            if self._analog_values["EOP"] >= self._EOP_MAX_V:
+                self._eop_phase = "falling"
+                self._eop_timer.start(self._EOP_RAMP_DOWN_INTERVAL_MS)
+            else:
+                self._eop_timer.start(self._EOP_RAMP_UP_INTERVAL_MS)
+            return
+
+        if self._eop_phase == "falling":
+            self._analog_values["EOP"] = max(
+                self._EOP_MIN_V,
+                self._analog_values["EOP"] - self._EOP_RAMP_DOWN_STEP_V,
+            )
+            if self._analog_values["EOP"] <= self._EOP_MIN_V:
+                self._eop_phase = None
+                self._eop_timer.stop()
+            else:
+                self._eop_timer.start(self._EOP_RAMP_DOWN_INTERVAL_MS)
 
     def analog_write(self, signal_name, voltage):
         from config.analog_signals import ANALOG_OUTPUTS

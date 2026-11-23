@@ -88,6 +88,29 @@ class SchematicDiagramWidget(QLabel):
         self._update_asset_status()
         self.update()
 
+    def set_component_states(self, states):
+        """Update several components together, validating before changing any."""
+        for component, state in states.items():
+            if component not in self.COMPONENTS:
+                raise KeyError(f"Componente de esquema desconocido: {component}")
+            variants = self.COMPONENTS[component][3:]
+            if state not in variants:
+                raise ValueError(
+                    f"Estado {state!r} no disponible para {component}; "
+                    f"opciones: {', '.join(variants)}"
+                )
+
+        changed = []
+        for component, state in states.items():
+            if self._states[component] == state:
+                continue
+            self._states[component] = state
+            self._load_component(component)
+            changed.append(component)
+        if changed:
+            self._update_asset_status()
+            self.update()
+
     def set_pump_state(self, state):
         self.set_component_state("pump", state)
 
@@ -180,7 +203,7 @@ class SchematicDiagramWidget(QLabel):
     @staticmethod
     def _component_render_rect(name, rect, state):
         if name == "chamber" and state == "open":
-            return QRectF(rect.x(), rect.y() - 50, rect.width(), 183)
+            return QRectF(rect.x(), rect.y(), rect.width(), 183)
         return rect
 
     @staticmethod

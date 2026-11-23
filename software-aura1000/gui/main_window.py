@@ -280,6 +280,19 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
     def connect_signals(self):
+        self._schematic_module_states = {
+            "door": self.door_sequence.state,
+            "soft_vacuum": self.soft_vacuum_sequence.state,
+            "main_vacuum": self.main_vacuum_sequence.state,
+            "vent": self.vent_sequence.state,
+            "mfc1": False,
+            "mfc2": False,
+            "mfc1_error": False,
+            "mfc2_error": False,
+            "temperature": self.temperature_controller.state,
+            "plasma": self.process_controller.plasma_active,
+        }
+
         # Solicita autenticación para ingresar al modo Maintainer
         self.welcome_screen.maintainer_requested.connect(
             self._request_maintainer_access
@@ -315,6 +328,31 @@ class MainWindow(QMainWindow):
         )
         self.recipe_sequence.error_raised.connect(self._handle_recipe_error)
         self.recipe_sequence.finished.connect(self._handle_recipe_finished)
+        self.recipe_sequence.state_changed.connect(self._sync_schematic_diagram)
+        self.door_sequence.state_changed.connect(
+            lambda state: self._set_schematic_module_state("door", state)
+        )
+        self.soft_vacuum_sequence.state_changed.connect(
+            lambda state: self._set_schematic_module_state("soft_vacuum", state)
+        )
+        self.main_vacuum_sequence.state_changed.connect(
+            lambda state: self._set_schematic_module_state("main_vacuum", state)
+        )
+        self.vent_sequence.state_changed.connect(
+            lambda state: self._set_schematic_module_state("vent", state)
+        )
+        self.mfc_controller.valve_state_changed.connect(
+            self._handle_schematic_mfc_state
+        )
+        self.mfc_controller.operation_error.connect(
+            self._handle_schematic_mfc_error
+        )
+        self.temperature_controller.state_changed.connect(
+            lambda state: self._set_schematic_module_state("temperature", state)
+        )
+        self.process_controller.state_changed.connect(
+            self._handle_schematic_process_state
+        )
 
         if self.shutdown_sequence is not None:
             self.shutdown_sequence.sequence_error.connect(
@@ -617,7 +655,76 @@ class MainWindow(QMainWindow):
         self.maintainer_screen.set_soft_vacuum_state( self.soft_vacuum_sequence.state )
         self.maintainer_screen.set_main_vacuum_state(self.main_vacuum_sequence.state )
         self.maintainer_screen.set_vent_state(self.vent_sequence.state )
+        self._sync_schematic_diagram()
         self._update_sequence_permissions()
+
+    def _set_schematic_module_state(self, module, state):
+        self._schematic_module_states[module] = state
+        self._sync_schematic_diagram()
+
+    def _handle_schematic_mfc_state(self, name, opened):
+        module = {"MFC1": "mfc1", "MFC2": "mfc2"}.get(name)
+        if module is None:
+            return
+        self._schematic_module_states[module] = bool(opened)
+        self._schematic_module_states[f"{module}_error"] = False
+        self._sync_schematic_diagram()
+
+    def _handle_schematic_mfc_error(self, name, _message):
+        module = {"MFC1": "mfc1", "MFC2": "mfc2"}.get(name)
+        if module is None:
+            return
+        self._schematic_module_states[f"{module}_error"] = True
+        self._sync_schematic_diagram()
+
+    def _handle_schematic_process_state(self, name, enabled):
+        if name == "plasma":
+            self._set_schematic_module_state("plasma", bool(enabled))
+
+    @staticmethod
+    def _state_value(state):
+        return getattr(state, "value", state)
+
+    def _sync_schematic_diagram(self, *_args):
+        """Render confirmed module states using the SVG variants available."""
+        states = self._schematic_module_states
+        door = self._state_value(states["door"])
+        soft_vacuum = self._state_value(states["soft_vacuum"])
+        main_vacuum = self._state_value(states["main_vacuum"])
+        vent = self._state_value(states["vent"])
+        temperature = self._state_value(states["temperature"])
+
+        valve_state = lambda state: (
+            "open" if state == "running" else
+            "half" if state in ("starting", "stopping") else "close"
+        )
+        chamber = (
+            "plasma" if states["plasma"] else
+            "heating" if temperature in ("precalentando", "manteniendo") else
+            "open" if door == "open" else "idle"
+        )
+        diagram_states = {
+            "pump": (
+                "alert" if main_vacuum == "error" else
+                "open" if main_vacuum == "running" else "idle"
+            ),
+            "left_valve_1": "open" if states["mfc2"] else "close",
+            "left_valve_2": valve_state(soft_vacuum),
+            "left_valve_3": valve_state(main_vacuum),
+            "vent_valve": valve_state(vent),
+            "right_valve_1": "open" if states["mfc1"] else "close",
+            "right_valve_2": "open" if states["mfc2"] else "close",
+            "mfc_o2": (
+                "alert" if states["mfc1_error"] else
+                "open" if states["mfc1"] else "idle"
+            ),
+            "mfc_n2": (
+                "alert" if states["mfc2_error"] else
+                "open" if states["mfc2"] else "idle"
+            ),
+            "chamber": chamber,
+        }
+        self.normal_operation_screen.diagram_image.set_component_states(diagram_states)
 
     def _request_maintenance_exit(self):
         if self._maintenance_shutdown_pending:

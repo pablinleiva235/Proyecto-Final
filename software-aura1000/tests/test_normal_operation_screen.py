@@ -62,6 +62,19 @@ class SchematicDiagramTests(unittest.TestCase):
         self.assertEqual(diagram._states["mfc_n2"], "idle")
         self.assertEqual(diagram._states["right_valve_1"], "close")
 
+    def test_component_states_updates_batch_and_validates_atomically(self):
+        diagram = SchematicDiagramWidget()
+        diagram.set_component_states({"pump": "open", "chamber": "heating"})
+
+        self.assertEqual(diagram._states["pump"], "open")
+        self.assertEqual(diagram._states["chamber"], "heating")
+        self.assertTrue(diagram.assets_available)
+
+        with self.assertRaises(ValueError):
+            diagram.set_component_states({"pump": "idle", "chamber": "alert"})
+        self.assertEqual(diagram._states["pump"], "open")
+        self.assertEqual(diagram._states["chamber"], "heating")
+
     def test_unavailable_component_state_is_rejected(self):
         diagram = SchematicDiagramWidget()
 
